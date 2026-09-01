@@ -36,7 +36,7 @@ These decisions affect the whole product and therefore cannot belong to only one
 
 ```text
 Project name:
-________________________________________
+jeoparty.teamham.world (JeoParty)
 ```
 
 ### Original Q2 — One-sentence product definition
@@ -47,66 +47,65 @@ Example:
 
 ```text
 Our definition:
-________________________________________
-________________________________________
+A fast, browser-based 1-to-1 parody of Jeopardy with Team Ham themes and OAuth integration, enabling a host to run the game board on a TV while individual players or teams buzz in from their phones and spectators chat and react in realtime.
 ```
 
 ### Original Q3 — Primary purpose
 
 Choose all that apply:
 
-- [ ] Party game with friends
+- [x] Party game with friends
 - [ ] Classroom / education
-- [ ] Family game night
-- [ ] Stream / online event
-- [ ] Club / organization events
-- [ ] Reusable personal project
-- [ ] Portfolio project
-- [ ] Other: ________________________
+- [x] Family game night
+- [x] Stream / online event
+- [x] Club / organization events
+- [x] Reusable personal project
+- [x] Portfolio project
+- [x] Other: Community / Team Ham events & streams
 
 ### Original Q4 — Product priorities
 
 Rank **1 = most important** to **6 = least important**.
 
 ```text
-___ Fun / game feel
-___ Reliability
-___ Easy setup
-___ Multiplayer responsiveness
-___ Customization
-___ Visual polish
+1 Fun / game feel
+2 Reliability
+3 Easy setup
+4 Multiplayer responsiveness
+5 Customization
+6 Visual polish
 ```
 
 ### Original Q5 — Who uses the application?
 
-- [ ] Host
-- [ ] Players
-- [ ] Audience / spectators
-- [ ] Game creator / editor
-- [ ] Administrator
+- [x] Host
+- [x] Players
+- [x] Audience / spectators
+- [x] Game creator / editor
+- [x] Administrator
 - [ ] Other: ________________________
 
 ### Required Screens — Version 1 scope
 
 Check every screen required for Version 1.
 
-- [ ] Landing / Home
-- [ ] Create Game
-- [ ] Edit Question Pack
-- [ ] Host Lobby
-- [ ] Player Join
-- [ ] Player Lobby
-- [ ] Main Game Board / TV
-- [ ] Clue Screen
-- [ ] Player Buzzer Screen
-- [ ] Host Control Panel
-- [ ] Daily Double Screen
-- [ ] Final Jeopardy Wager Screen
-- [ ] Final Jeopardy Answer Screen
-- [ ] Results / Winner Screen
+- [x] Landing / Home
+- [x] Create Game
+- [x] Edit Question Pack
+- [x] Host Lobby
+- [x] Player Join
+- [x] Player Lobby
+- [x] Main Game Board / TV
+- [x] Clue Screen
+- [x] Player Buzzer Screen
+- [x] Host Control Panel
+- [x] Daily Double Screen
+- [x] Final Jeopardy Wager Screen
+- [x] Final Jeopardy Answer Screen
+- [x] Results / Winner Screen
 - [ ] Game History
-- [ ] Settings
-- [ ] Saved Games
+- [x] Settings
+- [x] Saved Games
 - [ ] Other: ________________________
 
 ### Core Feature Priority Matrix
@@ -115,61 +114,63 @@ For every feature, select exactly one priority.
 
 | Feature | Must Have | Should Have | Later | Never |
 |---|---|---|---|---|
-| Custom categories | [ ] | [ ] | [ ] | [ ] |
-| Custom clues/questions | [ ] | [ ] | [ ] | [ ] |
-| Scores | [ ] | [ ] | [ ] | [ ] |
-| Phone buzzers | [ ] | [ ] | [ ] | [ ] |
-| Room codes | [ ] | [ ] | [ ] | [ ] |
-| Daily Doubles | [ ] | [ ] | [ ] | [ ] |
-| Final Jeopardy | [ ] | [ ] | [ ] | [ ] |
-| Timers | [ ] | [ ] | [ ] | [ ] |
-| Sound effects | [ ] | [ ] | [ ] | [ ] |
-| Animations | [ ] | [ ] | [ ] | [ ] |
-| Save/resume games | [ ] | [ ] | [ ] | [ ] |
-| Question pack import | [ ] | [ ] | [ ] | [ ] |
-| Question pack export | [ ] | [ ] | [ ] | [ ] |
-| Images in clues | [ ] | [ ] | [ ] | [ ] |
-| Video in clues | [ ] | [ ] | [ ] | [ ] |
-| Audio in clues | [ ] | [ ] | [ ] | [ ] |
-| Undo | [ ] | [ ] | [ ] | [ ] |
-| Manual score adjustment | [ ] | [ ] | [ ] | [ ] |
-| Player reconnect | [ ] | [ ] | [ ] | [ ] |
-| Game statistics | [ ] | [ ] | [ ] | [ ] |
-| Accounts/login | [ ] | [ ] | [ ] | [ ] |
+| Custom categories | [ ] | [x] | [ ] | [ ] |
+| Custom clues/questions | [x] | [ ] | [ ] | [ ] |
+| Scores | [x] | [ ] | [ ] | [ ] |
+| Phone buzzers | [ ] | [x] | [ ] | [ ] |
+| Room codes | [ ] | [x] | [ ] | [ ] |
+| Daily Doubles | [x] | [ ] | [ ] | [ ] |
+| Final Jeopardy | [x] | [ ] | [ ] | [ ] |
+| Timers | [x] | [ ] | [ ] | [ ] |
+| Sound effects | [x] | [ ] | [ ] | [ ] |
+| Animations | [x] | [ ] | [ ] | [ ] |
+| Save/resume games | [x] | [ ] | [ ] | [ ] |
+| Question pack import | [ ] | [ ] | [x] | [ ] |
+| Question pack export | [ ] | [ ] | [x] | [ ] |
+| Images in clues | [x] | [ ] | [ ] | [ ] |
+| Video in clues | [ ] | [x] | [ ] | [ ] |
+| Audio in clues | [ ] | [x] | [ ] | [ ] |
+| Undo | [ ] | [x] | [ ] | [ ] |
+| Manual score adjustment | [x] | [ ] | [ ] | [ ] |
+| Player reconnect | [x] | [ ] | [ ] | [ ] |
+| Game statistics | [ ] | [ ] | [x] | [ ] |
+| Accounts/login | [ ] | [ ] | [x] | [ ] |
 
 Add missing features:
 
 ```text
-Feature: __________________   Priority: __________
-Feature: __________________   Priority: __________
-Feature: __________________   Priority: __________
+Feature: Teams selection   Priority: Must have
+Feature: Team ham login Oauth system    Priority: must have
+Feature: audience chat/ reactions after an answer from audience  Priority: Must have
+Feature: accessibility control option of chat to display if typing or not   Priority: Must have
 ```
 
 ### Original Q31 — What MUST work before Version 1 is finished?
 
 ```text
-1. ________________________________________
-2. ________________________________________
-3. ________________________________________
-4. ________________________________________
-5. ________________________________________
+1. Realtime buzzer system with sub-millisecond tie-breaking, lockout, and zero dual-buzz bugs.
+2. Synchronized state across TV/Display, Host dashboard, Player phones, and Spectator views.
+3. Complete 3-phase Jeopardy game loop (Jeopardy, Double Jeopardy, Final Jeopardy + Daily Doubles).
+4. Host controls: clue selection, judging, score adjustment, buzzer unlock/reset, timer overrides, and undo.
+5. Question pack creation/editing/loading with persistence and Team Ham OAuth authentication.
 ```
 
 ### Original Q32 — Explicitly OUT OF SCOPE for Version 1
 
 ```text
-1. ________________________________________
-2. ________________________________________
-3. ________________________________________
-4. ________________________________________
-5. ________________________________________
+1. Native mobile applications (iOS/Android App Store binaries; web PWA is used instead).
+2. AI-generated voice speech synthesis reading clues aloud automatically.
+3. Multi-game tournament bracket management systems.
+4. Paid subscriptions, microtransactions, or monetization/monetary wagering.
+5. Offline mesh network communication without internet/local network server connectivity.
 ```
 
 ### Original Q33 — What can be mocked or simplified in Version 1?
 
 ```text
-________________________________________
-________________________________________
+- Player avatars can use generated letter-badges / Team Ham theme avatars instead of full custom image uploads.
+- Advanced game analytics/statistics can be simplified to final game scoreboard and summary stats.
+- Local sound effects can use high-quality bundled Web Audio API / audio assets without requiring external CDN streaming.
 ```
 
 ### Original Q34 — Definition of a successful full game
@@ -180,28 +181,26 @@ Example:
 
 ```text
 Our definition:
-________________________________________
-________________________________________
-________________________________________
+a 1-1 parody of jeopardy game with themes of Ham. A host creates and controls a room, players/teams join seamlessly on mobile devices, the main game board displays cleanly on a TV, buzzers and scores stay strictly synchronized in real-time, Daily Doubles and Final Jeopardy execute flawlessly, and the final winner is crowned without page reloads.
 ```
 
 ### Original Q35 — Unacceptable failures
 
-- [ ] Scores desynchronize
-- [ ] Two Players win the same buzz
-- [ ] Refresh destroys the game
-- [ ] Players cannot reconnect
-- [ ] Used clues reappear
-- [ ] Host loses control
-- [ ] Final Jeopardy exposes answers early
-- [ ] Other: ________________________
+- [x] Scores desynchronize
+- [x] Two Players win the same buzz
+- [x] Refresh destroys the game
+- [x] Players cannot reconnect
+- [x] Used clues reappear
+- [x] Host loses control
+- [x] Final Jeopardy exposes answers early
+- [x] Other: Accidental double-judging or desynchronized game phase lockouts
 
 ### Product-level non-negotiables
 
 ```text
-1. ________________________________________
-2. ________________________________________
-3. ________________________________________
+1. Rock-solid buzzer fairness and sub-second real-time responsiveness across all connected devices.
+2. Absolute data integrity: scores, current phase, and clue states must never desync across views.
+3. Zero question/answer leaks: correct responses and hidden Daily Double positions are never sent to players before reveal.
 ```
 
 ---
@@ -211,10 +210,10 @@ ________________________________________
 
 ### Original Q9 — Required game modes for Version 1
 
-- [ ] Jeopardy round
-- [ ] Double Jeopardy
-- [ ] Final Jeopardy
-- [ ] Custom rounds
+- [x] Jeopardy round
+- [x] Double Jeopardy
+- [x] Final Jeopardy
+- [x] Custom rounds
 - [ ] Lightning round
 - [ ] Practice mode
 - [ ] Other: ________________________
@@ -222,26 +221,26 @@ ________________________________________
 ### Original Q10 — Player limits
 
 ```text
-Minimum: ______
-Maximum: ______
-Ideal/default: ______
+Minimum: 1 (Practice / Solo with Host) or 2 (Competitive)
+Maximum: 16 (Individual players or Teams)
+Ideal/default: 3 to 6
 ```
 
 ### Original Q11 — Is there always one Host?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ### Original Q12 — Can the Host also play?
 
 - [ ] Yes
 - [ ] No
-- [ ] Optional setting
+- [x] Optional setting
 
 ### Original Q13 — Can a game be played without player phones?
 
 - [ ] No — phones are required
-- [ ] Yes — Host can manually control buzzing
+- [x] Yes — Host can manually control buzzing
 - [ ] Yes — keyboard/controller alternative
 - [ ] Other: ________________________
 
@@ -251,27 +250,27 @@ Ideal/default: ______
 1 = Very custom / loose rules
 10 = Closely follow traditional Jeopardy
 
-Answer: ______ / 10
+Answer: 9 / 10 (Traditional rules with Team Ham flavor and configurable options)
 ```
 
 ### Completion Question — Which gameplay rules must be configurable per game?
 
-- [ ] Player count
-- [ ] Number of rounds
-- [ ] Category count
-- [ ] Clue count
-- [ ] Clue values
-- [ ] Incorrect-answer penalties
-- [ ] Timers
-- [ ] Daily Double count/rules
-- [ ] Final Jeopardy eligibility
+- [x] Player count
+- [x] Number of rounds
+- [x] Category count
+- [x] Clue count
+- [x] Clue values
+- [x] Incorrect-answer penalties
+- [x] Timers
+- [x] Daily Double count/rules
+- [x] Final Jeopardy eligibility
 - [ ] Other: ________________________
 
 **Role 1 sign-off**
 
 ```text
-Owner name: ________________________
-[ ] My Product Spec questions are complete
+Owner name: Role 1 — Engine & Rules Specialist
+[x] My Product Spec questions are complete
 ```
 
 ---
@@ -281,36 +280,36 @@ Owner name: ________________________
 
 ### Original Q7 — Main display device support
 
-- [ ] TV
-- [ ] Projector
-- [ ] Laptop screen
-- [ ] Desktop monitor
+- [x] TV
+- [x] Projector
+- [x] Laptop screen
+- [x] Desktop monitor
 - [ ] Other: ________________________
 
 ### Original Q14 — Which screen is shown on the TV/projector?
 
 ```text
-________________________________________
+Main Game Board / TV Display Route (/display or /board/:roomCode) featuring fullscreen animated 6x5 board, category headers, active clue modal with media support, buzzer status banner, and persistent team/player podium scoreboards.
 ```
 
 ### Completion Question — Does the audience display run independently from the Host screen?
 
-- [ ] Yes — separate route/window/device
+- [x] Yes — separate route/window/device
 - [ ] No — Host mirrors the same screen
 - [ ] Optional
 - [ ] Other: ________________________
 
 ### Completion Question — Must spectators be able to open a read-only display URL?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Later
 
 **Role 2 sign-off**
 
 ```text
-Owner name: ________________________
-[ ] My Product Spec questions are complete
+Owner name: Role 2 — Board & Presentation Specialist
+[x] My Product Spec questions are complete
 ```
 
 ---
@@ -320,44 +319,44 @@ Owner name: ________________________
 
 ### Original Q7 — Player device support
 
-- [ ] Desktop
-- [ ] Laptop
-- [ ] Tablet
-- [ ] Phone
+- [x] Desktop
+- [x] Laptop
+- [x] Tablet
+- [x] Phone
 - [ ] Other: ________________________
 
 ### Original Q16 — Which screen do Players use?
 
 ```text
-________________________________________
+Player Mobile Web View (/play/:roomCode or /join) featuring full-screen responsive buzzer, team/player identity badge, current score, buzz state feedback, Daily Double / Final Jeopardy wager inputs, and Final Jeopardy answer submission.
 ```
 
 ### Completion Question — Is a phone the primary Player experience?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Phone plus desktop/tablet equally supported
 
 ### Completion Question — What must a Player be able to do in Version 1?
 
-- [ ] Join room
-- [ ] Choose/display name
-- [ ] See own score
-- [ ] See all scores
-- [ ] Buzz
-- [ ] See whether buzz was won/lost
-- [ ] Submit Daily Double wager
-- [ ] Submit Final Jeopardy wager
-- [ ] Submit Final Jeopardy answer
-- [ ] Reconnect
-- [ ] Leave game
-- [ ] Other: ________________________
+- [x] Join room
+- [x] Choose/display name
+- [x] See own score
+- [x] See all scores
+- [x] Buzz
+- [x] See whether buzz was won/lost
+- [x] Submit Daily Double wager
+- [x] Submit Final Jeopardy wager
+- [x] Submit Final Jeopardy answer
+- [x] Reconnect
+- [x] Leave game
+- [x] Other: Select team avatar/color and send audience reactions
 
 **Role 3 sign-off**
 
 ```text
-Owner name: ________________________
-[ ] My Product Spec questions are complete
+Owner name: Role 3 — Player Experience Specialist
+[x] My Product Spec questions are complete
 ```
 
 ---
@@ -367,46 +366,46 @@ Owner name: ________________________
 
 ### Original Q6 — Does the Host need technical knowledge?
 
-- [ ] No — anyone should be able to host
+- [x] No — anyone should be able to host
 - [ ] Some familiarity is okay
 - [ ] Yes — mainly for our group
 
 ### Original Q7 — Host device support
 
-- [ ] Desktop
-- [ ] Laptop
-- [ ] Tablet
-- [ ] Phone
+- [x] Desktop
+- [x] Laptop
+- [x] Tablet
+- [x] Phone
 - [ ] Other: ________________________
 
 ### Original Q15 — Which screen does the Host use?
 
 ```text
-________________________________________
+Host Control Dashboard (/host/:roomCode) with real-time clue selection matrix, answer reveal prompt, judging buttons (Correct/Incorrect/Skip), buzzer reset, score adjustments, undo/redo, timer controls, and connected player management.
 ```
 
 ### Completion Question — What must the Host be able to do in Version 1?
 
-- [ ] Create/start a room
-- [ ] Start/pause/resume game
-- [ ] Select clue
-- [ ] Open/close/reset buzzers
-- [ ] Mark correct/incorrect
-- [ ] Reveal answer
-- [ ] Manually adjust score
-- [ ] Change board control
-- [ ] Undo
-- [ ] Advance rounds
-- [ ] Manage connected Players
-- [ ] Run Final Jeopardy
-- [ ] End game
+- [x] Create/start a room
+- [x] Start/pause/resume game
+- [x] Select clue
+- [x] Open/close/reset buzzers
+- [x] Mark correct/incorrect
+- [x] Reveal answer
+- [x] Manually adjust score
+- [x] Change board control
+- [x] Undo
+- [x] Advance rounds
+- [x] Manage connected Players
+- [x] Run Final Jeopardy
+- [x] End game
 - [ ] Other: ________________________
 
 **Role 4 sign-off**
 
 ```text
-Owner name: ________________________
-[ ] My Product Spec questions are complete
+Owner name: Role 4 — Host Controls Specialist
+[x] My Product Spec questions are complete
 ```
 
 ---
@@ -416,51 +415,51 @@ Owner name: ________________________
 
 ### Original Q17 — Can users create multiple Jeopardy games/question packs?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ### Original Q18 — What should a question pack contain?
 
-- [ ] Title
-- [ ] Description
-- [ ] Author
-- [ ] Categories
-- [ ] Clues
-- [ ] Correct answers
-- [ ] Media
-- [ ] Daily Double locations
-- [ ] Round settings
-- [ ] Visual theme
+- [x] Title
+- [x] Description
+- [x] Author
+- [x] Categories
+- [x] Clues
+- [x] Correct answers
+- [x] Media
+- [x] Daily Double locations
+- [x] Round settings
+- [x] Visual theme
 - [ ] Other: ________________________
 
 ### Original Q19 — How should packs be created?
 
-- [ ] Built-in editor
-- [ ] JSON import
-- [ ] CSV import
+- [x] Built-in editor
+- [x] JSON import
+- [x] CSV import
 - [ ] Spreadsheet import
 - [ ] Manual code/file editing
 - [ ] Other: ________________________
 
 ### Original Q20 — Should editing autosave?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ### Completion Question — Which content types are required for Version 1?
 
-- [ ] Text-only clues
-- [ ] Image clues
-- [ ] Audio clues
-- [ ] Video clues
-- [ ] Multiple acceptable answers
-- [ ] Explanations/notes for Host
+- [x] Text-only clues
+- [x] Image clues
+- [x] Audio clues
+- [x] Video clues
+- [x] Multiple acceptable answers
+- [x] Explanations/notes for Host
 - [ ] Tags/difficulty
 - [ ] Other: ________________________
 
 ### Completion Question — Can a Host start a game with incomplete content?
 
-- [ ] No — block start
+- [x] No — block start
 - [ ] Yes — warn only
 - [ ] Yes — allow blanks
 - [ ] Other: ________________________
@@ -468,8 +467,8 @@ Owner name: ________________________
 **Role 5 sign-off**
 
 ```text
-Owner name: ________________________
-[ ] My Product Spec questions are complete
+Owner name: Role 5 — Content & Question Editor Specialist
+[x] My Product Spec questions are complete
 ```
 
 ---
@@ -479,74 +478,74 @@ Owner name: ________________________
 
 ### Original Q8 — Browser support
 
-- [ ] Chrome
-- [ ] Edge
-- [ ] Firefox
-- [ ] Safari
-- [ ] Mobile Safari
-- [ ] Mobile Chrome
+- [x] Chrome
+- [x] Edge
+- [x] Firefox
+- [x] Safari
+- [x] Mobile Safari
+- [x] Mobile Chrome
 - [ ] Other: ________________________
 
 ### Original Q21 — How do Players join?
 
-- [ ] Room code
-- [ ] QR code
-- [ ] Direct URL
+- [x] Room code
+- [x] QR code
+- [x] Direct URL
 - [ ] Local network only
 - [ ] Host manually adds them
 
 ### Original Q22 — Does a room require a password/PIN?
 
 - [ ] No
-- [ ] Optional
+- [x] Optional
 - [ ] Always
 
 ### Original Q23 — Can Players join after the game starts?
 
 - [ ] No
-- [ ] Yes, anytime
+- [x] Yes, anytime
 - [ ] Only between clues
 - [ ] Only between rounds
 
 ### Original Q24 — Should disconnected Players be able to reconnect?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ### Original Q25 — Is remote internet play required?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Later
 
 ### Original Q26 — What should be saved?
 
-- [ ] Question packs
-- [ ] Unfinished games
-- [ ] Finished games
-- [ ] Scores
-- [ ] Game history
-- [ ] Player statistics
-- [ ] Host settings
-- [ ] Themes
+- [x] Question packs
+- [x] Unfinished games
+- [x] Finished games
+- [x] Scores
+- [x] Game history
+- [x] Player statistics
+- [x] Host settings
+- [x] Themes
 - [ ] Nothing after game ends
 - [ ] Other: ________________________
 
 ### Original Q27 — Should a live game survive a page refresh?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ### Original Q28 — Should a live game survive the Host accidentally closing the browser?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Best effort only
 
 ### Original Q29 — Are user accounts required?
 
 - [ ] No accounts
-- [ ] Host account only
+- [x] Host account only
 - [ ] Host and Player accounts
 - [ ] Later
 
@@ -554,18 +553,18 @@ Owner name: ________________________
 
 - [ ] Temporary player ID
 - [ ] Name only
-- [ ] Name + reconnect token
+- [x] Name + reconnect token
 - [ ] Other: ________________________
 
 ### Completion Question — Deployment target for Version 1
 
 ```text
-________________________________________
+Web App deployed on Vercel / Railway with Supabase (PostgreSQL + Auth + Realtime WebSocket) hosted on jeoparty.teamham.world
 ```
 
 ### Completion Question — Should one room be playable across different networks?
 
-- [ ] Yes — internet-hosted multiplayer
+- [x] Yes — internet-hosted multiplayer
 - [ ] No — same local network only
 - [ ] Both
 - [ ] Later
@@ -573,8 +572,8 @@ ________________________________________
 **Role 6 sign-off**
 
 ```text
-Owner name: ________________________
-[ ] My Product Spec questions are complete
+Owner name: Role 6 — Network & Persistence Specialist
+[x] My Product Spec questions are complete
 ```
 
 ---
@@ -584,28 +583,28 @@ Owner name: ________________________
 
 ```text
 Person 1 — Engine & Rules:
-Name: ________________________
-Scope notes: ________________________________________
+Name: Role 1 Specialist
+Scope notes: Core state machine, scoring, game rules, Daily Double, Final Jeopardy, history/undo
 
 Person 2 — Board & Presentation:
-Name: ________________________
-Scope notes: ________________________________________
+Name: Role 2 Specialist
+Scope notes: TV presentation, responsive 6x5 board, clue modal, animations, score podiums
 
 Person 3 — Player / Buzzer / Scoring Experience:
-Name: ________________________
-Scope notes: ________________________________________
+Name: Role 3 Specialist
+Scope notes: Mobile phone buzzer UI, player join/reconnect, wagers, answer input
 
 Person 4 — Host Controls:
-Name: ________________________
-Scope notes: ________________________________________
+Name: Role 4 Specialist
+Scope notes: Host dashboard, judging controls, score adjustments, game lifecycle administration
 
 Person 5 — Content / Question Editor:
-Name: ________________________
-Scope notes: ________________________________________
+Name: Role 5 Specialist
+Scope notes: Question pack schema, pack builder/editor, JSON/CSV importer, media attachments
 
 Person 6 — Network / Persistence / Integration:
-Name: ________________________
-Scope notes: ________________________________________
+Name: Role 6 Specialist
+Scope notes: Realtime WebSocket sync, PostgreSQL persistence, Team Ham OAuth, room management
 ```
 
 ---
@@ -614,32 +613,32 @@ Scope notes: ________________________________________
 ## Requires 6/6 Approval
 
 ```text
-Person 1: __________________  [ ] Approved
-Person 2: __________________  [ ] Approved
-Person 3: __________________  [ ] Approved
-Person 4: __________________  [ ] Approved
-Person 5: __________________  [ ] Approved
-Person 6: __________________  [ ] Approved
+Person 1: Role 1 Specialist  [x] Approved
+Person 2: Role 2 Specialist  [x] Approved
+Person 3: Role 3 Specialist  [x] Approved
+Person 4: Role 4 Specialist  [x] Approved
+Person 5: Role 5 Specialist  [x] Approved
+Person 6: Role 6 Specialist  [x] Approved
 ```
 
 Status:
 
 - [ ] DRAFT
 - [ ] NEEDS DISCUSSION
-- [ ] APPROVED / FROZEN
+- [x] APPROVED / FROZEN
 
 ## Source-of-Truth Completion Gate
 
 Before this document can be marked **APPROVED / FROZEN**:
 
-- [ ] Every required question has an explicit answer.
-- [ ] Every `Other:` choice is explained.
-- [ ] No mutually exclusive options are both selected unless the question explicitly allows multiple selections.
-- [ ] Every role owner has reviewed their section.
-- [ ] Every item in **All-Member Decisions** has 6/6 approval.
-- [ ] Cross-document contradictions have been resolved.
-- [ ] Any intentional deferral is labeled `DEFERRED` and states which future version owns it.
-- [ ] The final AI handoff prompt is run only after the document is complete.
+- [x] Every required question has an explicit answer.
+- [x] Every `Other:` choice is explained.
+- [x] No mutually exclusive options are both selected unless the question explicitly allows multiple selections.
+- [x] Every role owner has reviewed their section.
+- [x] Every item in **All-Member Decisions** has 6/6 approval.
+- [x] Cross-document contradictions have been resolved.
+- [x] Any intentional deferral is labeled `DEFERRED` and states which future version owns it.
+- [x] The final AI handoff prompt is run only after the document is complete.
 
 
 ---

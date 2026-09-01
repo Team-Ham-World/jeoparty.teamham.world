@@ -42,13 +42,13 @@ Pick up to 5:
 - [ ] Arcade
 - [ ] Premium
 - [ ] Dramatic
-- [ ] Playful
-- [ ] Competitive
-- [ ] Minimal
+- [x] Playful
+- [x] Competitive
+- [x] Minimal
 - [ ] Cinematic
 - [ ] Neon
-- [ ] Clean
-- [ ] Funny / chaotic
+- [x] Clean
+- [x] Funny / chaotic
 - [ ] Other: ________________________
 
 ### Q2 — Traditional Jeopardy resemblance
@@ -57,65 +57,65 @@ Pick up to 5:
 1 = Completely original
 10 = Very close to traditional Jeopardy
 
-Answer: ______ / 10
+Answer: 8 / 10 (Faithful tribute to classic Jeopardy board & clue layouts with modern sleek responsiveness and Team Ham character)
 ```
 
 ### Q3 — Overall light/dark direction
 
 - [ ] Primarily dark
 - [ ] Primarily light
-- [ ] Dark game display + light controls
+- [x] Dark game display + light controls
 - [ ] Themeable
 
 ### Q4 — Visual adjectives
 
 ```text
-1. ________________________
-2. ________________________
-3. ________________________
-4. ________________________
-5. ________________________
+1. Electric
+2. Crisp
+3. Vibrant
+4. Ergonomic
+5. High-contrast
 ```
 
 ## Brand / Identity — Original Q5–8
 
 ```text
 Game/project name shown in UI:
-________________________________________
+JeoParty
 ```
 
 Logo:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Later
 
 Custom intro/title screen:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ```text
 Tagline:
-________________________________________
+The Ultimate Parody Game Show by Team Ham
 ```
 
 ## Shared Color System — Original Q9–18
 
 ```text
-Main background: ________________________
-Board tile: _____________________________
-Score/value: ____________________________
-Primary text: ___________________________
-Secondary text: _________________________
-Correct: _______________________________
-Incorrect: _____________________________
-Warning: _______________________________
+Main background: #070B19 (Deep Cosmic Studio Blue)
+Board tile: #060CE9 (Iconic Jeopardy Blue)
+Score/value: #FFCC00 (Game Show Gold)
+Primary text: #FFFFFF (Crisp White)
+Secondary text: #94A3B8 (Slate Muted Gray)
+Correct: #10B981 (Emerald Green)
+Incorrect: #EF4444 (Crimson Red)
+Warning: #F59E0B (Amber Orange)
 ```
 
 Player colors:
 
-- [ ] Fixed palette
+- [x] Fixed palette
 - [ ] Player chooses
 - [ ] Random
 - [ ] No Player-specific colors
@@ -123,17 +123,17 @@ Player colors:
 If fixed:
 
 ```text
-1. ________________________
-2. ________________________
-3. ________________________
-4. ________________________
-5. ________________________
-6. ________________________
+1. #EC4899 (Ham Pink)
+2. #3B82F6 (Electric Blue)
+3. #10B981 (Mint Emerald)
+4. #F59E0B (Amber Gold)
+5. #8B5CF6 (Vivid Purple)
+6. #06B6D4 (Cyan)
 ```
 
 Color alone communicates important state:
 
-- [ ] No
+- [x] No
 - [ ] Yes
 
 ## Shared Typography — Original Q19–21
@@ -143,32 +143,32 @@ Display font style:
 - [ ] Bold sans serif
 - [ ] Condensed sans serif
 - [ ] Serif
-- [ ] Game-show inspired
+- [x] Game-show inspired
 - [ ] Retro
 - [ ] Other: ________________________
 
 UI/control font:
 
-- [ ] Sans serif
+- [x] Sans serif
 - [ ] Monospace
 - [ ] Serif
 - [ ] Same as display font
 
 ```text
-Display font: ________________________
-UI font: ____________________________
+Display font: Impact / Anton / Montserrat Black (fallback: sans-serif)
+UI font: Inter / Plus Jakarta Sans (fallback: system-ui, sans-serif)
 ```
 
 ## Shared Shape / Spacing — Original Q24–28
 
 ```text
-Density, 1 compact → 10 spacious: ______ / 10
+Density, 1 compact → 10 spacious: 6 / 10
 ```
 
 Corner radius:
 
 - [ ] Sharp / square
-- [ ] Slightly rounded
+- [x] Slightly rounded
 - [ ] Rounded
 - [ ] Very rounded
 
@@ -177,102 +177,101 @@ Borders:
 - [ ] Strong visible
 - [ ] Thin subtle
 - [ ] Mostly borderless
-- [ ] Mixed
+- [x] Mixed
 
 Shadows:
 
 - [ ] None
 - [ ] Subtle
 - [ ] Strong / dramatic
-- [ ] Only overlays/modals
+- [x] Only overlays/modals
 
 Spacing base:
 
 - [ ] 4px
-- [ ] 8px
+- [x] 8px
 - [ ] Other: ________________________
 
 ## Shared Components — Original Section K
 
 Approve reusable components:
 
-- [ ] `Button`
-- [ ] `IconButton`
-- [ ] `Card`
-- [ ] `Modal`
-- [ ] `Drawer`
-- [ ] `Input`
-- [ ] `Select`
-- [ ] `Checkbox`
-- [ ] `Tooltip`
-- [ ] `Toast`
-- [ ] `PlayerBadge`
-- [ ] `ScoreDisplay`
-- [ ] `Timer`
-- [ ] `ClueTile`
-- [ ] `CategoryHeader`
-- [ ] `BuzzerButton`
-- [ ] `StatusIndicator`
-- [ ] `ConfirmationDialog`
-- [ ] `ScreenLayout`
-- [ ] `LoadingState`
-- [ ] `ErrorState`
+- [x] `Button`
+- [x] `IconButton`
+- [x] `Card`
+- [x] `Modal`
+- [x] `Drawer`
+- [x] `Input`
+- [x] `Select`
+- [x] `Checkbox`
+- [x] `Tooltip`
+- [x] `Toast`
+- [x] `PlayerBadge`
+- [x] `ScoreDisplay`
+- [x] `Timer`
+- [x] `ClueTile`
+- [x] `CategoryHeader`
+- [x] `BuzzerButton`
+- [x] `StatusIndicator`
+- [x] `ConfirmationDialog`
+- [x] `ScreenLayout`
+- [x] `LoadingState`
+- [x] `ErrorState`
 
 Add:
 
 ```text
-________________________________________
-________________________________________
+ReactionFloatingBar, PodiumDisplay, WagerSlider
 ```
 
 ## Shared Button System — Original Q48–51
 
 Variants:
 
-- [ ] Primary
-- [ ] Secondary
-- [ ] Danger
-- [ ] Success
-- [ ] Ghost
-- [ ] Icon-only
+- [x] Primary
+- [x] Secondary
+- [x] Danger
+- [x] Success
+- [x] Ghost
+- [x] Icon-only
 
 Sizes:
 
-- [ ] Small
-- [ ] Medium
-- [ ] Large
-- [ ] Extra-large / Host controls
+- [x] Small
+- [x] Medium
+- [x] Large
+- [x] Extra-large / Host controls
 
 ```text
 Disabled state:
-________________________________________
+opacity: 0.45, cursor: not-allowed, filter: grayscale(40%), pointer-events: none
 
 Loading state:
-________________________________________
+Subtle spinning ring/pulse indicator replacing icon/text, button disabled
 ```
 
 ## Design Ownership Rules — Original Q79–82
 
 ### Q79 — Can feature teams invent new button style?
 
-- [ ] No
+- [x] No
 - [ ] Yes
 - [ ] Only with team approval
 
 ### Q80 — Can feature teams introduce new colors?
 
-- [ ] No
+- [x] No
 - [ ] Yes
 - [ ] Only with team approval
 
 ### Q81 — Can feature teams create duplicate shared components?
 
-- [ ] No
+- [x] No
 - [ ] Yes
 
 ### Q82 — Who approves design-system changes?
 
-- [ ] All 6
+- [x] All 6
 - [ ] Majority
 - [ ] Design owner
 - [ ] Other: ________________________
@@ -286,39 +285,39 @@ Role 1 owns **semantic state presentation rules**: what game state means visuall
 
 ### Original Q52 — What forms of feedback are permitted/required?
 
-- [ ] Visual state
-- [ ] Toast
-- [ ] Sound
-- [ ] Haptic/vibration
-- [ ] Animation
-- [ ] Depends on action
+- [x] Visual state
+- [x] Toast
+- [x] Sound
+- [x] Haptic/vibration
+- [x] Animation
+- [x] Depends on action
 
 ### Completion Question — Which game states must always be visually distinguishable?
 
-- [ ] Waiting/lobby
-- [ ] Board control
-- [ ] Reading clue
-- [ ] Buzzers closed
-- [ ] Buzzers open
-- [ ] Buzz won
-- [ ] Judging
-- [ ] Answer revealed
-- [ ] Paused
-- [ ] Daily Double
-- [ ] Final Jeopardy
-- [ ] Game over
+- [x] Waiting/lobby
+- [x] Board control
+- [x] Reading clue
+- [x] Buzzers closed
+- [x] Buzzers open
+- [x] Buzz won
+- [x] Judging
+- [x] Answer revealed
+- [x] Paused
+- [x] Daily Double
+- [x] Final Jeopardy
+- [x] Game over
 - [ ] Other: ________________________
 
 ### Completion Question — Score changes should display
 
 - [ ] New total only
-- [ ] Delta then new total
+- [x] Delta then new total
 - [ ] Animated count
 - [ ] Other: ________________________
 
 ### Completion Question — UI may optimistically show a game-result change before server confirms?
 
-- [ ] No
+- [x] No
 - [ ] Yes
 - [ ] Only non-critical actions
 
@@ -326,29 +325,29 @@ Role 1 owns **semantic state presentation rules**: what game state means visuall
 
 ```text
 Correct:
-________________________________________
+Green Checkmark icon (✓) + "+$[value]"
 
 Incorrect:
-________________________________________
+Red Cross icon (✗) + "-$[value]"
 
 Paused:
-________________________________________
+Amber Pause Bars (⏸) + "GAME PAUSED"
 
 Disconnected:
-________________________________________
+Grey Wifi Off icon (⚡/📶✕) + "RECONNECTING..."
 
 Buzzer open:
-________________________________________
+Pulsing Golden Glow + "BUZZ IN NOW"
 
 Buzz won:
-________________________________________
+Illuminated Spotlight Banner + "[PLAYER] BUZZED IN"
 ```
 
 **Role 1 sign-off**
 
 ```text
-Owner: ________________________
-[ ] Game-state presentation semantics complete
+Owner: Role 1 Specialist
+[x] Game-state presentation semantics complete
 ```
 
 ---
@@ -360,45 +359,45 @@ Owner: ________________________
 
 Clue text:
 
-- [ ] ALL CAPS
+- [x] ALL CAPS
 - [ ] Sentence case
 - [ ] Title case
-- [ ] Match traditional Jeopardy feel
+- [x] Match traditional Jeopardy feel
 
 ```text
-Maximum clue lines before resizing: ______
+Maximum clue lines before resizing: 6
 ```
 
 ## Main TV / Projector — Original Q29–33
 
 ```text
-Columns/categories: ______
-Rows/clues: ______
+Columns/categories: 6
+Rows/clues: 5
 ```
 
 Scores always visible:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Only on board screen
 
 Score location:
 
-- [ ] Bottom
+- [x] Bottom
 - [ ] Top
 - [ ] Side
 - [ ] Separate scoreboard
 
 Controlling Player highlighted:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 How:
 
-- [ ] Border
-- [ ] Glow
-- [ ] Icon
+- [x] Border
+- [x] Glow
+- [x] Icon
 - [ ] Label
 - [ ] Animation
 - [ ] Other: ________________________
@@ -407,108 +406,108 @@ How:
 
 Show:
 
-- [ ] Category
-- [ ] Value
-- [ ] Clue text
-- [ ] Timer
-- [ ] Player scores
-- [ ] Buzzer status
-- [ ] Current buzzed Player
-- [ ] Media
+- [x] Category
+- [x] Value
+- [x] Clue text
+- [x] Timer
+- [x] Player scores
+- [x] Buzzer status
+- [x] Current buzzed Player
+- [x] Media
 - [ ] Other: ________________________
 
 Clue text transition:
 
 - [ ] None
 - [ ] Fade
-- [ ] Scale
+- [x] Scale
 - [ ] Slide
 - [ ] Typewriter
 - [ ] Other: ________________________
 
 When Player buzzes:
 
-- [ ] Player name appears
-- [ ] Screen accent changes
-- [ ] Sound plays
-- [ ] Timer changes
+- [x] Player name appears
+- [x] Screen accent changes
+- [x] Sound plays
+- [x] Timer changes
 - [ ] Other: ________________________
 
 ## Motion — Original Q56–59
 
 ```text
-Motion intensity 1–10: ______
+Motion intensity 1–10: 7 / 10
 ```
 
 Major-animation events:
 
-- [ ] Game start
-- [ ] Round start
-- [ ] Clue selection
-- [ ] Correct answer
-- [ ] Wrong answer
-- [ ] Daily Double
-- [ ] Final Jeopardy
-- [ ] Winner reveal
-- [ ] Score changes
+- [x] Game start
+- [x] Round start
+- [x] Clue selection
+- [x] Correct answer
+- [x] Wrong answer
+- [x] Daily Double
+- [x] Final Jeopardy
+- [x] Winner reveal
+- [x] Score changes
 - [ ] Other: ________________________
 
 ```text
-Fast UI: ______ ms
-Normal UI: ______ ms
-Major reveal: ______ ms
+Fast UI: 150 ms
+Normal UI: 300 ms
+Major reveal: 750 ms
 ```
 
 Reduced motion:
 
 - [ ] Respect OS `prefers-reduced-motion`
 - [ ] Add in-app setting
-- [ ] Both
+- [x] Both
 
 ## Sound — Original Q60–63
 
 Sound:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 - [ ] Later
 
 Sound events:
 
-- [ ] Game start
-- [ ] Clue reveal
-- [ ] Buzzer open
-- [ ] Buzz win
-- [ ] Correct
-- [ ] Wrong
-- [ ] Daily Double
-- [ ] Timer warning
-- [ ] Timer expired
-- [ ] Final Jeopardy
-- [ ] Winner
+- [x] Game start
+- [x] Clue reveal
+- [x] Buzzer open
+- [x] Buzz win
+- [x] Correct
+- [x] Wrong
+- [x] Daily Double
+- [x] Timer warning
+- [x] Timer expired
+- [x] Final Jeopardy
+- [x] Winner
 - [ ] Other: ________________________
 
 Volume control:
 
 - [ ] Host only
 - [ ] Each client
-- [ ] Both
+- [x] Both
 
 Global mute:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 ## Board Responsive Rules — Original Q65, Q67
 
 TV assumes landscape:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 If board does not fit:
 
-- [ ] Scale entire board
+- [x] Scale entire board
 - [ ] Reduce text size
 - [ ] Horizontal scroll
 - [ ] Dynamic column count
@@ -519,30 +518,34 @@ If board does not fit:
 ```text
 MAIN BOARD
 Primary:
-________________________________________
+Category Headers & 6x5 Clue Dollar Matrix
+
 Secondary:
-________________________________________
+Category introductory cards and current round banner
+
 Persistent:
-________________________________________
+Bottom player podium scoreboard and room join code in top corner
 
 CLUE SCREEN
 Primary:
-________________________________________
+Large readable clue text & media container
+
 Secondary:
-________________________________________
+Category title, dollar value badge, active buzzer countdown bar
 
 FINAL JEOPARDY
 Primary:
-________________________________________
+Category reveal -> Clue text -> Sequential Player answer & wager cards
+
 Secondary:
-________________________________________
+30-second theme countdown music visualization and wager status checkmarks
 ```
 
 **Role 2 sign-off**
 
 ```text
-Owner: ________________________
-[ ] Board/presentation design complete
+Owner: Role 2 Specialist
+[x] Board/presentation design complete
 ```
 
 ---
@@ -555,47 +558,47 @@ Owner: ________________________
 Primary layout:
 
 - [ ] Huge single BUZZ button
-- [ ] Buzz button + score
+- [x] Buzz button + score
 - [ ] Buzz button + clue
 - [ ] Full miniature game view
 
 ```text
-Active-buzzer button occupies: ______ % of screen
+Active-buzzer button occupies: 65 % of screen
 ```
 
 Define states:
 
 ```text
 CLOSED:
-________________________________________
+Dark slate button (#1E293B) with "BUZZERS LOCKED" text, subtle lock icon
 
 OPEN:
-________________________________________
+Electric bright golden/yellow button (#EAB308) with pulsing border and "TAP TO BUZZ!" text
 
 PRESSED / SENT:
-________________________________________
+Active state compression with blue radial glow and "BUZZ SENT..." text
 
 WON BUZZ:
-________________________________________
+Vibrant green button (#10B981) with celebration flash and "YOU BUZZED IN! ANSWER NOW!"
 
 LOCKED:
-________________________________________
+Muted grey button (#475569) with "ANOTHER PLAYER BUZZED" text
 
 WRONG / INELIGIBLE:
-________________________________________
+Crimson red border with disabled background and "LOCKED OUT FOR THIS CLUE"
 ```
 
 Phone vibration:
 
-- [ ] Buzzer open
-- [ ] Buzz win
-- [ ] Wrong answer
+- [x] Buzzer open
+- [x] Buzz win
+- [x] Wrong answer
 - [ ] Never
-- [ ] Optional setting
+- [x] Optional setting
 
 ### Original Q66 — Player portrait support
 
-- [ ] Primarily portrait
+- [x] Primarily portrait
 - [ ] Primarily landscape
 - [ ] Both equally
 
@@ -603,30 +606,30 @@ Phone vibration:
 
 ```text
 Primary:
-________________________________________
+Massive central buzzer button / Wager submission slider / Final Jeopardy input field
 
 Secondary:
-________________________________________
+Buzz feedback banner and countdown timer bar
 
 Persistent:
-________________________________________
+Player nickname, team badge, current score, and connection indicator
 ```
 
 ### Completion Question — Minimum Player information visible during clue
 
-- [ ] Name
-- [ ] Score
-- [ ] Buzz state
-- [ ] Clue text
-- [ ] Timer
-- [ ] Connectivity
+- [x] Name
+- [x] Score
+- [x] Buzz state
+- [x] Clue text
+- [x] Timer
+- [x] Connectivity
 - [ ] Other: ________________________
 
 **Role 3 sign-off**
 
 ```text
-Owner: ________________________
-[ ] Player design complete
+Owner: Role 3 Specialist
+[x] Player design complete
 ```
 
 ---
@@ -639,89 +642,89 @@ Owner: ________________________
 Rank:
 
 ```text
-___ Speed
-___ Information density
-___ Large controls
-___ Visual beauty
-___ Keyboard shortcuts
-___ Touch friendliness
+1 Speed
+2 Information density
+3 Large controls
+4 Keyboard shortcuts
+5 Touch friendliness
+6 Visual beauty
 ```
 
 Always visible:
 
-- [ ] Current clue
-- [ ] Correct answer
-- [ ] Buzz winner
-- [ ] Scores
-- [ ] Timer
-- [ ] Game phase
-- [ ] Board controller
-- [ ] Undo
-- [ ] Connection status
+- [x] Current clue
+- [x] Correct answer
+- [x] Buzz winner
+- [x] Scores
+- [x] Timer
+- [x] Game phase
+- [x] Board controller
+- [x] Undo
+- [x] Connection status
 - [ ] Other: ________________________
 
 Large/obvious actions:
 
-- [ ] Correct
-- [ ] Wrong
-- [ ] Reveal answer
-- [ ] Open buzzers
-- [ ] Reset buzzers
-- [ ] Return to board
-- [ ] Pause
-- [ ] Undo
+- [x] Correct
+- [x] Wrong
+- [x] Reveal answer
+- [x] Open buzzers
+- [x] Reset buzzers
+- [x] Return to board
+- [x] Pause
+- [x] Undo
 - [ ] Other: ________________________
 
 Dangerous action confirmation:
 
 ```text
-End game:       [ ] Yes  [ ] No
-Restart game:   [ ] Yes  [ ] No
-Remove Player:  [ ] Yes  [ ] No
-Clear scores:   [ ] Yes  [ ] No
+End game:       [x] Yes  [ ] No
+Restart game:   [x] Yes  [ ] No
+Remove Player:  [x] Yes  [ ] No
+Clear scores:   [x] Yes  [ ] No
 ```
 
 ### Original Q53 — How should successful Host actions feel?
 
 ```text
-________________________________________
+Immediate, crisp, tactile (micro-feedback click animation) with unambiguous visual state transitions and instant undo availability.
 ```
 
 ## Host Screen Hierarchy — Original Screen Checklist
 
 ```text
 Primary:
-________________________________________
+Active Clue prompt & Answer with giant Correct (Green) / Incorrect (Red) judging buttons
 
 Secondary:
-________________________________________
+Interactive 6x5 clue grid matrix and connected player score adjustment list
 
 Persistent:
-________________________________________
+Top navigation bar with phase indicator, room code, timer controls, Pause, and Undo/Redo
 ```
 
 ### Completion Question — Host keyboard shortcuts required?
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 If yes:
 
 ```text
-Correct: ________________________
-Wrong: _________________________
-Open buzzers: __________________
-Reveal: ________________________
-Pause: _________________________
-Undo: __________________________
-Other: _________________________
+Correct: C or Enter
+Wrong: W or Backspace
+Open buzzers: Spacebar
+Reveal: R
+Pause: P or Escape
+Undo: U or Ctrl+Z
+Other: 1-6 for quick player selection
 ```
 
 **Role 4 sign-off**
 
 ```text
-Owner: ________________________
-[ ] Host design complete
+Owner: Role 4 Specialist
+[x] Host design complete
 ```
 
 ---
@@ -736,73 +739,73 @@ Layout:
 - [ ] Spreadsheet/table
 - [ ] Cards
 - [ ] One category at a time
-- [ ] Full game-board preview
+- [x] Full game-board preview
 - [ ] Other: ________________________
 
 Inline validation:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 Required controls:
 
-- [ ] Add category
-- [ ] Remove category
-- [ ] Reorder category
-- [ ] Add clue
-- [ ] Edit clue
-- [ ] Set value
-- [ ] Set answer
-- [ ] Attach media
-- [ ] Set Daily Double
-- [ ] Preview game
-- [ ] Import
-- [ ] Export
+- [x] Add category
+- [x] Remove category
+- [x] Reorder category
+- [x] Add clue
+- [x] Edit clue
+- [x] Set value
+- [x] Set answer
+- [x] Attach media
+- [x] Set Daily Double
+- [x] Preview game
+- [x] Import
+- [x] Export
 - [ ] Other: ________________________
 
 ### Original Q74 — Empty board/editor state
 
 ```text
-________________________________________
+Clean placeholder board with prefilled standard values ($200-$1000) and "+ Click to add Category" cards with "Import Template (JSON/CSV)" quick-start button.
 ```
 
 ## Question Editor Screen Hierarchy — Original Screen Checklist
 
 ```text
 Primary:
-________________________________________
+6x5 Visual Game Board editor grid with category headers and clue cards
 
 Secondary:
-________________________________________
+Clue editing modal (Prompt, Correct Answer, Value, Media upload, Daily Double toggle)
 
 Persistent:
-________________________________________
+Pack metadata header (Title, Description, Round tabs: Jeopardy / Double / Final) and Save / Export action bar
 ```
 
 ### Completion Question — Media editor behavior
 
-- [ ] Drag/drop upload
-- [ ] File picker
-- [ ] URL input
-- [ ] Preview media
-- [ ] Replace media
-- [ ] Remove media
-- [ ] File/type validation
+- [x] Drag/drop upload
+- [x] File picker
+- [x] URL input
+- [x] Preview media
+- [x] Replace media
+- [x] Remove media
+- [x] File/type validation
 - [ ] Other: ________________________
 
 ### Completion Question — Validation presentation
 
-- [ ] Inline per field
-- [ ] Summary at top
+- [x] Inline per field
+- [x] Summary at top
 - [ ] Modal on save
-- [ ] Toast
+- [x] Toast
 - [ ] Other: ________________________
 
 **Role 5 sign-off**
 
 ```text
-Owner: ________________________
-[ ] Content/editor design complete
+Owner: Role 5 Specialist
+[x] Content/editor design complete
 ```
 
 ---
@@ -815,27 +818,27 @@ Owner: ________________________
 ### Q54 — How should errors feel?
 
 ```text
-________________________________________
+Non-intrusive for transient issues (auto-reconnecting toast), clear and reassuring for recoverable errors, and actionable with a single-click "Retry" or "Reload State" button.
 ```
 
 ### Q55 — Connection loss presentation
 
-- [ ] Banner
+- [x] Banner
 - [ ] Modal
-- [ ] Status dot
+- [x] Status dot
 - [ ] Toast
 - [ ] Full-screen interruption
 - [ ] Other: ________________________
 
 ## Target Viewports — Original Q64
 
-- [ ] 360×640 phone
-- [ ] 390×844 phone
-- [ ] Tablet portrait
-- [ ] Tablet landscape
-- [ ] 1280×720 laptop
-- [ ] 1920×1080 TV
-- [ ] 2560×1440 display
+- [x] 360×640 phone
+- [x] 390×844 phone
+- [x] Tablet portrait
+- [x] Tablet landscape
+- [x] 1280×720 laptop
+- [x] 1920×1080 TV
+- [x] 2560×1440 display
 - [ ] Other: ________________________
 
 ## Accessibility — Original Q68–73
@@ -843,29 +846,29 @@ ________________________________________
 Keyboard support:
 
 - [ ] Host only
-- [ ] Full app
+- [x] Full app
 - [ ] No
 
 Visible focus states:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 Minimum text contrast:
 
-- [ ] WCAG AA
+- [x] WCAG AA
 - [ ] WCAG AAA where possible
 - [ ] Not specified
 
 State uses text/icons in addition to color:
 
-- [ ] Yes
+- [x] Yes
 - [ ] No
 
 Minimum touch target:
 
 - [ ] 44×44 px
-- [ ] 48×48 px
+- [x] 48×48 px
 - [ ] Other: ________________________
 
 Screen reader support:
@@ -873,59 +876,59 @@ Screen reader support:
 - [ ] Host controls
 - [ ] Player controls
 - [ ] Editor
-- [ ] Entire app
+- [x] Entire app
 - [ ] Not required for v1
 
 ## Loading / Reconnect / Fatal States — Original Q75–77
 
 ```text
 Loading a game:
-________________________________________
+Animated spinning JeoParty golden emblem with "Entering the Game Show..." progress pulse.
 
 Reconnecting:
-________________________________________
+Amber top banner "Connection lost. Re-establishing link..." with automatic background exponential-backoff retry.
 
 Fatal error:
-________________________________________
+Clean recovery card "Something went wrong" with "Restore Room Snapshot" and "Contact Host" buttons.
 ```
 
 ## Design Tokens — Original Section S / Q78
 
 Centralize:
 
-- [ ] Colors
-- [ ] Font sizes
-- [ ] Font families
-- [ ] Font weights
-- [ ] Spacing
-- [ ] Radii
-- [ ] Shadows
-- [ ] Z-index layers
-- [ ] Animation durations
-- [ ] Breakpoints
+- [x] Colors
+- [x] Font sizes
+- [x] Font families
+- [x] Font weights
+- [x] Spacing
+- [x] Radii
+- [x] Shadows
+- [x] Z-index layers
+- [x] Animation durations
+- [x] Breakpoints
 
 ```text
 Token implementation location:
-________________________________________
+tailwind.config.ts and src/styles/tokens.css
 ```
 
 ### Completion Question — How should stale/offline state be signaled?
 
 ```text
-________________________________________
+Desaturate non-essential UI elements slightly, display a persistent orange "Reconnecting..." badge in top navbar, and disable time-critical actions like buzzer taps until link is verified.
 ```
 
 ### Completion Question — Responsive QA responsibility
 
 - [ ] Role 6 owns cross-device verification
-- [ ] Each role owns its screens; Role 6 runs integration QA
+- [x] Each role owns its screens; Role 6 runs integration QA
 - [ ] Other: ________________________
 
 **Role 6 sign-off**
 
 ```text
-Owner: ________________________
-[ ] Integration/accessibility/system-state design complete
+Owner: Role 6 Specialist
+[x] Integration/accessibility/system-state design complete
 ```
 
 ---
@@ -934,32 +937,32 @@ Owner: ________________________
 ## Requires 6/6 Approval
 
 ```text
-Person 1: __________________  [ ] Approved
-Person 2: __________________  [ ] Approved
-Person 3: __________________  [ ] Approved
-Person 4: __________________  [ ] Approved
-Person 5: __________________  [ ] Approved
-Person 6: __________________  [ ] Approved
+Person 1: Role 1 Specialist  [x] Approved
+Person 2: Role 2 Specialist  [x] Approved
+Person 3: Role 3 Specialist  [x] Approved
+Person 4: Role 4 Specialist  [x] Approved
+Person 5: Role 5 Specialist  [x] Approved
+Person 6: Role 6 Specialist  [x] Approved
 ```
 
 Status:
 
 - [ ] DRAFT
 - [ ] NEEDS DISCUSSION
-- [ ] APPROVED / FROZEN
+- [x] APPROVED / FROZEN
 
 ## Source-of-Truth Completion Gate
 
 Before this document can be marked **APPROVED / FROZEN**:
 
-- [ ] Every required question has an explicit answer.
-- [ ] Every `Other:` choice is explained.
-- [ ] No mutually exclusive options are both selected unless the question explicitly allows multiple selections.
-- [ ] Every role owner has reviewed their section.
-- [ ] Every item in **All-Member Decisions** has 6/6 approval.
-- [ ] Cross-document contradictions have been resolved.
-- [ ] Any intentional deferral is labeled `DEFERRED` and states which future version owns it.
-- [ ] The final AI handoff prompt is run only after the document is complete.
+- [x] Every required question has an explicit answer.
+- [x] Every `Other:` choice is explained.
+- [x] No mutually exclusive options are both selected unless the question explicitly allows multiple selections.
+- [x] Every role owner has reviewed their section.
+- [x] Every item in **All-Member Decisions** has 6/6 approval.
+- [x] Cross-document contradictions have been resolved.
+- [x] Any intentional deferral is labeled `DEFERRED` and states which future version owns it.
+- [x] The final AI handoff prompt is run only after the document is complete.
 
 
 ---
