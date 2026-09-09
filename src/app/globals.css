@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/*
+  JeoParty shared styles — kept small on purpose.
+  Tailwind handles layout and spacing in the components.
+  This file only sets the Team Ham workbench theme,
+  readable defaults, and a few reusable ham-* classes.
+*/
+
+:root {
+  --ham-paper: #f6f1e4;
+  --ham-card: #ffffff;
+  --ham-ink: #1e293b;
+  --ham-muted: #55617a;
+  --ham-navy: #14304f;
+  --ham-navy-deep: #0e2339;
+  --ham-blue: #1e4f8a;
+  --ham-gold: #e3b341;
+  --ham-gold-soft: #fdf3d7;
+  --ham-gold-ink: #5f4a08;
+  --ham-line: #ddd2b8;
+  --ham-code-bg: #eef2f7;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ham-paper);
+  color: var(--ham-ink);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus everywhere. Do not remove. */
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 3px solid var(--ham-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Centered readable column used by both starter components. */
+.ham-shell {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+/* Skip link: hidden until a keyboard user tabs to it. */
+.ham-skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 50;
+  background: var(--ham-navy);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  border: 2px solid var(--ham-gold);
+  text-decoration: none;
+  font-weight: 600;
+  transition: top 0.15s ease;
+}
+
+.ham-skip:focus-visible {
+  top: 0;
+  color: #fff;
+  outline-color: var(--ham-gold);
+}
+
+/* Dark navy intro band with a gold rule. */
+.ham-hero {
+  background: linear-gradient(180deg, var(--ham-navy) 0%, var(--ham-navy-deep) 100%);
+  color: #fff;
+  border-bottom: 4px solid var(--ham-gold);
+  border-radius: 1rem;
+}
+
+/* Small honest status labels. Words first, color second. */
+.ham-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.ham-badge-gold {
+  background: var(--ham-gold);
+  color: var(--ham-navy-deep);
+}
+
+.ham-badge-outline {
+  background: transparent;
+  color: inherit;
+  border-color: currentcolor;
+}
+
+/* Readable white cards on the warm paper background. */
+.ham-card {
+  background: var(--ham-card);
+  border: 1px solid var(--ham-line);
+  border-radius: 0.9rem;
+  box-shadow: 0 1px 2px rgb(20 48 79 / 0.08);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ham-card:hover {
+  border-color: var(--ham-blue);
+  box-shadow: 0 6px 18px rgb(20 48 79 / 0.12);
+}
+
+/* File paths and route paths. Monospace so they read as code. */
+.ham-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: var(--ham-code-bg);
+  border: 1px solid #d4dce6;
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  white-space: nowrap;
+}
+
+.ham-hero .ham-code {
+  background: rgb(255 255 255 / 0.12);
+  border-color: rgb(255 255 255 / 0.3);
+  color: #fff;
+}
+
+/* Card action link: looks like a button, behaves like a link. */
+.ham-card-link {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--ham-blue);
+  text-decoration: underline;
+  text-decoration-color: var(--ham-gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.ham-card-link:hover {
+  color: var(--ham-navy);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .ham-skip,
+  .ham-card {
+    transition: none;
+  }
+}
