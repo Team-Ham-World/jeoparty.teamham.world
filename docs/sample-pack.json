@@ -1,0 +1,620 @@
+{
+  "schemaVersion": "2.0.0",
+  "id": "team-ham-expanded-pack-v1",
+  "title": "Team Ham Expanded Trivia Pack",
+  "description": "A diverse 12-category sample pack with 60 standard clues and one Final Jeoparty clue per category. Expanded content only; this does not change the proposed first-release board size or implement final-round gameplay.",
+  "custom": true,
+  "metadata": {
+    "notes": "Pack and clue metadata may include author (string), notes (string), tags (array of strings), and media (array of attachment objects with url, mimeType, and optional alt text). Clue type defaults to text; reserved types are text, daily_double, and media. Consumers should ignore unknown optional metadata fields, but explicitly reject unsupported schema versions or clue types rather than silently changing gameplay. These extension conventions describe the sample format; they do not implement parser, media, or Daily Double support."
+  },
+  "dimensions": {
+    "categories": 12,
+    "cluesPerCategory": 5
+  },
+  "scoring": {
+    "defaultRoundId": "round-jeoparty",
+    "notes": "A standard clue's tier is its intrinsic difficulty. Look up its points in the selected round's pointsByTier table; do not derive points from clue IDs or array positions. Existing IDs are stable opaque identifiers even where they contain legacy point values. Final clues use tier final and are not scored by these standard-round tables.",
+    "rounds": [
+      {
+        "id": "round-jeoparty",
+        "title": "JeoParty",
+        "pointsByTier": {
+          "1": 100,
+          "2": 200,
+          "3": 300,
+          "4": 400,
+          "5": 500
+        }
+      },
+      {
+        "id": "round-double-jeoparty",
+        "title": "Double JeoParty",
+        "pointsByTier": {
+          "1": 200,
+          "2": 400,
+          "3": 600,
+          "4": 800,
+          "5": 1000
+        }
+      }
+    ]
+  },
+  "categories": [
+    {
+      "id": "cat-web-technologies",
+      "title": "Web Technologies",
+      "clues": [
+        {
+          "id": "clue-web-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "This markup language provides the fundamental structure for pages on the World Wide Web.",
+          "answer": "What is HTML?"
+        },
+        {
+          "id": "clue-web-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This style sheet language is used to describe the presentation and layout of a document written in HTML.",
+          "answer": "What is CSS?"
+        },
+        {
+          "id": "clue-web-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "Originally developed at Netscape under the name Mocha, this language runs in all modern web browsers.",
+          "answer": "What is JavaScript?"
+        },
+        {
+          "id": "clue-web-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This HTTP response status code means the server could not find the requested resource.",
+          "answer": "What is 404?"
+        },
+        {
+          "id": "clue-web-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "This browser security mechanism, abbreviated CORS, lets a server specify which other origins may access its resources.",
+          "answer": "What is Cross-Origin Resource Sharing?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-web",
+        "tier": "final",
+        "type": "text",
+        "prompt": "While working at CERN in 1989, this British computer scientist proposed the information-sharing system that became the World Wide Web.",
+        "answer": "Who is Tim Berners-Lee?"
+      }
+    },
+    {
+      "id": "cat-team-lore",
+      "title": "Team Ham Lore",
+      "clues": [
+        {
+          "id": "clue-team-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "This cured pork product supplies the food-themed name in Team Ham.",
+          "answer": "What is ham?"
+        },
+        {
+          "id": "clue-team-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This total number of teammates makes up the core JeoParty development team.",
+          "answer": "What is six?"
+        },
+        {
+          "id": "clue-team-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "According to the team responsibilities guide, this cheerfully named teammate owns the game engine and rules.",
+          "answer": "Who is Happy?"
+        },
+        {
+          "id": "clue-team-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This teammate owns the shared TV/projector board and coordinates JeoParty's shared visual conventions.",
+          "answer": "Who is Ivvy?"
+        },
+        {
+          "id": "clue-team-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "This teammate owns question-pack formats, sample content, and content validation.",
+          "answer": "Who is Fante?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-team",
+        "tier": "final",
+        "type": "text",
+        "prompt": "Scarlet owns the player experience and Medchu owns host controls; this teammate owns the network and integration path connecting those screens to Happy's engine.",
+        "answer": "Who is John?"
+      }
+    },
+    {
+      "id": "cat-geography",
+      "title": "Geography",
+      "clues": [
+        {
+          "id": "clue-geography-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "The Eiffel Tower stands in this French capital.",
+          "answer": "What is Paris?"
+        },
+        {
+          "id": "clue-geography-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "Covering more than 30 percent of Earth's surface, this is the largest and deepest of the world's oceans.",
+          "answer": "What is the Pacific Ocean?"
+        },
+        {
+          "id": "clue-geography-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "The ruins of Machu Picchu sit high in the Andes in this South American country.",
+          "answer": "What is Peru?"
+        },
+        {
+          "id": "clue-geography-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This narrow strait between Spain and Morocco connects the Atlantic Ocean with the Mediterranean Sea.",
+          "answer": "What is the Strait of Gibraltar?"
+        },
+        {
+          "id": "clue-geography-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "Entirely surrounded by South Africa, this mountain kingdom has Maseru as its capital.",
+          "answer": "What is Lesotho?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-geography",
+        "tier": "final",
+        "type": "text",
+        "prompt": "This landlocked country has Sucre as its constitutional capital and La Paz as its seat of government, and shares Lake Titicaca with Peru.",
+        "answer": "What is Bolivia?"
+      }
+    },
+    {
+      "id": "cat-world-history",
+      "title": "World History",
+      "clues": [
+        {
+          "id": "clue-history-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "The pyramids at Giza were built by this ancient civilization along the Nile.",
+          "answer": "What is ancient Egypt?"
+        },
+        {
+          "id": "clue-history-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "The fall of the Bastille in 1789 became a defining early event of this revolution.",
+          "answer": "What is the French Revolution?"
+        },
+        {
+          "id": "clue-history-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "In 1215, England's King John sealed this charter whose Latin name means 'Great Charter.'",
+          "answer": "What is Magna Carta?"
+        },
+        {
+          "id": "clue-history-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This Haitian revolutionary leader was captured by French forces in 1802 and died in prison before Haiti declared independence.",
+          "answer": "Who is Toussaint Louverture?"
+        },
+        {
+          "id": "clue-history-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "The 1648 treaties signed at Münster and Osnabrück, ending the Thirty Years' War, are collectively known by this name.",
+          "answer": "What is the Peace of Westphalia?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-history",
+        "tier": "final",
+        "type": "text",
+        "prompt": "A 1799 discovery near the Egyptian town of Rashid, this artifact repeats a decree in hieroglyphic, Demotic, and Greek scripts and helped scholars decipher hieroglyphs.",
+        "answer": "What is the Rosetta Stone?"
+      }
+    },
+    {
+      "id": "cat-science-nature",
+      "title": "Science & Nature",
+      "clues": [
+        {
+          "id": "clue-science-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "H₂O is the chemical formula for this substance, which can occur naturally as ice, liquid, and vapor.",
+          "answer": "What is water?"
+        },
+        {
+          "id": "clue-science-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "Plants use sunlight to make sugars from carbon dioxide and water through this process.",
+          "answer": "What is photosynthesis?"
+        },
+        {
+          "id": "clue-science-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "Despite its duck-like bill and egg-laying habits, the platypus belongs to this class of animals.",
+          "answer": "What are mammals?"
+        },
+        {
+          "id": "clue-science-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "On the periodic table, the symbol W represents this metal used in traditional incandescent light-bulb filaments.",
+          "answer": "What is tungsten?"
+        },
+        {
+          "id": "clue-science-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "These microscopic animals, nicknamed water bears, can enter a dormant state called a tun to survive extreme conditions.",
+          "answer": "What are tardigrades?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-science",
+        "tier": "final",
+        "type": "text",
+        "prompt": "Nobel Prizes in Physics in 1903 and Chemistry in 1911 made this researcher the first person to win Nobel Prizes in two different scientific fields.",
+        "answer": "Who is Marie Curie?"
+      }
+    },
+    {
+      "id": "cat-pop-culture-cinema",
+      "title": "Pop Culture & Cinema",
+      "clues": [
+        {
+          "id": "clue-cinema-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "In Toy Story, this space-ranger toy declares, 'To infinity and beyond!'",
+          "answer": "Who is Buzz Lightyear?"
+        },
+        {
+          "id": "clue-cinema-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "In the Star Wars films, this small green Jedi master trains Luke Skywalker on Dagobah.",
+          "answer": "Who is Yoda?"
+        },
+        {
+          "id": "clue-cinema-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "This 1999 film follows Neo as he discovers that his everyday reality is a computer simulation.",
+          "answer": "What is The Matrix?"
+        },
+        {
+          "id": "clue-cinema-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This Japanese director made My Neighbor Totoro and the Academy Award-winning Spirited Away.",
+          "answer": "Who is Hayao Miyazaki?"
+        },
+        {
+          "id": "clue-cinema-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "This South Korean thriller directed by Bong Joon-ho became the first non-English-language film to win the Academy Award for Best Picture.",
+          "answer": "What is Parasite?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-cinema",
+        "tier": "final",
+        "type": "text",
+        "prompt": "In this 1942 film, a nightclub owner in Morocco helps Ilsa and her husband escape, telling her, 'We'll always have Paris.'",
+        "answer": "What is Casablanca?"
+      }
+    },
+    {
+      "id": "cat-video-games",
+      "title": "Video Games",
+      "clues": [
+        {
+          "id": "clue-games-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "This red-capped Nintendo plumber is Luigi's brother and the star of the Super Mario series.",
+          "answer": "Who is Mario?"
+        },
+        {
+          "id": "clue-games-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "In this block-building sandbox game, players mine resources and watch out for exploding Creepers.",
+          "answer": "What is Minecraft?"
+        },
+        {
+          "id": "clue-games-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "Despite the princess's name in the title, this hero is usually the playable protagonist of The Legend of Zelda.",
+          "answer": "Who is Link?"
+        },
+        {
+          "id": "clue-games-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This artificial intelligence oversees Aperture Science's tests in Portal and makes dubious promises about cake.",
+          "answer": "Who is GLaDOS?"
+        },
+        {
+          "id": "clue-games-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "In Hades, players control this son of Hades as he repeatedly attempts to escape the Greek underworld.",
+          "answer": "Who is Zagreus?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-games",
+        "tier": "final",
+        "type": "text",
+        "prompt": "Created by Alexey Pajitnov in 1984, this puzzle game uses seven types of pieces, each formed from four connected squares.",
+        "answer": "What is Tetris?"
+      }
+    },
+    {
+      "id": "cat-food-culinary",
+      "title": "Food & Culinary Arts",
+      "clues": [
+        {
+          "id": "clue-food-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "This green fruit is the main ingredient in guacamole.",
+          "answer": "What is an avocado?"
+        },
+        {
+          "id": "clue-food-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This Italian cooking term means 'to the tooth' and describes pasta that is still firm when bitten.",
+          "answer": "What is al dente?"
+        },
+        {
+          "id": "clue-food-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "This Spanish rice dish, named after its cooking pan, originated in Valencia.",
+          "answer": "What is paella?"
+        },
+        {
+          "id": "clue-food-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This spice consists of the dried stigmas of Crocus sativus flowers and gives many dishes a golden color.",
+          "answer": "What is saffron?"
+        },
+        {
+          "id": "clue-food-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "Named after a French chemist, this reaction between amino acids and reducing sugars creates much of the flavor and browning on seared meat and toasted bread.",
+          "answer": "What is the Maillard reaction?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-food",
+        "tier": "final",
+        "type": "text",
+        "prompt": "A sourdough starter relies on wild yeasts and these acid-producing bacteria, whose name refers to the same acid that contributes to yogurt's tang.",
+        "answer": "What are lactic acid bacteria?"
+      }
+    },
+    {
+      "id": "cat-space-exploration",
+      "title": "Space Exploration",
+      "clues": [
+        {
+          "id": "clue-space-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "Often called the Red Planet, this fourth planet from the Sun is a frequent destination for robotic rovers.",
+          "answer": "What is Mars?"
+        },
+        {
+          "id": "clue-space-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "In July 1969, this Apollo 11 astronaut became the first person to walk on the Moon.",
+          "answer": "Who is Neil Armstrong?"
+        },
+        {
+          "id": "clue-space-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "Launched by the Soviet Union in 1957, this numbered spacecraft was the first artificial satellite to orbit Earth.",
+          "answer": "What is Sputnik 1?"
+        },
+        {
+          "id": "clue-space-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This space telescope, launched in 1990, is named for the astronomer associated with the expansion of the universe.",
+          "answer": "What is the Hubble Space Telescope?"
+        },
+        {
+          "id": "clue-space-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "After touring Jupiter and Saturn, this NASA probe became the first human-made object to enter interstellar space in 2012.",
+          "answer": "What is Voyager 1?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-space",
+        "tier": "final",
+        "type": "text",
+        "prompt": "In 2014, the Philae lander touched down on comet 67P/Churyumov–Gerasimenko after traveling aboard this European Space Agency spacecraft, named for an artifact used to decipher Egyptian writing.",
+        "answer": "What is Rosetta?"
+      }
+    },
+    {
+      "id": "cat-literature",
+      "title": "Literature",
+      "clues": [
+        {
+          "id": "clue-literature-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "In J. K. Rowling's novels, this young wizard attends Hogwarts and has a lightning-shaped scar.",
+          "answer": "Who is Harry Potter?"
+        },
+        {
+          "id": "clue-literature-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This English playwright wrote Hamlet, Macbeth, and Romeo and Juliet.",
+          "answer": "Who is William Shakespeare?"
+        },
+        {
+          "id": "clue-literature-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "Elizabeth Bennet and Fitzwilliam Darcy are central characters in this Jane Austen novel.",
+          "answer": "What is Pride and Prejudice?"
+        },
+        {
+          "id": "clue-literature-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This Nigerian author wrote Things Fall Apart, a novel centered on Okonkwo and his Igbo community.",
+          "answer": "Who is Chinua Achebe?"
+        },
+        {
+          "id": "clue-literature-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "The fictional town of Macondo and the Buendía family anchor this Gabriel García Márquez novel.",
+          "answer": "What is One Hundred Years of Solitude?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-literature",
+        "tier": "final",
+        "type": "text",
+        "prompt": "Published anonymously in 1818, this Mary Shelley novel follows a scientist who creates a living being; the title names the creator, not his creation.",
+        "answer": "What is Frankenstein?"
+      }
+    },
+    {
+      "id": "cat-music-sound",
+      "title": "Music & Sound",
+      "clues": [
+        {
+          "id": "clue-music-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "A standard modern version of this keyboard instrument has 88 black and white keys.",
+          "answer": "What is a piano?"
+        },
+        {
+          "id": "clue-music-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "Freddie Mercury was the lead singer of this band, known for Bohemian Rhapsody and We Will Rock You.",
+          "answer": "What is Queen?"
+        },
+        {
+          "id": "clue-music-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "Often measured in beats per minute, this musical term describes how fast or slow a piece is played.",
+          "answer": "What is tempo?"
+        },
+        {
+          "id": "clue-music-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "This SI unit measures frequency; a tuning note called A4 commonly has a frequency of 440 of these units.",
+          "answer": "What is the hertz?"
+        },
+        {
+          "id": "clue-music-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "Played without touching it, this electronic instrument uses antennas to sense a performer's hand positions and control pitch and volume.",
+          "answer": "What is a theremin?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-music",
+        "tier": "final",
+        "type": "text",
+        "prompt": "By the 1824 premiere of his Ninth Symphony, which includes a choral setting of Ode to Joy, this composer had lost most of his hearing.",
+        "answer": "Who is Ludwig van Beethoven?"
+      }
+    },
+    {
+      "id": "cat-myth-legend",
+      "title": "Myth & Legend",
+      "clues": [
+        {
+          "id": "clue-myth-200",
+          "tier": 1,
+          "type": "text",
+          "prompt": "In Greek mythology, this king of the gods rules from Mount Olympus and wields thunderbolts.",
+          "answer": "Who is Zeus?"
+        },
+        {
+          "id": "clue-myth-400",
+          "tier": 2,
+          "type": "text",
+          "prompt": "In Norse mythology, this thunder god carries the hammer Mjölnir.",
+          "answer": "Who is Thor?"
+        },
+        {
+          "id": "clue-myth-600",
+          "tier": 3,
+          "type": "text",
+          "prompt": "This legendary British king holds court at Camelot with the Knights of the Round Table.",
+          "answer": "Who is King Arthur?"
+        },
+        {
+          "id": "clue-myth-800",
+          "tier": 4,
+          "type": "text",
+          "prompt": "In Greek mythology, this three-headed dog guards the entrance to the underworld.",
+          "answer": "Who is Cerberus?"
+        },
+        {
+          "id": "clue-myth-1000",
+          "tier": 5,
+          "type": "text",
+          "prompt": "In Akan storytelling traditions from West Africa, this trickster often takes the form of a spider.",
+          "answer": "Who is Anansi?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "final-myth",
+        "tier": "final",
+        "type": "text",
+        "prompt": "In Greek myth, this musician wins permission to lead Eurydice out of the underworld but loses her when he looks back before they have both reached the surface.",
+        "answer": "Who is Orpheus?"
+      }
+    }
+  ]
+}
