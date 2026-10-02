@@ -4,7 +4,7 @@ A browser-based Jeopardy-style game for Team Ham: a host runs the game, a shared
 
 This is a six-person learning project. The aim is to build a working game **and** learn to guide, check, and explain AI-assisted code.
 
-**Current status:** the shared scaffold is implemented and its local checks pass. It includes a welcome page, six member starting areas, and a CI definition—not a playable game. Milestone 0 remains open: the backend proof, game contracts, team scope confirmation, and teammate setup handoff are still needed.
+**Current status:** the shared scaffold is implemented and its local checks pass. It includes a welcome page, six member areas, a CI definition, and Ivvy's local `/display` presentation preview—not a playable or integrated game. The preview does not complete I1 or any milestone. Milestone 0 remains open: the backend proof, game contracts, team scope confirmation, and teammate setup handoff are still needed.
 
 ## Read these in order
 
@@ -27,7 +27,7 @@ npm ci
 npm run dev
 ```
 
-Then open http://127.0.0.1:3000. The dev/start scripts bind `127.0.0.1`. To use another port:
+Then open http://127.0.0.1:3000, or visit http://127.0.0.1:3000/display for Ivvy's local presentation preview. The preview shows the board, clue phases, public example scores and results, and offline/stale examples. The dev/start scripts bind `127.0.0.1`. To use another port:
 
 ```sh
 npm run dev -- --port 3001
@@ -57,7 +57,7 @@ All routes are thin wrappers under `src/app`: `/` (starter home), `/display` (Iv
 ```text
 src/app/            routes (thin wrappers), layout.tsx, globals.css
 src/components/     starter-home.tsx, starter-panel.tsx (shared UI, Ivvy coordinates)
-src/features/board/    board-starter.tsx (Ivvy)
+src/features/board/    local presentation preview, example data, tests + README.md (Ivvy)
 src/features/player/   player-starter.tsx (Scarlet)
 src/features/host/     host-starter.tsx (Medchu)
 src/features/content/  content-starter.tsx + README.md (Fante; no validator/editor yet)
@@ -67,7 +67,7 @@ src/lib/team.ts     shared onboarding metadata, NOT game contracts
 src/test/           shared test setup
 ```
 
-`@/*` maps to `src/*`. Every screen is an honest scaffold — no buttons, game features, or private content.
+`@/*` maps to `src/*`. `/display` uses public demo data, not live game state. Other member routes remain scaffolds with no game controls or private content. See the [board README](src/features/board/README.md) for proposed public-only inputs and handoffs.
 
 ## Start together
 

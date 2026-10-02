@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "2.0.0",
+  "id": "7972d58d-1b8f-4bd4-9a3b-9b0679752823",
+  "title": "Team Ham Small Trivia Pack",
+  "description": "Three categories with three ordinary text clues each. Required Final Jeoparty entries are reserved future content, not ordinary-board clues or implemented final-round gameplay.",
+  "custom": true,
+  "dimensions": {
+    "categories": 3,
+    "cluesPerCategory": 3
+  },
+  "scoring": {
+    "defaultRoundId": "a2a78d65-eb07-4cf2-8fb5-4f72f4e521ab",
+    "notes": "Ordinary clues use tiers 1, 2 and 3. The v2 contract also requires scoring for tiers 4 and 5; those tiers are unused in this sample. IDs do not determine points.",
+    "rounds": [
+      {
+        "id": "a2a78d65-eb07-4cf2-8fb5-4f72f4e521ab",
+        "title": "Ordinary board",
+        "pointsByTier": {
+          "1": 200,
+          "2": 400,
+          "3": 600,
+          "4": 800,
+          "5": 1000
+        }
+      }
+    ]
+  },
+  "categories": [
+    {
+      "id": "58c24649-3993-44a8-b28a-22d24d33b90a",
+      "title": "Earth & Space",
+      "clues": [
+        {
+          "id": "e8e8b2a7-7d76-4a2e-9b4c-028552c2d468",
+          "tier": 1,
+          "type": "text",
+          "prompt": "Our home is this third planet from the Sun.",
+          "answer": "What is Earth?"
+        },
+        {
+          "id": "27ec037b-a26f-4ed5-b430-983bf2bf64ed",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This gas giant is the largest planet in our solar system.",
+          "answer": "What is Jupiter?"
+        },
+        {
+          "id": "7346cef1-dd92-44cf-848a-3d4673f396b5",
+          "tier": 3,
+          "type": "text",
+          "prompt": "This moon of Saturn has a dense atmosphere and lakes of liquid methane and ethane.",
+          "answer": "What is Titan?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "666ac83b-1b5f-4307-a9b8-8927dc3a7611",
+        "tier": "final",
+        "type": "text",
+        "notes": "Reserved future content; not used by the ordinary 3x3 board.",
+        "prompt": "Our solar system belongs to this galaxy, whose central supermassive black hole is called Sagittarius A*.",
+        "answer": "What is the Milky Way?"
+      }
+    },
+    {
+      "id": "c3b38b57-582e-429b-88c7-c4a05361ef55",
+      "title": "World Geography",
+      "clues": [
+        {
+          "id": "6e9eec92-a7e6-43ab-9356-9c514478899e",
+          "tier": 1,
+          "type": "text",
+          "prompt": "The Eiffel Tower stands in this capital city of France.",
+          "answer": "What is Paris?"
+        },
+        {
+          "id": "596fd5a8-2c58-4e0d-a888-d75fc1cb5a38",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This is Earth's largest ocean, lying between Asia and Australia to the west and the Americas to the east.",
+          "answer": "What is the Pacific Ocean?"
+        },
+        {
+          "id": "c2038885-566e-4ce3-83f9-c7e0232f9a6d",
+          "tier": 3,
+          "type": "text",
+          "prompt": "The ancient Inca site of Machu Picchu is in this South American country.",
+          "answer": "What is Peru?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "e72f3bce-8463-4280-b7f1-fd28c4f11c60",
+        "tier": "final",
+        "type": "text",
+        "notes": "Reserved future content; not used by the ordinary 3x3 board.",
+        "prompt": "This narrow strait separates Spain from Morocco and connects the Atlantic Ocean to the Mediterranean Sea.",
+        "answer": "What is the Strait of Gibraltar?"
+      }
+    },
+    {
+      "id": "12b42b3e-c46c-427e-833b-1668be8d0349",
+      "title": "Food & Cooking",
+      "clues": [
+        {
+          "id": "0b6e16b0-ab28-4c8b-af59-7af023f8f8d2",
+          "tier": 1,
+          "type": "text",
+          "prompt": "This green fruit is the main ingredient in guacamole.",
+          "answer": "What is an avocado?"
+        },
+        {
+          "id": "f5549d29-8a86-4016-a15c-a690f76edc5a",
+          "tier": 2,
+          "type": "text",
+          "prompt": "This Italian phrase describes pasta that is firm to the bite and literally means 'to the tooth'.",
+          "answer": "What is al dente?"
+        },
+        {
+          "id": "c113d171-056a-4b72-9ea3-705d3eb11f1d",
+          "tier": 3,
+          "type": "text",
+          "prompt": "This spice comes from the dried stigmas of Crocus sativus flowers.",
+          "answer": "What is saffron?"
+        }
+      ],
+      "finalJeoparty": {
+        "id": "46eb8cb0-e492-4348-90d7-cb67f8a8ef92",
+        "tier": "final",
+        "type": "text",
+        "notes": "Reserved future content; not used by the ordinary 3x3 board.",
+        "prompt": "This reaction between amino acids and reducing sugars helps brown toasted bread and seared meat.",
+        "answer": "What is the Maillard reaction?"
+      }
+    }
+  ]
+}
