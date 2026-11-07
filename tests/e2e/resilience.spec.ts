@@ -131,7 +131,9 @@ test("lobby tools, pause, reconnects, host leaving, score correction, round 2 an
   // --- Finish round 1, then round 2 ---------------------------------------
   await revealAndReturn(H2);
   const playOutRound = async () => {
-    await expect(H2.locator(".board--host")).toBeVisible();
+    // Wait for the playable board. The round intro shows a read-only preview with
+    // the same values but no buttons, which would end this loop immediately.
+    await expect(boardCells(H2).first()).toBeEnabled();
     // After each clue the clue panel is gone, so the count reflects the new view.
     while ((await boardCells(H2).count()) > 0) {
       await pickClue(H2, "standard");

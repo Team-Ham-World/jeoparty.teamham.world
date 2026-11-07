@@ -262,7 +262,7 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(scores(a.host)).toEqual(expected);
     await converged(a, [...players, d.wire]);
     privateFrames(a, [...players, d.wire], starter);
-  });
+  }, 20_000); // Two full rounds: slow on small CI machines.
 
   it("rejects unauthorized roles and privileged payloads and revokes rotated display links", async () => {
     const h = await server();

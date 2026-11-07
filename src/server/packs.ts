@@ -98,6 +98,13 @@ export class Packs {
     ];
   }
 
+  /** Copy a built-in or own pack into the owner's packs, marking the title as a copy. */
+  duplicate(id: string, ownerId: string): PackDocument {
+    const source = this.resolve(id, ownerId);
+    const title = `${source.title} (copy)`.slice(0, 120);
+    return this.save({ ...source, title }, ownerId);
+  }
+
   save(raw: unknown, ownerId: string, existingId?: string): PackDocument {
     if (
       existingId &&

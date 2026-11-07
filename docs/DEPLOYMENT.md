@@ -48,7 +48,7 @@ Content validation rejects titles/IDs/authors/tags over 120 characters, prompts/
 
 A host can keep three rooms open, including finished rooms until closed or expired. A fourth returns `409 conflict`; 500 total open rooms returns `429 rateLimited`. The host can close a room via leave to release capacity. No new API error codes are introduced.
 
-Node sets security headers before handing requests to Next, so HTML protection does not depend on Caddy. CSP forbids framing, objects and external script sources, and permits Next inline bootstrap scripts/styles. Development additionally permits script evaluation and the same-origin HMR WebSocket. This is a baseline CSP, not a nonce-based inline-script policy. Pages use `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`. HSTS is emitted only in production by Node, and mirrored on the production Caddy site.
+Node sets security headers before handing requests to Next, so HTML protection does not depend on Caddy. CSP forbids framing, objects and external script sources, and permits Next inline bootstrap scripts/styles. Development additionally permits script evaluation and the same-origin HMR WebSocket. This is a baseline CSP, not a nonce-based inline-script policy. Pages use `X-Frame-Options: DENY`, `Referrer-Policy: same-origin` (not `no-referrer`, which makes browsers send `Origin: null` on same-origin form posts and break the exact-Origin checks; display keys live in the URL fragment, which is never sent as a referrer) and `X-Content-Type-Options: nosniff`. HSTS is emitted only in production by Node, and mirrored on the production Caddy site.
 
 ## Owner deployment steps
 

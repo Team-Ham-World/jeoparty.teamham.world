@@ -30,7 +30,11 @@ export function parseCookies(
 
 export const BASE_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
-  "referrer-policy": "no-referrer",
+  // Not "no-referrer": with it, browsers send `Origin: null` on same-origin HTML
+  // form POSTs, which the exact-Origin checks then reject. "same-origin" still
+  // sends nothing to other sites, and display keys live in the URL fragment,
+  // which is never part of a referrer.
+  "referrer-policy": "same-origin",
   "x-frame-options": "DENY",
   "cross-origin-opener-policy": "same-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",

@@ -139,6 +139,7 @@ describe("HTTP room and pack boundaries", () => {
     ).json();
     expect(doc.id).not.toBe(built.id);
     expect(doc.pack.id).toBe(doc.id);
+    expect(doc.pack.title).toBe(`${built.title} (copy)`);
     expect((await player.request(`/api/packs/${doc.id}`)).status).toBe(404);
     expect((await player.mutate(`/api/packs/${doc.id}/duplicate`)).status).toBe(
       404,

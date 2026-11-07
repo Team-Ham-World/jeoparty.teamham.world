@@ -90,14 +90,15 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   await P.waitForURL(/\/packs\/(?!new$)[^/]+$/);
   await P.goto("/packs");
   await expect(mine).toHaveCount(3);
-  await mine.filter({ hasText: "Imported Snack" }).first().getByRole("button", { name: "Delete" }).click();
-  const confirm = P.getByRole("dialog", { name: /^Delete “Imported Snack”\?$/ });
+  await expect(mine.filter({ hasText: "Imported Snack (copy)" })).toHaveCount(1); // Copies are titled as copies.
+  await mine.filter({ hasText: "Imported Snack (copy)" }).getByRole("button", { name: "Delete" }).click();
+  const confirm = P.getByRole("dialog", { name: /^Delete “Imported Snack \(copy\)”\?$/ });
   await expect(confirm.getByRole("button", { name: "Keep it" })).toBeFocused(); // The safe choice is focused first.
   await confirm.getByRole("button", { name: "Delete pack" }).click();
   await expect(mine).toHaveCount(2);
   await P.locator(".pack-card", { hasText: "Ham Snack" }).getByRole("button", { name: "Copy to my packs" }).click();
   await P.waitForURL(/\/packs\/(?!new$)[^/]+$/);
-  await expect(P.getByLabel("Title", { exact: true })).toHaveValue("Ham Snack");
+  await expect(P.getByLabel("Title", { exact: true })).toHaveValue("Ham Snack (copy)");
 
   // --- Use the new pack in a game ------------------------------------------------
   await P.goto("/");

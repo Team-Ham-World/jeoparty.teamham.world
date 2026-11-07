@@ -138,7 +138,7 @@ try {
     assert.ok(page.headers.get("content-type").includes("text/html"));
     assert.ok(page.headers.get("content-security-policy").includes("frame-ancestors 'none'"));
     assert.equal(page.headers.get("x-frame-options"), "DENY");
-    assert.equal(page.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(page.headers.get("referrer-policy"), "same-origin");
     assert.equal(page.headers.get("x-content-type-options"), "nosniff");
     assert.equal(page.headers.has("strict-transport-security"), false);
     await page.text();

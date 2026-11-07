@@ -520,7 +520,7 @@ export async function createApp(config: Config, options: Options) {
         return;
       }
       if (id && duplicate && method === "POST") {
-        sendJson(res, 201, packs.save(packs.resolve(id, owner), owner));
+        sendJson(res, 201, packs.duplicate(id, owner));
         return;
       }
       if (

@@ -122,7 +122,7 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
 <form method="post" action="/__ham/authorize/decide">${hidden}
 <p>Quick accounts:</p>${presets}
 <label for="custom">Or any test username</label>
-<input id="custom" type="text" name="custom" maxlength="32" pattern="[A-Za-z0-9_.-]{1,32}" placeholder="e.g. tita_nena">
+<input id="custom" type="text" name="custom" maxlength="32" pattern="[A-Za-z0-9_.\\-]{1,32}" placeholder="e.g. tita_nena">
 <label><input type="checkbox" name="hide_username" value="1"> Return a null username</label>
 <button class="primary" type="submit" name="action" value="allow">Continue with custom name</button>
 <button type="submit" name="action" value="deny">Deny access</button>
