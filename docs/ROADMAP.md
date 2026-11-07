@@ -17,8 +17,8 @@ Evidence: `npm run check` (engine, content, server, security and UI tests), `npm
 
 ## Before launch
 
-1. **Register the HAM client** (owner): reserve `quiz`, register `client_id=quiz` with the callback `https://quiz.teamham.world/api/auth/callback`. See [HAM registration](HAM_REGISTRATION.md).
-2. **Deploy** with Docker behind the shared Caddy on the Oracle host. See [Deployment](DEPLOYMENT.md).
+1. ~~Register the HAM client~~: done 2026-11-07. See [HAM registration](HAM_REGISTRATION.md).
+2. ~~Deploy~~: live at https://quiz.teamham.world since 2026-11-07. See [Deployment](DEPLOYMENT.md#current-deployment).
 3. **Live verification:** real HAM sign-in and sign-out, a superseding login, two or more real phones on different networks, a TV at 10 feet, iOS Safari and Android Chrome, one backend restart mid-game.
 4. **Playtest** a full game with the group and record what to change.
 

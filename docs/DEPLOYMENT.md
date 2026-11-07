@@ -63,6 +63,33 @@ No deployment is performed by implementing these files.
 
 The container runs as `node`, with a persistent SQLite volume, a read-only root, writable Next cache tmpfs, dropped capabilities and a healthcheck. Resource limits are starting values, not measured capacity. With `TRUST_PROXY=false`, rate limits use the direct socket address and ignore forwarded headers. With `TRUST_PROXY=true`, every IP limiter uses the right-most `X-Forwarded-For` entry appended by the single Caddy hop; client-supplied prefixes never select a bucket. This configuration assumes Caddy has no `trusted_proxies` and the app is reachable only through Caddy on the private proxy network. Do not expose the Node port publicly with proxy trust enabled. Multiple proxy hops require a separately reviewed configuration. Per-account limits remain in force. Host sockets allow 60 messages per five seconds; player/display sockets allow 20.
 
+## Current deployment
+
+Deployed 2026-11-07 at **https://quiz.teamham.world**, from commit `503b74c` on `feat/ham-quiz`.
+
+- **DNS:** `quiz.teamham.world` is a Cloudflare-proxied CNAME to `oracle.cyr1en.dev`, the same as Strokies.
+- **Ingress:** the shared Caddy on the Oracle host serves `/opt/stacks/caddy/sites/quiz.caddy` (a copy of `deploy/quiz.caddy`), with a Let's Encrypt certificate.
+- **App:** Compose project `quiz`, built from the source snapshot in `/opt/stacks/quiz/app` (`DEPLOYED_COMMIT` records the commit). Container `quiz-app-1`, alias `quiz-app` on the `proxy` network, SQLite in the `quiz_quiz-data` volume.
+- **Secrets:** `/opt/stacks/quiz/quiz.env` (mode 600) holds `HAM_CLIENT_SECRET` and `TOKEN_ENCRYPTION_KEY`. Back it up privately; losing the key signs everyone out, and losing the secret means rotating it in HAM.
+
+Redeploy a newer commit (wait for games to finish when possible):
+
+```sh
+cd /home/ubuntu/TeamHamWorld/jeoparty.teamham.world   # clean working tree on the commit to ship
+rm -rf /opt/stacks/quiz/app && mkdir /opt/stacks/quiz/app
+git archive HEAD | tar -x -C /opt/stacks/quiz/app && git rev-parse --short HEAD > /opt/stacks/quiz/app/DEPLOYED_COMMIT
+docker compose -f /opt/stacks/quiz/app/docker-compose.yml --env-file /opt/stacks/quiz/quiz.env -p quiz up -d --build
+```
+
+Verified after deployment:
+
+- Over HTTPS through Cloudflare: `/api/health`, `/api/session` (`authMode: live`), and pages with CSP, HSTS and `X-Frame-Options`.
+- The login redirect sends exactly `client_id=quiz`, the registered callback and audience, scope `identity`, and S256 PKCE.
+- HAM's authorize endpoint accepts the client, sending a signed-out visitor on to Discord login.
+- `/ws` upgrades reach the app.
+
+Not yet verified: a real HAM sign-in, and a game played on real phones.
+
 ## Updates and backups
 
 Wait for games to finish when possible. SIGTERM sends `serverShutdown`, drains room queues and closes SQLite. After restarting, active games restore paused through the engine.

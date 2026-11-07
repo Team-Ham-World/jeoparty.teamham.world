@@ -1,5 +1,7 @@
 # HAM Quiz registration, owner managed
 
+**Status:** registered in HAM production on 2026-11-07. `quiz` was already in `RESERVED_SUBDOMAINS`, and no member page used the slug. `deploy/register-quiz.sql` was first rehearsed on an expiring Neon branch copied from `production`, following `teamham.world/docs/NEON_MIGRATIONS.md`. The rehearsal inserted exactly one row, a second run was refused, and `app_runtime_role` could read the row. The same unchanged script was then applied to production. The plaintext secret exists only in `/opt/stacks/quiz/quiz.env` on the Oracle host. Because `neon psql` needs a local `psql`, the script ran through `postgres:17-alpine`'s `psql`, with the connection string passed only through an environment variable.
+
 These are instructions for the TeamHam.world owner. The backend implementation does not change the central repository, register a client, touch production or deploy anything.
 
 1. In the central TeamHam.world project, add `quiz` to `RESERVED_SUBDOMAINS` and deploy that reservation before creating DNS or registering the client. Check that no existing member page owns the slug. Stop and resolve any collision.
