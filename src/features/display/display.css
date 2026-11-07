@@ -1,0 +1,976 @@
+/*
+  TV / projector stage. Dark ink so paper slips (board cells, the clue card,
+  name tags) pop at 10 feet. Everything is in em off `.tv`'s font-size:
+  30px at 1920×1080, 21px at 1366×768.
+*/
+
+@layer components {
+  .tv {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100dvh;
+    overflow: hidden;
+    padding-inline: max(1.2em, env(safe-area-inset-left, 0px)) max(1.2em, env(safe-area-inset-right, 0px));
+    font-size: min(1.5625vw, 2.78vh);
+    color: var(--stage-text);
+    background-color: var(--stage);
+    background-image: radial-gradient(#f6f1e50c 0.06em, transparent 0.07em);
+    background-size: 0.55em 0.55em;
+    color-scheme: dark;
+  }
+
+  .tv :focus-visible {
+    outline-color: var(--stage-blue);
+  }
+
+  @media (max-width: 900px), (max-height: 520px) {
+    .tv {
+      height: auto;
+      min-height: 100dvh;
+      overflow: visible;
+      font-size: 15px;
+    }
+  }
+
+  .tv-stamp {
+    font-size: 0.75em;
+  }
+
+  /* Stamps sit on the ink stage: give the outline ones a paper ground. */
+  .tv .stamp--red,
+  .tv .stamp--ink,
+  .tv .stamp--dashed {
+    color: var(--ink);
+    background: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .tv .stamp--red {
+    box-shadow:
+      0 0 0 2px var(--paper),
+      0 0 0 4px var(--red);
+  }
+
+  .tv-eyebrow {
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--stage-muted);
+  }
+
+  .tv-eyebrow--ink {
+    color: var(--muted);
+  }
+
+  /* --------------------------------------------------------------- header */
+  .tv-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1em;
+    padding: 0.6em 0 0.55em;
+    border-bottom: 2px solid #f6f1e526;
+  }
+
+  .tv-head__lockup {
+    font-size: 1.55em;
+    color: var(--stage-text);
+  }
+
+  .tv-head__title {
+    font-family: var(--font-display);
+    font-size: 1.15em;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .tv-head__join {
+    justify-self: end;
+    font-size: 0.8em;
+    color: var(--stage-muted);
+    text-align: right;
+  }
+
+  .tv-head__join strong {
+    color: var(--stage-text);
+    letter-spacing: 0.02em;
+  }
+
+  .tv-conn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.2em 0.7em;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--highlight);
+    border: 2px solid var(--ink);
+  }
+
+  .tv--stale .tv-main {
+    opacity: 0.75;
+  }
+
+  /* ----------------------------------------------------------------- main */
+  .tv-main {
+    position: relative;
+    display: grid;
+    min-height: 0;
+    padding: 0.9em 0;
+  }
+
+  .tv-main > section {
+    min-height: 0;
+  }
+
+  /* --------------------------------------------------------------- lobby */
+  .tv-lobby {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 1.2em 2.5em;
+    align-items: center;
+    padding: 0.5em 1em 0;
+  }
+
+  .tv-lobby__how {
+    display: grid;
+    gap: 1em;
+    align-content: center;
+  }
+
+  .tv-lobby__title {
+    font-family: var(--font-display);
+    font-size: 3.3em;
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.012em;
+  }
+
+  .tv-steps {
+    display: grid;
+    gap: 0.45em;
+    margin: 0;
+    padding: 0;
+    font-size: 1.15em;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .tv-steps li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6em;
+    counter-increment: step;
+  }
+
+  .tv-steps li::before {
+    content: counter(step);
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 1.5em;
+    height: 1.5em;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--ink);
+    background: var(--paper);
+    transform: translateY(0.2em);
+  }
+
+  .tv-steps strong {
+    padding: 0 0.25em;
+    color: var(--ink);
+    background: var(--highlight);
+  }
+
+  .tv-code {
+    display: flex;
+    gap: 0.35em;
+    margin-top: 0.3em;
+  }
+
+  .tv-code__letter {
+    display: grid;
+    place-items: center;
+    width: 1.35em;
+    height: 1.5em;
+    font-family: var(--font-display);
+    font-size: 3em;
+    font-weight: 800;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    box-shadow: 0.08em 0.08em 0 var(--red);
+  }
+
+  .tv-code__letter:nth-child(odd) {
+    transform: rotate(-2deg);
+  }
+
+  .tv-code__letter:nth-child(even) {
+    transform: rotate(1.5deg) translateY(0.05em);
+  }
+
+  .tv-lobby__qr {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 0.4em;
+    justify-self: center;
+    width: min(100%, 14em);
+    padding: 0.8em 0.8em 0.6em;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    box-shadow: 0.25em 0.25em 0 #000;
+    transform: rotate(1.5deg);
+  }
+
+  .tv-lobby__qr .qr {
+    border: 0;
+  }
+
+  .tv-lobby__qrlabel {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .tv-lobby__players {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.6em;
+    padding-bottom: 0.4em;
+  }
+
+  .tv-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tv-tag {
+    max-width: 100%;
+    padding: 0.35em 0.8em;
+    font-size: 1.05em;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    transform: rotate(var(--tilt, 0deg));
+    animation: tag-in 300ms var(--ease) both;
+  }
+
+  .tv-tag--wait {
+    color: var(--stage-muted);
+    background: transparent;
+    border: 2px dashed var(--stage-faint);
+  }
+
+  .tv-tag--done {
+    background: var(--good-tint);
+  }
+
+  @keyframes tag-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.4em) rotate(var(--tilt, 0deg));
+    }
+  }
+
+  /* --------------------------------------------------------- round intro */
+  .tv-intro {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 0.6em;
+    text-align: center;
+  }
+
+  .tv-intro__title {
+    max-width: 22em;
+    padding-bottom: 0.15em;
+    font-family: var(--font-display);
+    font-size: 4.6em;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: var(--marker) no-repeat center bottom / 70% 0.14em;
+    animation: rise-in 420ms var(--ease) both;
+  }
+
+  .tv-intro__sub {
+    font-size: 1.5em;
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.3em);
+    }
+  }
+
+  /* --------------------------------------------------------------- board */
+  .tv-board {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.6em;
+    height: 100%;
+  }
+
+  .tv-picks {
+    justify-self: start;
+    padding: 0.2em 0.8em;
+    font-size: 1em;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    box-shadow: inset 0.35em 0 0 var(--blue);
+    padding-left: 1em;
+  }
+
+  /* ---------------------------------------------------------------- clue */
+  .tv-clue {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    height: 100%;
+    color: var(--ink);
+    background: var(--surface);
+    border: 0.08em solid var(--ink);
+    box-shadow: 0.3em 0.3em 0 #000;
+    animation: card-in 260ms var(--ease) both;
+  }
+
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97) rotate(-0.4deg);
+    }
+  }
+
+  .tv-clue__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding: 0.5em 1em;
+    color: var(--surface);
+    background: var(--ink);
+  }
+
+  .tv-clue__head h1 {
+    font-family: var(--font-body);
+    font-size: 1em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tv-clue__value {
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 1.5em;
+    font-weight: 800;
+  }
+
+  .tv-clue__value .stamp {
+    font-size: 0.55em;
+  }
+
+  .tv-prompt {
+    display: grid;
+    align-items: center;
+    min-height: 0;
+    padding: 0.5em 1.4em;
+    font-weight: 700;
+    line-height: 1.22;
+    text-align: center;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  .tv-prompt--xl {
+    font-size: 2.6em;
+  }
+
+  .tv-prompt--l {
+    font-size: 2.15em;
+  }
+
+  .tv-prompt--m {
+    font-size: 1.75em;
+  }
+
+  .tv-prompt--s {
+    font-size: 1.4em;
+  }
+
+  .tv-answer {
+    justify-self: center;
+    display: grid;
+    gap: 0.1em;
+    max-width: 90%;
+    margin: 0 1em 0.8em;
+    padding: 0.4em 1.2em 0.5em;
+    text-align: center;
+    background: var(--highlight);
+    border: 2px solid var(--ink);
+    box-shadow: 0.15em 0.15em 0 var(--ink);
+    transform: rotate(-1deg);
+    animation: stamp-in 320ms var(--ease) both;
+  }
+
+  .tv-answer p {
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .tv-clue__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6em 1.5em;
+    min-height: 3.2em;
+    padding: 0.6em 1em;
+    background: var(--paper);
+    border-top: 2px dashed var(--rule);
+  }
+
+  .tv-cue {
+    font-size: 1.3em;
+    font-weight: 700;
+  }
+
+  .tv-cue--wait {
+    color: var(--muted);
+  }
+
+  .tv-cue .stamp {
+    font-size: 0.65em;
+    vertical-align: 0.2em;
+  }
+
+  .tv-cue__burst {
+    display: inline-block;
+    padding: 0.1em 0.6em;
+    font-family: var(--font-display);
+    font-size: 1.4em;
+    font-weight: 800;
+    color: var(--surface);
+    background: var(--blue);
+    border: 2px solid var(--ink);
+    box-shadow: 0.12em 0.12em 0 var(--ink);
+    transform: rotate(-2deg);
+    animation: stamp-in 260ms var(--ease) both;
+  }
+
+  .tv-cue--answering {
+    font-size: 1.6em;
+  }
+
+  .tv-cue--answering strong {
+    padding: 0 0.2em;
+    background: var(--blue-tint);
+  }
+
+  .tv-countdown {
+    flex: 1 1 14em;
+    max-width: 24em;
+    font-size: 1.05em;
+  }
+
+  .tv-countdown .countdown__label {
+    font-size: 0.8em;
+  }
+
+  .tv-countdown .countdown__track {
+    height: 0.7em;
+  }
+
+  @keyframes stamp-in {
+    from {
+      opacity: 0;
+      transform: scale(1.25) rotate(-6deg);
+    }
+  }
+
+  /* ----------------------------------------------------- wager: Hot HAM! */
+  .tv-hot {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 0.7em;
+    text-align: center;
+  }
+
+  .tv-hot__stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(100%, 24em);
+    aspect-ratio: 1.5;
+  }
+
+  .tv-hot__burst {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    height: 100%;
+    aspect-ratio: 1;
+    background: var(--red);
+    animation: burst-in 520ms var(--ease) both;
+  }
+
+  .tv-hot__title {
+    position: relative;
+    font-size: 4.2em;
+    animation: stamp-in 420ms 120ms var(--ease) both;
+  }
+
+  .tv-hot__cat {
+    padding: 0.2em 0.8em;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+  }
+
+  .tv-hot__sub {
+    font-size: 1.3em;
+  }
+
+  @keyframes burst-in {
+    from {
+      transform: scale(0.3) rotate(-40deg);
+    }
+  }
+
+  /* --------------------------------------------------------------- final */
+  .tv-final--wagers {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 0.8em;
+    text-align: center;
+  }
+
+  .tv-final--wagers .tv-progress {
+    justify-items: center;
+  }
+
+  .tv-progress {
+    display: grid;
+    gap: 0.5em;
+  }
+
+  .tv-clue .tv-progress .tv-eyebrow {
+    color: var(--muted);
+  }
+
+  .tv-clue .tv-tag--wait {
+    color: var(--muted);
+    border-color: var(--muted);
+  }
+
+  .tv-clue .tv-tag {
+    font-size: 0.85em;
+  }
+
+  .tv-responses {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10em, 1fr));
+    gap: 0.8em;
+    margin: 0;
+    padding: 0.4em 1em 1em;
+    list-style: none;
+  }
+
+  .tv-response {
+    display: grid;
+    align-content: start;
+    gap: 0.25em;
+    min-width: 0;
+    padding: 0.6em 0.8em;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+  }
+
+  .tv-response__who {
+    font-family: var(--font-display);
+    font-size: 1.2em;
+    font-weight: 800;
+  }
+
+  .tv-response__said {
+    font-size: 1.3em;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .tv-response__result {
+    font-size: 0.8em;
+    font-weight: 700;
+  }
+
+  .tv-response--hidden {
+    color: var(--muted);
+    background: transparent;
+    border-style: dashed;
+  }
+
+  .tv-response--hidden .tv-response__said {
+    font-family: var(--font-display);
+    font-size: 2em;
+  }
+
+  .tv-response--revealed {
+    border-color: var(--blue);
+    box-shadow: inset 0 0 0 2px var(--blue);
+    animation: stamp-in 300ms var(--ease) both;
+  }
+
+  .tv-response.is-good {
+    background: var(--good-tint);
+    border-color: var(--good);
+  }
+
+  .tv-response.is-bad {
+    background: var(--bad-tint);
+    border-color: var(--bad);
+  }
+
+  /* ------------------------------------------------------------- results */
+  .tv-results {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 1.2em;
+  }
+
+  .tv-podium {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tv-podium__slip {
+    display: grid;
+    justify-items: center;
+    gap: 0.1em;
+    max-width: 26em;
+    padding: 0.6em 1.4em 0.8em;
+    color: var(--ink);
+    background: var(--surface);
+    border: 0.1em solid var(--ink);
+    box-shadow: 0.25em 0.25em 0 var(--red);
+    transform: rotate(var(--tilt, 0deg));
+    animation: stamp-in 480ms var(--ease) both;
+  }
+
+  .tv-podium__rank {
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .tv-podium__name {
+    max-width: 100%;
+    font-family: var(--font-display);
+    font-size: 3em;
+    font-weight: 800;
+    line-height: 1.05;
+    text-align: center;
+    text-wrap: balance;
+    overflow-wrap: break-word;
+  }
+
+  .tv-podium__name--long {
+    font-size: 2.1em;
+  }
+
+  .tv-podium__score {
+    font-family: var(--font-display);
+    font-size: 2em;
+    font-weight: 800;
+  }
+
+  .tv-standings {
+    display: grid;
+    gap: 0.25em;
+    min-width: min(30em, 100%);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 1.3em;
+  }
+
+  .tv-standings li {
+    display: grid;
+    grid-template-columns: 3em minmax(0, 1fr) auto;
+    gap: 0.8em;
+    padding: 0.2em 0;
+    border-bottom: 2px dashed #f6f1e533;
+  }
+
+  /* -------------------------------------------------------- score strip */
+  .tv-scores {
+    padding: 0.2em 0 0.9em;
+  }
+
+  .tv-scores ul {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 0.6em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tv-score {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 0;
+    min-width: 0;
+    padding: 0.45em 0.7em 0.5em;
+    background: var(--stage-raise);
+    border: 2px solid #f6f1e533;
+    transition:
+      transform 200ms var(--ease),
+      background-color 200ms;
+  }
+
+  .tv-score__name {
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tv-score__pts {
+    font-family: var(--font-display);
+    font-size: 1.75em;
+    font-weight: 800;
+    line-height: 1.05;
+  }
+
+  .tv-score__pts.is-neg {
+    color: var(--stage-bad);
+  }
+
+  .tv-score__tag {
+    position: absolute;
+    top: -0.75em;
+    right: 0.5em;
+    font-size: 0.6em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tv-score__tag:empty {
+    display: none;
+  }
+
+  .tv-score--picks {
+    border-color: var(--stage-blue);
+  }
+
+  .tv-score--picks .tv-score__tag {
+    padding: 0.1em 0.5em;
+    color: var(--ink);
+    background: var(--stage-blue);
+  }
+
+  .tv-score--answering {
+    background: var(--blue);
+    border-color: var(--stage-text);
+    transform: translateY(-0.3em);
+  }
+
+  .tv-score--answering .tv-score__tag {
+    padding: 0.1em 0.5em;
+    color: var(--ink);
+    background: var(--stage-text);
+  }
+
+  .tv-score--answering,
+  .tv-score--answering .tv-score__pts.is-neg {
+    color: var(--stage-text);
+  }
+
+  .tv-score--away {
+    border-style: dashed;
+    color: var(--stage-muted);
+  }
+
+  .tv-score--away .tv-score__tag,
+  .tv-score--locked .tv-score__tag {
+    padding: 0.1em 0.5em;
+    color: var(--stage-text);
+    background: var(--stage);
+    border: 1.5px solid var(--stage-faint);
+  }
+
+
+  .tv-score--pulse {
+    animation: pulse 500ms var(--ease);
+  }
+
+  @keyframes pulse {
+    40% {
+      transform: translateY(-0.5em) scale(1.06);
+    }
+  }
+
+  /* ------------------------------------------------------- judged stamp */
+  .tv-judged {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 5;
+    display: grid;
+    justify-items: center;
+    gap: 0.1em;
+    padding: 0.4em 1.2em 0.6em;
+    color: var(--surface);
+    border: 0.12em solid var(--ink);
+    box-shadow: 0.25em 0.25em 0 #000;
+    pointer-events: none;
+    transform: translate(-50%, -50%) rotate(-4deg);
+    animation: judged 2.4s var(--ease) forwards;
+  }
+
+  .tv-judged--good {
+    background: var(--good);
+  }
+
+  .tv-judged--bad {
+    background: var(--bad);
+  }
+
+  .tv-judged__word {
+    font-family: var(--font-display);
+    font-size: 3.6em;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .tv-judged__who {
+    font-size: 1.4em;
+    font-weight: 700;
+  }
+
+  @keyframes judged {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(-10deg) scale(1.6);
+    }
+    12%,
+    78% {
+      opacity: 1;
+      transform: translate(-50%, -50%) rotate(-4deg) scale(1);
+    }
+    100% {
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -50%) rotate(-4deg) scale(1);
+    }
+  }
+
+  /* --------------------------------------------------- pause, host offline */
+  .tv-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    background: #1c1a17d9;
+  }
+
+  .tv-overlay__card {
+    display: grid;
+    justify-items: center;
+    gap: 0.5em;
+    max-width: 28em;
+    padding: 1.2em 2em 1.5em;
+    text-align: center;
+    color: var(--ink);
+    background: var(--surface);
+    border: 0.1em solid var(--ink);
+    box-shadow: 0.3em 0.3em 0 #000;
+  }
+
+  .tv-overlay__card h2 {
+    font-size: 2.6em;
+  }
+
+  .tv-overlay__card p {
+    font-size: 1.2em;
+  }
+
+  .tv-hostoff {
+    position: absolute;
+    top: 0.6em;
+    right: 50%;
+    z-index: 6;
+    padding: 0.2em 0.8em;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--highlight);
+    border: 2px solid var(--ink);
+    transform: translateX(50%);
+  }
+
+  /* ------------------------------------------------------- closed/loading */
+  .tv--notice {
+    display: grid;
+    grid-template-rows: none;
+    justify-items: center;
+    align-content: center;
+    gap: 0.7em;
+    padding: 2em;
+    text-align: center;
+  }
+
+  .tv--notice h1 {
+    max-width: 22em;
+    font-size: 2.6em;
+  }
+
+  .tv--notice p {
+    max-width: 30em;
+    font-size: 1.2em;
+    color: var(--stage-muted);
+  }
+
+  .tv-notice__lockup {
+    font-size: 2.4em;
+    margin-bottom: 0.6em;
+  }
+
+  .notice--stage {
+    color: var(--stage-text);
+  }
+}

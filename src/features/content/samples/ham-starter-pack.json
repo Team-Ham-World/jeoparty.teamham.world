@@ -103,7 +103,7 @@
           "id": "clue-team-400",
           "tier": 2,
           "type": "text",
-          "prompt": "This total number of teammates makes up the core JeoParty development team.",
+          "prompt": "This total number of teammates makes up the core HAM Quiz development team.",
           "answer": "What is six?"
         },
         {
@@ -117,7 +117,7 @@
           "id": "clue-team-800",
           "tier": 4,
           "type": "text",
-          "prompt": "This teammate owns the shared TV/projector board and coordinates JeoParty's shared visual conventions.",
+          "prompt": "This teammate owns the shared TV/projector board and coordinates HAM Quiz's shared visual conventions.",
           "answer": "Who is Ivvy?"
         },
         {

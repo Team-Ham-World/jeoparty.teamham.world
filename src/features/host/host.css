@@ -1,0 +1,642 @@
+/* Host control room. Laptop/tablet first; stacks to one column on phones. */
+
+@layer components {
+  .host {
+    min-height: 100dvh;
+  }
+
+  .host-top .topbar__mid {
+    font-weight: 700;
+  }
+
+  .host-top__pack {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .host-banners {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0 var(--gutter-r) 0 var(--gutter-l);
+  }
+
+  .host-banners:not(:empty) {
+    padding-top: 0.75rem;
+  }
+
+  .host-page {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 1.5rem var(--gutter-r) 4rem var(--gutter-l);
+  }
+
+  .host-intro {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .host-intro h1 {
+    justify-self: start;
+  }
+
+  .host-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+    gap: 1.5rem;
+    align-items: start;
+    max-width: 90rem;
+    margin-inline: auto;
+    padding: 1.25rem var(--gutter-r) 3rem var(--gutter-l);
+  }
+
+  @media (max-width: 960px) {
+    .host-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .host-main,
+  .host-side {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  @media (min-width: 961px) {
+    .host-side {
+      position: sticky;
+      top: 1rem;
+      max-height: calc(100dvh - 2rem);
+      overflow-y: auto;
+      padding: 0.25rem 0.25rem 0.5rem;
+    }
+  }
+
+  .host-lede {
+    font-size: var(--fs-lg);
+  }
+
+  /* --------------------------------------------------------------- lobby */
+  .host-lobby {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .host-lobby__players {
+    grid-column: span 4;
+  }
+
+  .host-lobby__invite {
+    grid-column: span 4;
+  }
+
+  .host-lobby__display {
+    grid-column: span 4;
+  }
+
+  .host-lobby__setup {
+    grid-column: span 8;
+  }
+
+  .host-start {
+    grid-column: span 4;
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+    padding: 1.25rem;
+    border: 2px dashed var(--ink);
+  }
+
+  @media (max-width: 1180px) {
+    .host-lobby__players,
+    .host-lobby__invite {
+      grid-column: span 6;
+    }
+
+    .host-lobby__display {
+      grid-column: span 12;
+    }
+
+    .host-lobby__setup {
+      grid-column: span 12;
+    }
+
+    .host-start {
+      grid-column: span 12;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .host-lobby > * {
+      grid-column: 1 / -1 !important;
+    }
+  }
+
+  .host-roster {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .host-roster li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 48px;
+    padding: 0.3rem 0;
+    border-bottom: 1.5px dashed var(--rule);
+  }
+
+  .host-roster li:last-child {
+    border-bottom: 0;
+  }
+
+  .host-roster li > .name {
+    flex: 1;
+    font-weight: 700;
+  }
+
+  .host-away {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .host-invite {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8.5rem;
+    gap: 1rem;
+    align-items: start;
+    margin-bottom: 1rem;
+  }
+
+  .host-invite__code {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .host-invite__letters {
+    font-family: var(--font-display);
+    font-size: var(--fs-4xl);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.08em;
+  }
+
+  .copy-field {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .copy-field .input {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fs-sm);
+  }
+
+  .host-display-link {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  @media (max-width: 420px) {
+    .host-invite,
+    .host-display-link {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .host-invite__qr,
+    .host-display-link__qr {
+      max-width: 10rem;
+    }
+  }
+
+  .host-pack {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px dashed var(--rule);
+  }
+
+  .host-pack .field {
+    flex: 1 1 18rem;
+  }
+
+  .host-settings {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .host-settings__group {
+    display: grid;
+    justify-items: start;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .host-settings__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1rem;
+  }
+
+  .host-blockers {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .host-blockers li {
+    padding-left: 1.4rem;
+    text-indent: -1.4rem;
+    font-weight: 700;
+  }
+
+  .host-blockers li::before {
+    content: "✗";
+    display: inline-block;
+    width: 1.4rem;
+    text-indent: 0;
+    color: var(--bad);
+  }
+
+  .host-ready {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* --------------------------------------------------------- board phase */
+  .host-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    font-size: var(--fs-lg);
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-left: 8px solid var(--blue);
+  }
+
+  .host-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+    font-size: var(--fs-sm);
+    color: var(--muted);
+  }
+
+  .board__hot--inline {
+    position: static;
+    transform: none;
+  }
+
+  .host-intro-card {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+  }
+
+  .host-intro-card h1 {
+    font-size: var(--fs-4xl);
+  }
+
+  /* ---------------------------------------------------------- clue panel */
+  .host-clue {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    box-shadow: var(--shadow);
+  }
+
+  .host-clue__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.7rem 1.1rem;
+    color: var(--surface);
+    background: var(--ink);
+  }
+
+  .host-clue__head h2 {
+    font-size: var(--fs-lg);
+  }
+
+  .host-clue__head .stamp--ink {
+    color: var(--ink);
+    background: var(--surface);
+    border-color: var(--surface);
+  }
+
+  .host-clue__body {
+    display: grid;
+    gap: 1rem;
+    padding: 1.1rem;
+  }
+
+  .host-clue__hot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    font-size: var(--fs-lg);
+  }
+
+  .host-clue__hot .hot-ham {
+    font-size: 2rem;
+  }
+
+  .host-prompt p {
+    font-size: var(--fs-2xl);
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .host-prompt--long p {
+    font-size: var(--fs-xl);
+  }
+
+  .host-answer {
+    padding: 0.6rem 0.9rem;
+    background: var(--highlight);
+    border: 2px dashed var(--ink);
+  }
+
+  .host-answer p {
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .host-clue--revealed .host-answer {
+    border-style: solid;
+  }
+
+  .host-note {
+    font-size: var(--fs-lg);
+  }
+
+  .host-attempts,
+  .host-checklist,
+  .host-responses {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .host-attempt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    align-items: center;
+    padding: 0.4rem 0.7rem;
+    font-weight: 700;
+    border: 2px solid var(--ink);
+    border-left-width: 6px;
+  }
+
+  .host-attempt > .name {
+    flex: 1 1 10rem;
+  }
+
+  .host-attempt > :last-child {
+    min-width: 4rem;
+    text-align: right;
+  }
+
+  .host-attempt--incorrect {
+    background: var(--bad-tint);
+    border-color: var(--bad);
+  }
+
+  .host-attempt--correct {
+    background: var(--good-tint);
+    border-color: var(--good);
+  }
+
+  .host-attempt--pending {
+    background: var(--blue-tint);
+    border-color: var(--blue);
+  }
+
+  .host-clue__actions {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem 1.2rem;
+    border-top: 2px dashed var(--rule);
+    background: var(--paper);
+  }
+
+  .host-callout {
+    font-size: var(--fs-lg);
+  }
+
+  .host-wager {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 28rem;
+  }
+
+  /* --------------------------------------------------------------- final */
+  .host-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.35rem 0;
+    font-weight: 700;
+    border-bottom: 1.5px dashed var(--rule);
+  }
+
+  .host-checklist li .name {
+    flex: 1;
+  }
+
+  .host-checklist li.is-done > span:first-child {
+    color: var(--good);
+  }
+
+  .host-response {
+    display: grid;
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0.75rem;
+    border: 2px solid var(--rule);
+  }
+
+  .host-response__who {
+    display: grid;
+    min-width: 0;
+  }
+
+  .host-response__who .muted {
+    font-size: var(--fs-sm);
+  }
+
+  .host-response__said {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .host-response__delta {
+    font-weight: 700;
+  }
+
+  .host-response.is-next {
+    border-color: var(--blue);
+    box-shadow: inset 6px 0 0 var(--blue);
+    background: var(--blue-tint);
+  }
+
+  .host-response--judged {
+    border-style: dashed;
+    color: var(--muted);
+  }
+
+  @media (max-width: 560px) {
+    .host-response {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .host-response__said {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+
+  /* ------------------------------------------------------------- results */
+  .host-results {
+    display: grid;
+    gap: 1rem;
+    justify-items: start;
+  }
+
+  .host-results__title {
+    font-size: var(--fs-3xl);
+  }
+
+  .host-standings {
+    display: grid;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .host-standings li {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 48px;
+    font-size: var(--fs-lg);
+    border-bottom: 1.5px dashed var(--rule);
+  }
+
+  .host-standings li.is-winner {
+    font-weight: 700;
+    background: linear-gradient(transparent 14%, var(--highlight) 14%, var(--highlight) 86%, transparent 86%);
+  }
+
+  /* ---------------------------------------------------------- side panel */
+  .host-roster--scores li {
+    gap: 0.4rem;
+  }
+
+  .host-roster__name {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+    gap: 0.15rem;
+    font-weight: 700;
+  }
+
+  .host-roster__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .host-roster__tags .stamp {
+    font-size: 0.6875rem;
+  }
+
+  .host-roster--scores .score {
+    font-family: var(--font-display);
+    font-size: var(--fs-xl);
+    font-weight: 800;
+  }
+
+  .host-roster--scores li.is-answering {
+    background: var(--good-tint);
+    box-shadow: -0.5rem 0 0 var(--good-tint), 0.5rem 0 0 var(--good-tint);
+  }
+
+  .host-adjust {
+    width: 36px;
+    padding: 0;
+    font-size: var(--fs-lg);
+    box-shadow: none;
+  }
+
+  .host-waiting {
+    margin-top: 0.75rem;
+    font-size: var(--fs-sm);
+  }
+
+  .host-log {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .host-log ol {
+    display: grid;
+    gap: 0.35rem;
+    max-height: 18rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    font-size: var(--fs-sm);
+  }
+
+  .host-log li {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .host-log__delta {
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .dialog__actions {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 2px dashed var(--rule);
+  }
+}
