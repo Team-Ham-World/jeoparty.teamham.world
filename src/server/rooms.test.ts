@@ -81,7 +81,7 @@ describe("HTTP room and pack boundaries", () => {
     expect((await player.mutate(`/api/rooms/${code}/leave`)).status).toBe(204);
     await room.system({ type: "restored" });
     const playing = { ...h.engine.read(room.state), phase: "board" as const };
-    room.state = playing;
+    room.state = h.engine.write(playing);
     expect(
       await (await player.mutate(`/api/rooms/${code}/join`)).json(),
     ).toEqual({ role: "waiting" });
@@ -376,7 +376,7 @@ describe("WebSocket and room actor", () => {
       ...h.engine.read(room.state),
       deadline: { timerId: "test-timer", at: Date.now() + 10 },
     };
-    room.state = timed;
+    room.state = h.engine.write(timed);
     room.saveInitial();
     await vi.waitFor(() =>
       expect(h.engine.applied).toContainEqual({

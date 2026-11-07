@@ -12,7 +12,11 @@ import type { QuestionPack } from "@/features/content";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
 
-interface FakeState extends GameState {
+/** The fake engine's own state. It crosses the EngineApi boundary as an opaque GameState. */
+interface FakeState {
+  schema: "ham-quiz/game@1";
+  revision: number;
+  roomCode: string;
   players: { id: string; name: string; score: number; connected: boolean }[];
   waitingPlayers: { id: string; name: string }[];
   phase: ViewCommon["phase"];
@@ -35,7 +39,8 @@ export function fakeEngine() {
       finalAnswerMs: 45000,
     },
   };
-  const read = (state: GameState): FakeState => state as FakeState;
+  const read = (state: GameState): FakeState => state as unknown as FakeState;
+  const write = (state: FakeState): GameState => state as unknown as GameState;
   const common = (raw: GameState, now: number): ViewCommon => {
     const s = read(raw);
     return {
@@ -59,7 +64,7 @@ export function fakeEngine() {
   };
   const api: EngineApi = {
     createGame: ({ roomCode }) =>
-      ({
+      write({
         schema: "ham-quiz/game@1",
         roomCode,
         revision: 0,
@@ -70,7 +75,7 @@ export function fakeEngine() {
         commands: [],
         pack: null,
         deadline: null,
-      }) as FakeState,
+      }),
     defaultSettings: () => settings,
     apply(raw, actor, cmd) {
       applied.push(cmd);
@@ -116,7 +121,7 @@ export function fakeEngine() {
       s.commands.push(cmd.type);
       return {
         ok: true,
-        state: { ...s, revision: s.revision + 1 },
+        state: write({ ...s, revision: s.revision + 1 }),
         events: [],
       };
     },
@@ -137,7 +142,7 @@ export function fakeEngine() {
         waiting = s.waitingPlayers.find((p) => p.id === id);
       if (!p && !waiting) return null;
       return {
-        ...common(s, now),
+        ...common(raw, now),
         audience: "player",
         board: null,
         me: {
@@ -160,10 +165,10 @@ export function fakeEngine() {
       raw !== null &&
       "schema" in raw &&
       raw.schema === "ham-quiz/game@1"
-        ? (raw as GameState)
+        ? (raw as unknown as GameState)
         : null,
   };
-  return { api, applied, read };
+  return { api, applied, read, write };
 }
 export async function harness(databasePath = ":memory:") {
   let time = Date.now();
