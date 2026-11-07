@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { PackSummary } from "@/features/network/protocol";
 import { ConfirmDialog } from "@/features/ui/dialog";
+import { plural } from "@/features/ui/format";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -92,7 +93,7 @@ function PackCard({ pack, busy, children }: { pack: PackSummary; busy: boolean; 
       <div className="pack-card__meta">
         <span className={`stamp stamp--flat ${pack.source === "mine" ? "stamp--blue" : "stamp--dashed"}`}>{pack.source === "mine" ? "Mine" : "Built in"}</span>
         <span className="muted num">
-          {pack.categories} categories × {pack.cluesPerCategory} clues
+          {plural(pack.categories, "category", "categories")} × {plural(pack.cluesPerCategory, "clue")}
         </span>
       </div>
       <h3 className="pack-card__title name">{pack.title}</h3>

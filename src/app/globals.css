@@ -275,6 +275,15 @@
     gap: 0.5rem;
   }
 
+  /* A stamp is a small label, never a full-width bar. */
+  .stack > .stamp {
+    justify-self: start;
+  }
+
+  .stack.pl-center > .stamp {
+    justify-self: center;
+  }
+
   /* ----------------------------------------------------------------- brand */
   .lockup {
     display: inline-flex;
@@ -720,6 +729,8 @@
 
   /* --------------------------------------------------------------- dialogs */
   .dialog {
+    /* Tailwind's preflight zeroes margins; native dialogs center with auto margins. */
+    margin: auto;
     width: min(32rem, calc(100% - 32px));
     max-height: calc(100dvh - 32px);
     padding: 0;
@@ -937,5 +948,27 @@
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /*
+    One-shot "Correct!" / "Incorrect" feedback must still be seen: it stays
+    still on screen for its usual time and then disappears, with no movement.
+  */
+  .tv-judged,
+  .pl-flash {
+    animation-name: feedback-still !important;
+    animation-duration: 2.4s !important;
+    animation-timing-function: linear !important;
+  }
+}
+
+@keyframes feedback-still {
+  0%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
   }
 }

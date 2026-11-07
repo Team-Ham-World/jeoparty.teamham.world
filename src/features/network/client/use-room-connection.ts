@@ -16,6 +16,17 @@ import {
 } from "../protocol";
 
 const COMMAND_TIMEOUT_MS = 15_000;
+/** How often the client pings while connected. */
+const HEARTBEAT_MS = 5_000;
+/**
+ * A ping with no answer for this long means the socket is dead even though
+ * the browser hasn't noticed (a phone that lost Wi-Fi can keep a socket
+ * "open" for minutes). Only an unanswered ping counts, so background tabs
+ * with throttled timers never drop a healthy socket.
+ */
+const PONG_TIMEOUT_MS = 8_000;
+/** A handshake that hasn't opened by now is abandoned and retried. */
+const CONNECT_TIMEOUT_MS = 10_000;
 interface Pending {
   message: { t: "cmd"; id: string; cmd: ClientCommand };
   resolve(outcome: CommandOutcome): void;
@@ -54,6 +65,9 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
     let socket: WebSocket | undefined;
     let reconnect: ReturnType<typeof setTimeout> | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let connectTimer: ReturnType<typeof setTimeout> | undefined;
+    /** When the oldest unanswered ping went out; null once anything arrives. */
+    let unansweredPingAt: number | null = null;
     let latestRevision = -1;
     const pending = new Map<string, Pending>();
     const settle = (outcome: CommandOutcome) => {
@@ -74,6 +88,54 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           clockOffsetMs: 0,
         });
     });
+    /** The socket is gone (closed, dead or offline): go stale and retry with backoff. */
+    function lost() {
+      live = false;
+      unansweredPingAt = null;
+      clearInterval(heartbeat);
+      clearTimeout(connectTimer);
+      if (disposed || intentional) return;
+      setState((previous) => ({ ...previous, status: "reconnecting" }));
+      clearTimeout(reconnect);
+      const delay =
+        Math.min(10_000, 500 * 2 ** Math.min(retries++, 5)) *
+        (0.75 + Math.random() * 0.5);
+      reconnect = setTimeout(connect, delay);
+    }
+    /** Abandon the current socket without waiting for the browser to notice it died. */
+    function drop(ws: WebSocket) {
+      if (disposed || socket !== ws) return;
+      socket = undefined; // Late events from `ws` are ignored from here on.
+      try {
+        ws.close();
+      } catch {
+        // Already closing.
+      }
+      lost();
+    }
+    function onOffline() {
+      if (socket) drop(socket);
+    }
+    function onOnline() {
+      // Back online: retry now instead of waiting out the backoff.
+      if (disposed || intentional || socket) return;
+      clearTimeout(reconnect);
+      retries = 0;
+      connect();
+    }
+    function onVisible() {
+      // Phones freeze timers while asleep; check the socket as soon as the page is back.
+      if (document.visibilityState !== "visible" || !socket) return;
+      if (unansweredPingAt !== null && Date.now() - unansweredPingAt > PONG_TIMEOUT_MS) {
+        drop(socket);
+      } else if (socket.readyState === WebSocket.OPEN) {
+        unansweredPingAt ??= Date.now();
+        socket.send(JSON.stringify({ t: "ping", at: Date.now() }));
+      }
+    }
+    window.addEventListener("offline", onOffline);
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisible);
     function connect() {
       if (disposed || intentional) return;
       const url = new URL("/ws", window.location.href);
@@ -84,8 +146,12 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       socket = ws;
       let hello = false;
       const active = () => !disposed && socket === ws;
+      connectTimer = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) drop(ws);
+      }, CONNECT_TIMEOUT_MS);
       ws.onmessage = (event) => {
         if (!active()) return;
+        unansweredPingAt = null;
         let message: ServerMessage;
         try {
           message = JSON.parse(String(event.data)) as ServerMessage;
@@ -97,6 +163,7 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           intentional = true;
           live = false;
           clearTimeout(reconnect);
+          clearTimeout(connectTimer);
           clearInterval(heartbeat);
           setState((previous) => ({
             ...previous,
@@ -165,25 +232,27 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       };
       ws.onopen = () => {
         if (!active()) return;
-        ws.send(JSON.stringify({ t: "ping", at: Date.now() }));
-        heartbeat = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN)
-            ws.send(JSON.stringify({ t: "ping", at: Date.now() }));
-        }, 10_000);
+        clearTimeout(connectTimer);
+        const ping = () => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          if (unansweredPingAt !== null && Date.now() - unansweredPingAt > PONG_TIMEOUT_MS) {
+            drop(ws);
+            return;
+          }
+          unansweredPingAt ??= Date.now();
+          ws.send(JSON.stringify({ t: "ping", at: Date.now() }));
+        };
+        ping();
+        clearInterval(heartbeat);
+        heartbeat = setInterval(ping, HEARTBEAT_MS);
       };
       ws.onerror = () => {
         ws.close();
       };
       ws.onclose = () => {
         if (!active()) return;
-        live = false;
-        clearInterval(heartbeat);
-        if (intentional) return;
-        setState((previous) => ({ ...previous, status: "reconnecting" }));
-        const delay =
-          Math.min(10_000, 500 * 2 ** Math.min(retries++, 5)) *
-          (0.75 + Math.random() * 0.5);
-        reconnect = setTimeout(connect, delay);
+        socket = undefined;
+        lost();
       };
     }
     sendRef.current = (cmd) => {
@@ -219,7 +288,11 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       disposed = true;
       live = false;
       clearTimeout(reconnect);
+      clearTimeout(connectTimer);
       clearInterval(heartbeat);
+      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisible);
       socket?.close();
       settle({ ok: false, error: "offline", message: "Connection closed." });
       sendRef.current = () =>

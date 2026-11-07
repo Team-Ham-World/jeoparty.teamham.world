@@ -55,7 +55,10 @@
   }
 
   .pl-me__who strong {
+    overflow: hidden;
     font-size: var(--fs-lg);
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .pl-me__score {
@@ -331,7 +334,7 @@
   .buzz {
     display: grid;
     place-items: center;
-    width: min(70vw, 17rem, 36dvh);
+    width: min(70vw, 17rem, 32dvh);
     aspect-ratio: 1;
     max-width: 100%;
     padding: 0;

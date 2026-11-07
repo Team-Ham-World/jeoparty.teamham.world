@@ -25,7 +25,7 @@ export function describeEvent(event: GameEvent, players: readonly PublicPlayer[]
     case "judged":
       return `${who(event.playerId)}: ${event.correct ? "correct" : "incorrect"}, ${formatDelta(event.delta)}.`;
     case "attemptsEnded":
-      return "No more buzzes on this clue.";
+      return "No more answers on this clue.";
     case "revealed":
       return "The answer is revealed.";
     case "timerExpired":
@@ -39,13 +39,16 @@ export function describeEvent(event: GameEvent, players: readonly PublicPlayer[]
     case "finalJudged":
       return `${who(event.playerId)}: ${event.correct ? "correct" : "incorrect"}, ${formatDelta(event.delta)}.`;
     case "scoreAdjusted":
-      return `${who(event.playerId)}'s score changed by ${formatDelta(event.delta)}.`;
+      return event.playerId === meId
+        ? `The host changed your score by ${formatDelta(event.delta)}.`
+        : `The host changed ${nameOf(players, event.playerId)}'s score by ${formatDelta(event.delta)}.`;
     case "paused":
       return "The game is paused.";
     case "resumed":
       return "The game resumed.";
     case "gameOver": {
-      const names = event.winnerIds.map((id) => who(id));
+      if (meId && event.winnerIds.includes(meId)) return event.winnerIds.length > 1 ? "Game over. You share the win!" : "Game over. You win!";
+      const names = event.winnerIds.map((id) => nameOf(players, id));
       return names.length > 1 ? `Game over. Shared win: ${listNames(names)}.` : `Game over. ${names[0] ?? "Nobody"} wins.`;
     }
   }

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { CommandOutcome, RoomConnection } from "@/features/network/connection";
-import type { ClientCommand } from "@/features/network/protocol";
+import type { AckError, ClientCommand } from "@/features/network/protocol";
 import { useToast } from "./toasts";
 
 const FALLBACK: Partial<Record<string, string>> = {
@@ -10,6 +10,11 @@ const FALLBACK: Partial<Record<string, string>> = {
   timeout: "The server didn't answer in time. Check the screen, then try again.",
   rateLimited: "Slow down a little and try again.",
 };
+
+export interface RunOptions {
+  /** Rejections the screen already explains in place, so no toast is needed (e.g. a lost buzz race). */
+  quiet?: readonly (AckError | "offline" | "timeout")[];
+}
 
 /**
  * Sends commands for a screen and turns rejections into a toast. `pending`
@@ -22,13 +27,13 @@ export function useCommand<V>(connection: RoomConnection<V>) {
   const inFlight = useRef(false);
 
   const run = useCallback(
-    async (cmd: ClientCommand): Promise<CommandOutcome | null> => {
+    async (cmd: ClientCommand, options: RunOptions = {}): Promise<CommandOutcome | null> => {
       if (connection.stale || inFlight.current) return null;
       inFlight.current = true;
       setPending(cmd.type);
       try {
         const outcome = await connection.send(cmd);
-        if (!outcome.ok) toast(FALLBACK[outcome.error] ?? outcome.message);
+        if (!outcome.ok && !options.quiet?.includes(outcome.error)) toast(FALLBACK[outcome.error] ?? outcome.message);
         return outcome;
       } catch {
         toast("That didn't send. Try again.");

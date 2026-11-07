@@ -95,7 +95,7 @@ function HostBody({
             Room <span className="room-code">{view.roomCode}</span>
           </span>
           {view.pack ? <span className="host-top__pack name">{view.pack.title}</span> : null}
-          {view.round ? (
+          {view.round && view.phase !== "final" && view.phase !== "results" ? (
             <span className="stamp stamp--flat">
               {view.round.title} · {view.round.index + 1}/{view.round.total}
             </span>
@@ -110,11 +110,8 @@ function HostBody({
               TV link
             </button>
           ) : null}
-          {view.paused ? (
-            <button type="button" className="btn btn--small btn--primary" disabled={!can("resume")} onClick={() => actions.run({ type: "resume" })}>
-              Resume
-            </button>
-          ) : inGame && view.phase !== "results" ? (
+          {/* While paused, the banner below carries the one Resume button. */}
+          {!view.paused && inGame && view.phase !== "results" ? (
             <button type="button" className="btn btn--small" disabled={!can("pause")} onClick={() => actions.run({ type: "pause" })}>
               Pause
             </button>
@@ -240,6 +237,8 @@ function HostPhase({ view, actions, clockOffsetMs }: { view: HostView; actions: 
 }
 
 function Scores({ view, canAdjust, onAdjust }: { view: HostView; canAdjust: boolean; onAdjust: (id: PlayerId | null) => void }) {
+  const answeringId = view.clue?.stage === "answering" ? view.clue.answeringPlayerId : null;
+  const showPicks = view.phase === "roundIntro" || view.phase === "board" || view.phase === "clue";
   return (
     <section className="panel panel--flat host-scores" aria-labelledby="host-scores-title">
       <div className="panel__title">
@@ -250,12 +249,12 @@ function Scores({ view, canAdjust, onAdjust }: { view: HostView; canAdjust: bool
       </div>
       <ul className="host-roster host-roster--scores">
         {view.players.map((player) => (
-          <li key={player.id} className={player.id === view.clue?.answeringPlayerId ? "is-answering" : undefined}>
+          <li key={player.id} className={player.id === answeringId ? "is-answering" : undefined}>
             <span className="host-roster__name">
               <span className="name">{player.name}</span>
               <span className="host-roster__tags">
-                {player.id === view.controllerId ? <span className="stamp stamp--blue stamp--flat">Picks</span> : null}
-                {player.id === view.clue?.answeringPlayerId ? <span className="stamp stamp--good stamp--flat">Answering</span> : null}
+                {showPicks && player.id === view.controllerId ? <span className="stamp stamp--blue stamp--flat">Picks</span> : null}
+                {player.id === answeringId ? <span className="stamp stamp--good stamp--flat">Answering</span> : null}
                 {!player.connected ? <span className="host-away">away</span> : null}
               </span>
             </span>
