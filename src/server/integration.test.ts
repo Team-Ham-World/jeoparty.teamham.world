@@ -13,7 +13,7 @@ import { connect, finishClue, start, table, type Wire } from "./integration-harn
 
 let h: Harness | undefined;
 async function server(database = ":memory:", now?: () => number) {
-  h = await harness(database, { engine, port: 3301, now });
+  h = await harness(database, { engine, port: 0, now });
   return h;
 }
 afterEach(async () => {
@@ -309,7 +309,7 @@ describe("real engine through HTTP and WebSocket", () => {
     }
   });
 
-  it("replays accepted and rejected command ids unchanged after reconnect, without repeating scores", async () => {
+  it("replays accepted ids after reconnect and re-evaluates rejected ids without repeating scores", async () => {
     const h = await server();
     const { a, host, code, players } = await table(h);
     await start(a, snack.id);
@@ -323,7 +323,7 @@ describe("real engine through HTTP and WebSocket", () => {
     await a.close();
     const before = second.host.revision;
     expect(await second.send({ ...cmd, delta: 999 }, id)).toEqual(original);
-    expect(await second.send({ type: "pause" }, rejectedId)).toEqual(rejection);
+    expect(await second.send({ type: "startGame" }, rejectedId)).toEqual(rejection);
     expect(second.host.revision).toBe(before);
     expect(scores(second.host)[players[0].player.me.id]).toBe(123);
     expect(second.host.scoreLog).toHaveLength(1);

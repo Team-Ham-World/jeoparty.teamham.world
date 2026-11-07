@@ -53,6 +53,11 @@ export interface RoomDeps {
     fresh: boolean,
   ): Promise<"active" | "inactive" | "unavailable">;
   onClosed(code: string): void;
+  onMembersChanged(
+    code: string,
+    previous: Set<string>,
+    current: Set<string>,
+  ): void;
 }
 export class Room {
   readonly connections = new Set<Connection>();
@@ -61,6 +66,7 @@ export class Room {
   private closed = false;
   state: GameState;
   private recent: Recent[];
+  private members = new Set<string>();
   updatedAt: number;
   constructor(
     readonly code: string,
@@ -71,7 +77,7 @@ export class Room {
     private deps: RoomDeps,
   ) {
     this.state = state;
-    this.recent = recent;
+    this.recent = recent.filter((entry) => entry.ack.ok);
     this.updatedAt = updatedAt;
   }
   run<T>(fn: () => T | Promise<T>): Promise<T> {
@@ -92,15 +98,25 @@ export class Room {
   }
   saveInitial(): void {
     this.persist(this.state, this.recent, this.updatedAt);
+    this.indexMembers();
     this.schedule();
   }
   private commit(state: GameState, recent = this.recent): void {
     const updated = this.deps.now();
     this.persist(state, recent, updated);
     this.state = state;
+    this.indexMembers();
     this.recent = recent;
     this.updatedAt = updated;
     this.schedule();
+  }
+  private indexMembers(): void {
+    const view = this.deps.engine.displayView(this.state, this.deps.now());
+    const current = new Set(
+      [...view.players, ...view.waitingPlayers].map((p) => p.id),
+    );
+    this.deps.onMembersChanged(this.code, this.members, current);
+    this.members = current;
   }
   private schedule(): void {
     clearTimeout(this.timer);
@@ -328,10 +344,7 @@ export class Room {
         return;
       }
       const verified = c.sessionHash
-        ? await this.deps.verify(
-            c.sessionHash,
-            cmd.type === "startGame" && !cached,
-          )
+        ? await this.deps.verify(c.sessionHash, cmd.type === "startGame")
         : "inactive";
       if (verified !== "active" && c.role !== "display") {
         if (
@@ -346,10 +359,6 @@ export class Room {
             error: "authUnavailable",
             message: "HAM is unavailable. Try again shortly.",
           };
-          this.commit(
-            this.state,
-            [...this.recent, { identity, ack }].slice(-512),
-          );
           c.send(ack);
         }
         return;
@@ -412,9 +421,16 @@ export class Room {
             };
         }
       }
-      // Cache rejections too. State and exact ack are in the same durable SQLite write.
-      const recent = [...this.recent, { identity, ack }].slice(-512);
-      this.commit(state, recent);
+      // Only accepted commands need durable replay. One identity cannot evict another's retries.
+      if (ack.ok) {
+        const own = this.recent
+          .filter((entry) => entry.identity === identity)
+          .slice(-31);
+        const others = this.recent.filter(
+          (entry) => entry.identity !== identity,
+        );
+        this.commit(state, [...others, ...own, { identity, ack }]);
+      }
       c.send(ack);
       if (ack.ok) this.broadcast();
     });
@@ -431,6 +447,7 @@ export class Room {
   closeRoom(): void {
     this.deps.db.run("DELETE FROM rooms WHERE code = ?", this.code);
     this.closed = true;
+    this.deps.onMembersChanged(this.code, this.members, new Set());
     clearTimeout(this.timer);
     this.closeWhere(() => true, "roomClosed");
     this.deps.onClosed(this.code);

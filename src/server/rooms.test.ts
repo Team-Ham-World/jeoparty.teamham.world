@@ -357,7 +357,7 @@ describe("WebSocket and room actor", () => {
         a.messages.filter((m) => m.t === "ack" && m.id === id),
       ).toHaveLength(2),
     );
-    expect(h.app.rooms.get(code)!.state.revision).toBe(revision);
+    expect(h.app.rooms.get(code)!.state.revision).toBe(revision + 1);
     a.ws.close();
   });
   it("expires idle rooms and closes sockets with roomClosed", async () => {

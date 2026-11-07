@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 
 export interface HamSettings {
   mode: "live" | "fixture";
@@ -14,6 +15,7 @@ export interface Config {
   publicOrigin: string;
   host: string;
   port: number;
+  trustProxy: boolean;
   databasePath: string;
   encryptionKey: Buffer;
   ham: HamSettings;
@@ -64,8 +66,20 @@ export function loadConfig(
   const mode = env.HAM_MODE || (production ? "live" : "fixture");
   if (mode !== "live" && mode !== "fixture")
     throw new Error("HAM_MODE must be live or fixture");
-  if (mode === "fixture" && (production || !isLocalOrigin(publicOrigin)))
-    throw new Error("Fixture requires non-production localhost origin");
+  const host = env.HOST || "127.0.0.1";
+  if (mode === "live" && !key)
+    throw new Error("TOKEN_ENCRYPTION_KEY is required in live mode");
+  if (env.TRUST_PROXY && !["true", "false"].includes(env.TRUST_PROXY))
+    throw new Error("TRUST_PROXY must be true or false");
+  if (
+    mode === "fixture" &&
+    (production ||
+      !isLocalOrigin(publicOrigin) ||
+      !["127.0.0.1", "::1", "localhost"].includes(host))
+  )
+    throw new Error(
+      "Fixture requires non-production localhost origin and loopback HOST",
+    );
   const issuer =
     mode === "fixture"
       ? FIXTURE_ISSUER
@@ -82,12 +96,13 @@ export function loadConfig(
     environment,
     publicOrigin,
     port,
-    host: env.HOST || "127.0.0.1",
+    host,
+    trustProxy: env.TRUST_PROXY === "true",
     databasePath:
       env.DATABASE_PATH === ":memory:"
         ? ":memory:"
         : path.resolve(env.DATABASE_PATH || ".data/quiz.sqlite"),
-    encryptionKey: key ? Buffer.from(key, "hex") : Buffer.alloc(32, 7),
+    encryptionKey: key ? Buffer.from(key, "hex") : randomBytes(32),
     ham: {
       mode,
       issuer,

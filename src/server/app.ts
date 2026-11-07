@@ -30,6 +30,8 @@ import { createHamClient } from "./ham/client";
 import { createHamFixture } from "./ham/fixture";
 import {
   HttpError,
+  clientIp,
+  securityHeaders,
   parseCookies,
   readJson,
   redirect,
@@ -87,6 +89,8 @@ export async function createApp(config: Config, options: Options) {
   const db = new Database(config.databasePath);
   const packs = new Packs(db);
   const rooms = new Map<string, Room>();
+  const memberRooms = new Map<string, Set<string>>();
+  const sessionConnections = new Map<string, Set<Connection>>();
   const fixture =
     config.ham.mode === "fixture"
       ? createHamFixture(db, config.ham, now)
@@ -104,15 +108,18 @@ export async function createApp(config: Config, options: Options) {
     ham,
     {
       onSessionEnded(hash, reason) {
-        for (const room of rooms.values())
-          room.closeWhere(
-            (c) => c.sessionHash === hash,
-            reason === "superseded"
-              ? "signedInElsewhere"
-              : reason === "logout"
-                ? "signedOut"
-                : "authExpired",
-          );
+        for (const c of sessionConnections.get(hash) ?? []) {
+          c.send({
+            t: "closing",
+            reason:
+              reason === "superseded"
+                ? "signedInElsewhere"
+                : reason === "logout"
+                  ? "signedOut"
+                  : "authExpired",
+          });
+          c.close(WS_CLOSE.intentional);
+        }
       },
     },
     now,
@@ -123,9 +130,8 @@ export async function createApp(config: Config, options: Options) {
   ): Promise<"active" | "inactive" | "unavailable"> {
     const result = await auth.verify(hash, { fresh });
     if (result.status === "active") {
-      for (const room of rooms.values())
-        for (const c of room.connections)
-          if (c.sessionHash === hash) c.authorizedUntil = result.until;
+      for (const c of sessionConnections.get(hash) ?? [])
+        c.authorizedUntil = result.until;
       return "active";
     }
     return result.status === "unavailable" ? "unavailable" : "inactive";
@@ -136,6 +142,19 @@ export async function createApp(config: Config, options: Options) {
     packs,
     now,
     verify,
+    onMembersChanged(code, previous, current) {
+      for (const id of previous) {
+        if (current.has(id)) continue;
+        const codes = memberRooms.get(id);
+        codes?.delete(code);
+        if (!codes?.size) memberRooms.delete(id);
+      }
+      for (const id of current) {
+        let codes = memberRooms.get(id);
+        if (!codes) memberRooms.set(id, (codes = new Set()));
+        codes.add(code);
+      }
+    },
     onClosed: (code) => {
       rooms.delete(code);
     },
@@ -145,8 +164,27 @@ export async function createApp(config: Config, options: Options) {
       db.run("DELETE FROM rooms WHERE code = ?", row.code);
       continue;
     }
-    const room = Room.restore(row, deps);
-    if (!room) throw new Error("Cannot restore a persisted room");
+    let room: Room | null;
+    try {
+      room = Room.restore(row, deps);
+    } catch {
+      room = null;
+    }
+    if (!room) {
+      db.transaction(() => {
+        db.run(
+          "INSERT OR REPLACE INTO quarantined_rooms(code, host_id, state_json, recent_json, updated_at) VALUES (?, ?, ?, ?, ?)",
+          row.code,
+          row.host_id,
+          row.state_json,
+          row.recent_json,
+          row.updated_at,
+        );
+        db.run("DELETE FROM rooms WHERE code = ?", row.code);
+      });
+      console.error("Unrestorable room:", row.code);
+      continue;
+    }
     rooms.set(row.code, room);
     await room.system({ type: "restored" });
   }
@@ -163,15 +201,12 @@ export async function createApp(config: Config, options: Options) {
     if (req.headers.origin !== config.publicOrigin)
       throw new HttpError(403, "csrf", "Origin does not match.");
   }
-  async function identity(
-    req: IncomingMessage,
-    fresh = false,
-  ): Promise<Identity> {
+  async function identity(req: IncomingMessage): Promise<Identity> {
     const session = auth.sessionFromCookieHeader(req.headers.cookie);
     const user = auth.identityFor(session);
     if (!user || !session)
       throw new HttpError(401, "unauthorized", "Sign in with HAM.");
-    const result = await verify(session.session_hash, fresh);
+    const result = await verify(session.session_hash, true);
     if (result !== "active")
       throw new HttpError(
         result === "unavailable" ? 503 : 401,
@@ -181,7 +216,8 @@ export async function createApp(config: Config, options: Options) {
     const current = auth.identityFor(session);
     if (!current) throw new HttpError(401, "unauthorized", "Sign in with HAM.");
     // HAM username is display data. Synchronize it through the engine, never patch its state.
-    for (const room of rooms.values()) {
+    for (const code of memberRooms.get(current.account.public_id) ?? []) {
+      const room = rooms.get(code)!;
       const view = options.engine.playerView(
         room.state,
         current.account.public_id,
@@ -196,10 +232,7 @@ export async function createApp(config: Config, options: Options) {
     }
     return current;
   }
-  async function mutation(
-    req: IncomingMessage,
-    fresh = false,
-  ): Promise<Identity> {
+  async function mutation(req: IncomingMessage): Promise<Identity> {
     origin(req);
     // Reject CSRF before making a provider request or synchronizing display names.
     const session = auth.sessionFromCookieHeader(req.headers.cookie);
@@ -210,7 +243,7 @@ export async function createApp(config: Config, options: Options) {
       !timingSafeEqualText(supplied, session.csrf_token)
     )
       throw new HttpError(403, "csrf", "CSRF token does not match.");
-    const user = await identity(req, fresh);
+    const user = await identity(req);
     return user;
   }
   function getRoom(code: string): Room {
@@ -222,7 +255,6 @@ export async function createApp(config: Config, options: Options) {
     if (room.hostId !== user.account.account_id)
       throw new HttpError(403, "forbidden", "Only the host can do that.");
   }
-  const body = async (req: IncomingMessage) => readJson(req, 1024 * 1024);
   const parse = <T>(schema: z.ZodType<T>, raw: unknown): T => {
     const value = schema.safeParse(raw);
     if (!value.success)
@@ -234,7 +266,7 @@ export async function createApp(config: Config, options: Options) {
     const url = new URL(req.url ?? "/", config.publicOrigin);
     const route = url.pathname,
       method = req.method;
-    const ip = req.socket.remoteAddress ?? "unknown";
+    const ip = clientIp(req, config.trustProxy);
     if (route.startsWith("/__ham/")) {
       if (!fixture) throw new HttpError(404, "notFound", "Not found.");
       if (method !== "GET" && method !== "HEAD") origin(req);
@@ -270,6 +302,13 @@ export async function createApp(config: Config, options: Options) {
                 : null;
     if (knownMethods && !knownMethods.includes(method ?? ""))
       throw new HttpError(405, "badRequest", "Method not allowed.");
+
+    const rawBody = ["POST", "PUT", "DELETE"].includes(method ?? "")
+      ? await readJson(
+          req,
+          /^\/api\/packs(?:\/|$)/.test(route) ? 1024 * 1024 : 4096,
+        )
+      : undefined;
 
     if (route === "/api/health" && method === "GET") {
       sendJson(res, 200, { ok: true });
@@ -333,6 +372,7 @@ export async function createApp(config: Config, options: Options) {
         )
       )
         throw new HttpError(403, "csrf", "Invalid CSRF token.");
+      await identity(req);
       await auth.logout(session);
       sendJson(res, 204, null, { "set-cookie": clearedSessionCookie(config) });
       return;
@@ -340,7 +380,7 @@ export async function createApp(config: Config, options: Options) {
     if (route === "/api/display/claim" && method === "POST") {
       origin(req);
       limit(`claim:${ip}`, 30);
-      const request = parse(claimSchema, await body(req)),
+      const request = parse(claimSchema, rawBody),
         room = getRoom(request.code);
       const cookie = await room.run(() => {
         const row = db.get<RoomRow>(
@@ -366,9 +406,25 @@ export async function createApp(config: Config, options: Options) {
       return;
     }
     if (route === "/api/rooms" && method === "POST") {
-      const user = await mutation(req, true);
+      const user = await mutation(req);
       limit(`create:${user.account.account_id}`, 6);
-      const request = parse(createSchema, await body(req));
+      const request = parse(createSchema, rawBody);
+      if (rooms.size >= 500)
+        throw new HttpError(
+          429,
+          "rateLimited",
+          "The server has reached its limit of 500 open rooms. Try again later.",
+        );
+      if (
+        [...rooms.values()].filter(
+          (room) => room.hostId === user.account.account_id,
+        ).length >= 3
+      )
+        throw new HttpError(
+          409,
+          "conflict",
+          "A host can have at most 3 open rooms. Close a room first.",
+        );
       let code = "";
       do {
         code = Array.from(
@@ -411,9 +467,7 @@ export async function createApp(config: Config, options: Options) {
     if (roomMatch) {
       const [, code, action] = roomMatch;
       const user =
-        method === "POST"
-          ? await mutation(req, action === "join")
-          : await identity(req);
+        method === "POST" ? await mutation(req) : await identity(req);
       const room = getRoom(code);
       if (method === "GET" && !action) {
         sendJson(res, 200, room.summary(user));
@@ -473,7 +527,7 @@ export async function createApp(config: Config, options: Options) {
         (!id && method === "POST") ||
         (id && !duplicate && method === "PUT")
       ) {
-        const request = parse(saveSchema, await body(req));
+        const request = parse(saveSchema, rawBody);
         sendJson(res, id ? 200 : 201, packs.save(request.pack, owner, id));
         return;
       }
@@ -487,6 +541,8 @@ export async function createApp(config: Config, options: Options) {
     throw new HttpError(404, "notFound", "Not found.");
   }
   const server = createServer((req, res) => {
+    for (const [name, value] of Object.entries(securityHeaders(config)))
+      res.setHeader(name, value);
     track(
       handle(req, res).catch((error: unknown) => {
         if (res.headersSent) {
@@ -510,11 +566,14 @@ export async function createApp(config: Config, options: Options) {
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
   const alive = new WeakMap<WebSocket, boolean>();
   function refuse(socket: Duplex, status: number) {
-    socket.end(
-      `HTTP/1.1 ${status} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
-    );
+    if (socket.writable)
+      socket.end(
+        `HTTP/1.1 ${status} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+      );
+    socket.destroy();
   }
   server.on("upgrade", (req, socket, head) => {
+    socket.on("error", () => socket.destroy());
     track(
       (async () => {
         if (stopped) {
@@ -529,7 +588,7 @@ export async function createApp(config: Config, options: Options) {
           return;
         }
         origin(req);
-        limit(`ws:${req.socket.remoteAddress}`, 60);
+        limit(`ws:${clientIp(req, config.trustProxy)}`, 60);
         if (
           [...url.searchParams.keys()].some(
             (key) =>
@@ -569,7 +628,8 @@ export async function createApp(config: Config, options: Options) {
           publicId = grantHash;
           authorizedUntil = grant.expires_at;
         } else {
-          const user = await identity(req, true);
+          const user = await identity(req);
+          if (socket.destroyed || !socket.writable) return;
           if (role === "host") host(room, user);
           if (
             role === "player" &&
@@ -594,6 +654,7 @@ export async function createApp(config: Config, options: Options) {
         }
         // Recheck membership/grants inside the room queue, including rotation/leave races during introspection.
         await room.run(() => {
+          if (socket.destroyed || !socket.writable) return;
           if (
             sessionHash &&
             !db.get(
@@ -641,6 +702,12 @@ export async function createApp(config: Config, options: Options) {
                 setTimeout(() => ws.terminate(), 1000).unref();
               },
             };
+            if (sessionHash) {
+              let connections = sessionConnections.get(sessionHash);
+              if (!connections)
+                sessionConnections.set(sessionHash, (connections = new Set()));
+              connections.add(c);
+            }
             alive.set(ws, true);
             ws.on("pong", () => alive.set(ws, true));
             c.send({
@@ -654,7 +721,7 @@ export async function createApp(config: Config, options: Options) {
             ws.on("message", (data, binary) => {
               void (async () => {
                 try {
-                  limit(`socket:${socketId}`, 60, 5000);
+                  limit(`socket:${socketId}`, role === "host" ? 60 : 20, 5000);
                 } catch {
                   ws.close(WS_CLOSE.rateLimited);
                   return;
@@ -685,6 +752,11 @@ export async function createApp(config: Config, options: Options) {
               })().catch(() => ws.close(1011));
             });
             ws.on("close", () => {
+              if (sessionHash) {
+                const connections = sessionConnections.get(sessionHash);
+                connections?.delete(c);
+                if (!connections?.size) sessionConnections.delete(sessionHash);
+              }
               void room.detach(c).catch(() => undefined);
             });
             ws.on("error", () => ws.terminate());
@@ -738,7 +810,8 @@ export async function createApp(config: Config, options: Options) {
           );
           const user = auth.identityFor(session ?? null);
           if (user)
-            for (const room of rooms.values()) {
+            for (const code of memberRooms.get(user.account.public_id) ?? []) {
+              const room = rooms.get(code)!;
               const view = options.engine.playerView(
                 room.state,
                 user.account.public_id,

@@ -172,18 +172,31 @@ export function fakeEngine() {
 }
 export async function harness(
   databasePath = ":memory:",
-  options: { engine?: EngineApi; port?: number; now?: () => number } = {},
+  options: {
+    engine?: EngineApi;
+    port?: number;
+    now?: () => number;
+    trustProxy?: boolean;
+    fallback?: Parameters<typeof createApp>[1]["fallback"];
+  } = {},
 ) {
   let time = Date.now();
   const engine = fakeEngine();
   const app = await createApp(
     loadConfig({
       APP_ENV: "test",
+      TOKEN_ENCRYPTION_KEY: "e".repeat(64), // Stable test-only key for restart coverage.
+      TRUST_PROXY: String(options.trustProxy ?? false),
       DATABASE_PATH: databasePath,
       PORT: String(options.port ?? 0),
       PUBLIC_ORIGIN: `http://127.0.0.1:${options.port ?? 3101}`,
     }),
-    { engine: options.engine ?? engine.api, now: options.now ?? (() => time), timers: false },
+    {
+      engine: options.engine ?? engine.api,
+      now: options.now ?? (() => time),
+      timers: false,
+      fallback: options.fallback,
+    },
   );
   const port = await app.listen();
   const base = `http://127.0.0.1:${port}`;

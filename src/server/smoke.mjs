@@ -8,7 +8,7 @@ import path from "node:path";
 import { WebSocket } from "ws";
 
 const directory = mkdtempSync(path.join(os.tmpdir(), "quiz-smoke-"));
-const origin = "http://127.0.0.1:3301";
+const origin = "http://127.0.0.1:3401";
 const child = spawn("npm", ["start"], {
   env: {
     ...process.env,
@@ -16,7 +16,7 @@ const child = spawn("npm", ["start"], {
     HAM_MODE: "fixture",
     PUBLIC_ORIGIN: origin,
     HOST: "127.0.0.1",
-    PORT: "3301",
+    PORT: "3401",
     DATABASE_PATH: path.join(directory, "quiz.sqlite"),
   },
   detached: true,
@@ -132,7 +132,17 @@ try {
   assert.deepEqual(await (await host.request("/api/health")).json(), { ok: true });
   assert.deepEqual(await (await host.request("/api/session")).json(), { signedIn: false, authMode: "fixture" });
   await host.signIn("smoke-host");
-  assert.equal((await host.request("/")).status, 200);
+  for (const route of ["/", "/display", "/play"]) {
+    const page = await host.request(route);
+    assert.equal(page.status, 200);
+    assert.ok(page.headers.get("content-type").includes("text/html"));
+    assert.ok(page.headers.get("content-security-policy").includes("frame-ancestors 'none'"));
+    assert.equal(page.headers.get("x-frame-options"), "DENY");
+    assert.equal(page.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(page.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(page.headers.has("strict-transport-security"), false);
+    await page.text();
+  }
   const rejected = await new Promise((resolve, reject) => {
     const ws = new WebSocket(`${origin.replace("http:", "ws:")}/ws?room=BCDFG&role=host`, {
       headers: { cookie: host.cookie, origin: "https://invalid.example" },
@@ -190,7 +200,7 @@ try {
     const v = await wire.view(v => v?.revision === returned.revision);
     assert.equal(v.players.find(p => p.id === players[0].id).score, cell.value);
   }
-  console.log("Production build smoke passed: health, session, fixture OAuth, Next page, Origin rejection, room/join/display claim, select/open/buzz/judge/reveal/board, public privacy and score convergence.");
+  console.log("Production build smoke passed: health, session, fixture OAuth, Next pages and security headers, Origin rejection, room/join/display claim, select/open/buzz/judge/reveal/board, public privacy and score convergence.");
 } finally {
   sockets.forEach(ws => ws.close());
   const exit = new Promise(resolve => child.once("exit", resolve));
