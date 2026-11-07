@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Config } from "./config";
 import { Buffer } from "node:buffer";
 
 export class HttpError extends Error {
@@ -29,11 +30,36 @@ export function parseCookies(
 
 export const BASE_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
-  "referrer-policy": "same-origin",
+  "referrer-policy": "no-referrer",
   "x-frame-options": "DENY",
   "cross-origin-opener-policy": "same-origin",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
 };
+
+/** Next uses inline bootstrap scripts/styles. Development also needs eval and HMR WebSockets. */
+export function securityHeaders(
+  config: Pick<Config, "environment" | "publicOrigin">,
+): Record<string, string> {
+  const dev = config.environment === "development";
+  const wsOrigin = config.publicOrigin.replace(/^http/, "ws");
+  return {
+    ...BASE_HEADERS,
+    "content-security-policy": [
+      "default-src 'self'",
+      `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      `connect-src 'self' ${wsOrigin}`,
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join("; "),
+    ...(config.environment === "production"
+      ? { "strict-transport-security": "max-age=31536000" }
+      : {}),
+  };
+}
 
 export function sendJson(
   res: ServerResponse,

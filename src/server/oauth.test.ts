@@ -136,15 +136,11 @@ describe("HAM OAuth port from Pusoy", () => {
       (await b.callback(await b.decide(p))).headers.get("location"),
     ).toContain("auth_error=expired");
   });
-  it("revokes inactive and expired sessions after the lease", async () => {
+  it("freshly rejects inactive sessions without waiting for the socket lease", async () => {
     h = await harness();
     const b = new Browser(h);
     await b.signIn("alice");
     h.app.fixture!.revokeUser("alice");
-    expect((await (await b.request("/api/session")).json()).signedIn).toBe(
-      true,
-    );
-    h.advance(LEASE_MS + 1);
     expect((await b.request("/api/session")).status).toBe(401);
     expect(
       h.app.db.get<{ revoked_at: number }>(
@@ -158,7 +154,9 @@ describe("HAM OAuth port from Pusoy", () => {
     const b = new Browser(h);
     await b.signIn("alice");
     h.advance(1001);
-    expect((await (await b.request("/api/session")).json()).signedIn).toBe(false);
+    expect((await (await b.request("/api/session")).json()).signedIn).toBe(
+      false,
+    );
     expect((await b.mutate("/api/rooms", {})).status).not.toBe(201);
   });
   it("fails closed during provider outage without extending the lease, and create forces fresh introspection", async () => {

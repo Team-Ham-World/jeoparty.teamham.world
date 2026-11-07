@@ -2,13 +2,15 @@
 
 The app runs one Node 24 process for Next.js, `/api/*`, WebSockets at `/ws`, and SQLite. Do not run multiple replicas against the same database. Each room has a promise queue; the engine state and recent command acknowledgments are saved in one SQLite write with WAL and `synchronous=FULL` before delivery. The Docker entrypoint uses `flock` to refuse a second process on the same volume.
 
-Engine and content integration must be verified after merging the parallel work. This backend branch's engine is a throwing placeholder. The backend tests inject a fake engine to verify transport and persistence without implementing game rules.
+The backend tests cover transport boundaries with an injected engine and full games with the real engine. The production smoke also plays one real-engine clue.
 
 ## Local commands
 
-Use Node 24 and npm 11. Run `npm ci`, then `npm run dev`. The combined server binds `127.0.0.1:3000`. For another local port, set `PORT=3101 PUBLIC_ORIGIN=http://127.0.0.1:3101 npm run dev`. Stop with Ctrl+C. Next development HMR upgrades pass through the custom server.
+Use Node 24 and npm 11. Run `npm ci`, then `npm run dev`. The combined server binds `127.0.0.1:3000`. For another local port, set `PORT=3401 PUBLIC_ORIGIN=http://127.0.0.1:3401 npm run dev`. Stop with Ctrl+C. Next development HMR upgrades pass through the custom server.
 
-`npm run check` runs lint, typecheck, Vitest, the Next production build and the esbuild server bundle. After building, `npm run test:smoke` launches `npm start` on port 3101 with a temporary test database, checks health/session/fixture sign-in/Next serving and WebSocket Origin rejection, then stops it. An accepted production room handshake needs the merged engine; accepted handshakes are covered by injected-engine tests. `npm start` serves that bundle with Next in production mode. For a localhost smoke test of the built assets, use `APP_ENV=test HAM_MODE=fixture PORT=3101 PUBLIC_ORIGIN=http://127.0.0.1:3101 npm start`. This tests the production build but explicitly uses a test environment. Production configuration always rejects fixture auth.
+`npm run check` runs lint, typecheck, Vitest, the Next production build and the esbuild server bundle. After building, `npm run test:smoke` launches `npm start` on port 3401 with a temporary test database, checks health/session/fixture sign-in/Next pages and security headers, WebSocket Origin rejection, and a full clue, then stops it. The smoke covers accepted host/player/display handshakes and score convergence. `npm start` serves that bundle with Next in production mode. For a localhost smoke test of the built assets, use `APP_ENV=test HAM_MODE=fixture PORT=3401 PUBLIC_ORIGIN=http://127.0.0.1:3401 npm start`. This tests the production build but explicitly uses a test environment. Production configuration always rejects fixture auth.
+
+Without an explicit `TOKEN_ENCRYPTION_KEY`, fixture mode uses a random process-local key. Set a private key to test persistence across restarts; otherwise stored fixture sessions and pending sign-ins cannot be decrypted after restart. Fixture mode requires a loopback bind host (`127.0.0.1`, `::1`, or `localhost`) as well as a localhost public origin.
 
 The fixture consent page is marked as not live HAM. It supports quick accounts, custom names, null username and denial. Its localhost-only `POST /__ham/control` accepts `{"outage":true}` or `{"outage":false}`. Browser POSTs, including fixture controls, require the exact Origin. No fixture routes are mounted in production.
 
@@ -21,21 +23,32 @@ The fixture consent page is marked as not live HAM. It supports quick accounts, 
 | `APP_ENV` | `development` unless `NODE_ENV` is set; `production` for deployment |
 | `PUBLIC_ORIGIN` | Local `http://127.0.0.1:PORT`; production must use `https://quiz.teamham.world` |
 | `HOST` | `127.0.0.1`; Docker sets `0.0.0.0` inside the proxy network |
+| `TRUST_PROXY` | `false`; Compose sets `true` behind the single Caddy hop. See proxy boundary below |
 | `PORT` | `3000`; Docker uses `8080` |
 | `HAM_MODE` | `fixture` outside production, `live` in production |
 | `HAM_ISSUER` | `https://teamham.world` in live mode |
 | `HAM_CLIENT_ID` | `quiz`; other values rejected |
 | `HAM_CLIENT_SECRET` | Live mode requires the registered `ths_` secret |
-| `TOKEN_ENCRYPTION_KEY` | Production requires 32 random bytes encoded as 64 hex characters |
+| `TOKEN_ENCRYPTION_KEY` | Live mode requires 32 random bytes encoded as 64 hex characters in every environment; production also always requires it |
 | `DATABASE_PATH` | `.data/quiz.sqlite`; Docker `/data/quiz.sqlite` |
 
 Audience is fixed at `urn:teamham:game:quiz`; callback is derived as `${PUBLIC_ORIGIN}/api/auth/callback`. HTTPS uses host-only `__Host-quiz_session; Secure; HttpOnly; SameSite=Lax`. Local HTTP uses `quiz_session` without Secure. Session ids and display grants are stored as hashes. HAM access tokens and PKCE verifiers use AES-256-GCM with row-bound AAD.
 
-The introspection lease is at most 30 seconds or token expiry. Room creation, joining, game start and socket connection force fresh introspection. Outages return `503 authUnavailable` for HTTP admission and never renew access. Connected clients receive no views after lease expiry and their sockets close if renewal fails. Inactive sessions close with `authExpired`; superseded logins close with `signedInElsewhere`.
+Every protected HTTP request freshly introspects, including session, room, pack and logout routes. WebSocket connection and every `startGame` command also freshly introspect. Other in-socket commands use a lease of at most 30 seconds or token expiry, measured from introspection start; renewal begins in the last five seconds. Outages return `503 authUnavailable` for protected HTTP requests and never renew the socket lease. Connected clients receive no views after lease expiry and their sockets close if renewal fails. Inactive sessions are revoked locally and close with `authExpired`; superseded logins close with `signedInElsewhere`. This hybrid policy is an owner-approved deviation for in-socket commands only; see [security decisions](SECURITY.md) for the normative references and buzz-latency rationale.
 
 Every authenticated mutation requires exact Origin and `x-quiz-csrf` from `/api/session`. Display claim is the deliberate exception: it is anonymous, requires Origin and an unguessable host-issued key, and is rate limited. Its HttpOnly cookie is named for the room; it cannot authenticate another room. Display links keep the key in a fragment. Rotation invalidates all older grants and closes their sockets.
 
-Room codes use five consonants. Rooms close after 12 hours without persisted activity; reconnect/presence and accepted commands count as activity. Recent acknowledgments are bounded to 512 entries per room and keyed by role plus public account identity, so reconnect retries survive both session rotation and backend restart within that recent window. Rooms restore through `engine.restore` and receive `restored` before serving connections. Save failures never publish a new state or ack.
+Room codes use five consonants. Rooms close after 12 hours without persisted activity; reconnect/presence and accepted commands count as activity. Only accepted commands enter the durable replay cache, with at most 32 entries per role plus public account identity across all its sockets. One sender cannot evict another sender's accepted retries. Accepted retries survive session rotation and restart within that window. Rejected IDs are re-evaluated and can succeed after conditions change; they do not write room state or extend room lifetime. Rooms restore through `engine.restore` and receive `restored` before serving connections. Invalid state or malformed state/replay JSON moves the row to `quarantined_rooms`, deletes its display grants, and logs only the room code. Other rooms continue restoring. Inspect/repair quarantine offline before restoring a row; it is never served automatically. Save failures never publish a new state or ack.
+
+## Resource and browser limits
+
+Each account can save 50 packs, each at most 256 KiB of serialized UTF-8 JSON. Updates at the count limit are allowed; delete a pack to make room. Duplicate also counts toward the limit. Count errors return `409 conflict`; oversized packs return `413 badRequest`. Pack uploads accept request bodies up to 1 MiB; other API mutations, including display claim, accept at most 4 KiB, including chunked bodies.
+
+Content validation rejects titles/IDs/authors/tags over 120 characters, prompts/answers over 500, notes/descriptions over 1000, more than 12 categories, more than 5 clues per category, or more than 4 scoring rounds. Validation returns `400 invalidPack` with field errors. Both built-in packs meet these limits. Pack lists read stored summaries; existing summaries are backfilled once on startup. The server indexes player/waiting membership by public ID for name synchronization.
+
+A host can keep three rooms open, including finished rooms until closed or expired. A fourth returns `409 conflict`; 500 total open rooms returns `429 rateLimited`. The host can close a room via leave to release capacity. No new API error codes are introduced.
+
+Node sets security headers before handing requests to Next, so HTML protection does not depend on Caddy. CSP forbids framing, objects and external script sources, and permits Next inline bootstrap scripts/styles. Development additionally permits script evaluation and the same-origin HMR WebSocket. This is a baseline CSP, not a nonce-based inline-script policy. Pages use `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`. HSTS is emitted only in production by Node, and mirrored on the production Caddy site.
 
 ## Owner deployment steps
 
@@ -48,7 +61,7 @@ No deployment is performed by implementing these files.
 5. Install `deploy/quiz.caddy` in the shared Caddy site's include directory. Run its established `caddy validate` and `caddy reload` commands. Reverse proxy supports WebSockets automatically. Leave access logging off because callbacks carry codes.
 6. Verify `/api/health`, HAM sign-in, session identity, host create, two phone joins, separate display claim, one clue, reconnect and backend restart pause. Inspect public WebSocket payloads for unrevealed answers. Fixture tests do not prove live HAM or a complete game.
 
-The container runs as `node`, with a persistent SQLite volume, a read-only root, writable Next cache tmpfs, dropped capabilities and a healthcheck. Resource limits are starting values, not measured capacity. Rate limits key on the direct socket address, deliberately ignoring untrusted forwarded headers. Behind shared Caddy, IP limits are shared by proxy traffic; account and per-socket limits still apply. Revisit trusted proxy handling if that ceiling matters.
+The container runs as `node`, with a persistent SQLite volume, a read-only root, writable Next cache tmpfs, dropped capabilities and a healthcheck. Resource limits are starting values, not measured capacity. With `TRUST_PROXY=false`, rate limits use the direct socket address and ignore forwarded headers. With `TRUST_PROXY=true`, every IP limiter uses the right-most `X-Forwarded-For` entry appended by the single Caddy hop; client-supplied prefixes never select a bucket. This configuration assumes Caddy has no `trusted_proxies` and the app is reachable only through Caddy on the private proxy network. Do not expose the Node port publicly with proxy trust enabled. Multiple proxy hops require a separately reviewed configuration. Per-account limits remain in force. Host sockets allow 60 messages per five seconds; player/display sockets allow 20.
 
 ## Updates and backups
 

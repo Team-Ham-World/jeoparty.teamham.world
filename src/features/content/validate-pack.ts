@@ -32,8 +32,12 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     return false;
   }
 
-  function text(value: unknown, path: string): value is string {
-    if (typeof value === "string" && value.trim().length > 0) return true;
+  function text(value: unknown, path: string, max = 120): value is string {
+    if (typeof value === "string" && value.trim().length > 0) {
+      if (value.length <= max) return true;
+      error(path, `Must be at most ${max} characters.`);
+      return false;
+    }
     error(path, "Expected a non-empty string.");
     return false;
   }
@@ -66,6 +70,8 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     for (const key of ["author", "notes"] as const) {
       if (Object.hasOwn(value, key) && typeof value[key] !== "string") {
         error(fieldPath(path, key), "Expected a string.");
+      } else if (typeof value[key] === "string" && value[key].length > (key === "notes" ? 1000 : 120)) {
+        error(fieldPath(path, key), `Must be at most ${key === "notes" ? 1000 : 120} characters.`);
       }
     }
     if (Object.hasOwn(value, "tags") && array(value.tags, fieldPath(path, "tags"))) {
@@ -102,8 +108,8 @@ export function validateQuestionPack(input: unknown): ValidationResult {
   function clue(value: unknown, path: string, final: boolean) {
     if (!object(value, path)) return;
     id(value.id, `${path}.id`);
-    text(value.prompt, `${path}.prompt`);
-    text(value.answer, `${path}.answer`);
+    text(value.prompt, `${path}.prompt`, 500);
+    text(value.answer, `${path}.answer`, 500);
     metadata(value, path);
     if (final) {
       if (value.tier !== "final") error(`${path}.tier`, 'Expected the tier "final".');
@@ -133,7 +139,7 @@ export function validateQuestionPack(input: unknown): ValidationResult {
   if (input.schemaVersion !== "3.0.0") {
     error("schemaVersion", 'Expected schema version "3.0.0".');
   }
-  if (Object.hasOwn(input, "description")) text(input.description, "description");
+  if (Object.hasOwn(input, "description")) text(input.description, "description", 1000);
   if (Object.hasOwn(input, "custom") && typeof input.custom !== "boolean") {
     error("custom", "Expected a boolean.");
   }
@@ -143,9 +149,11 @@ export function validateQuestionPack(input: unknown): ValidationResult {
   if (object(input.dimensions, "dimensions")) {
     if (positiveInteger(input.dimensions.categories, "dimensions.categories")) {
       categoryCount = input.dimensions.categories;
+      if (categoryCount > 12) error("dimensions.categories", "Must be at most 12 categories.");
     }
     if (positiveInteger(input.dimensions.cluesPerCategory, "dimensions.cluesPerCategory")) {
       clueCount = input.dimensions.cluesPerCategory;
+      if (clueCount > 5) error("dimensions.cluesPerCategory", "Must be at most 5 clues per category.");
     }
   }
 
@@ -155,6 +163,7 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     const validDefault = text(scoring.defaultRoundId, "scoring.defaultRoundId");
     if (array(scoring.rounds, "scoring.rounds")) {
       if (scoring.rounds.length === 0) error("scoring.rounds", "Expected at least one scoring round.");
+      if (scoring.rounds.length > 4) error("scoring.rounds", "Must be at most 4 scoring rounds.");
       scoring.rounds.forEach((round, index) => {
         const path = `scoring.rounds[${index}]`;
         if (!object(round, path)) return;
@@ -177,6 +186,7 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     if (categoryCount !== undefined && input.categories.length !== categoryCount) {
       error("dimensions.categories", `Declared ${categoryCount} categories, but found ${input.categories.length}.`);
     }
+    if (input.categories.length > 12) error("categories", "Must be at most 12 categories.");
     input.categories.forEach((category, index) => {
       const path = `categories[${index}]`;
       if (!object(category, path)) return;
@@ -187,6 +197,7 @@ export function validateQuestionPack(input: unknown): ValidationResult {
         if (clueCount !== undefined && category.clues.length !== clueCount) {
           error(`${path}.clues`, `Expected ${clueCount} clues from dimensions.cluesPerCategory, but found ${category.clues.length}.`);
         }
+        if (category.clues.length > 5) error(`${path}.clues`, "Must be at most 5 clues per category.");
         category.clues.forEach((value, clueIndex) => clue(value, `${path}.clues[${clueIndex}]`, false));
       }
       clue(category.finalClue, `${path}.finalClue`, true);

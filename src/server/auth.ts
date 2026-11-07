@@ -322,97 +322,108 @@ export class AuthService {
     if (exchanged.kind === "invalidGrant") return fail("expired", returnTo);
     if (exchanged.kind === "unavailable") return fail("unavailable", returnTo);
 
-    const info = await this.ham.introspect(exchanged.token);
-    if (info.kind !== "active")
-      return fail(
-        info.kind === "inactive" ? "expired" : "unavailable",
-        returnTo,
-      );
-    if (info.sub !== exchanged.sub) return fail("invalid", returnTo);
+    let accepted = false;
+    try {
+      const info = await this.ham.introspect(exchanged.token);
+      if (info.kind !== "active")
+        return fail(
+          info.kind === "inactive" ? "expired" : "unavailable",
+          returnTo,
+        );
+      if (info.sub !== exchanged.sub) return fail("invalid", returnTo);
 
-    const now = this.now();
-    const tokenExp = Math.min(
-      info.expSeconds * 1000,
-      now + exchanged.expiresIn * 1000,
-      now + MAX_SESSION_MS,
-    );
-    const stillBound = this.db.get<SessionRow>(
-      "SELECT * FROM sessions WHERE session_hash = ?",
-      session.session_hash,
-    );
-    if (
-      !stillBound ||
-      stillBound.revoked_at !== null ||
-      stillBound.expires_at <= now
-    )
-      return fail("state", returnTo);
-    const { id, superseded } = this.db.transaction(() => {
-      const ham = this.config.ham!;
-      let account = this.db.get<Account>(
-        "SELECT * FROM accounts WHERE issuer = ? AND client_id = ? AND subject = ?",
-        ham.issuer,
-        ham.clientId,
-        info.sub,
+      const now = this.now();
+      const tokenExp = Math.min(
+        info.expSeconds * 1000,
+        now + exchanged.expiresIn * 1000,
+        now + MAX_SESSION_MS,
       );
-      if (!account) {
-        const accountId = `a_${randomToken(16)}`;
-        this.db.run(
-          `INSERT INTO accounts (account_id, issuer, client_id, subject, username, public_id, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          accountId,
+      const stillBound = this.db.get<SessionRow>(
+        "SELECT * FROM sessions WHERE session_hash = ?",
+        session.session_hash,
+      );
+      if (
+        !stillBound ||
+        stillBound.revoked_at !== null ||
+        stillBound.expires_at <= now
+      )
+        return fail("state", returnTo);
+      const { id, superseded } = this.db.transaction(() => {
+        const ham = this.config.ham!;
+        let account = this.db.get<Account>(
+          "SELECT * FROM accounts WHERE issuer = ? AND client_id = ? AND subject = ?",
           ham.issuer,
           ham.clientId,
           info.sub,
-          info.username,
-          `p_${randomToken(9)}`,
-          now,
-          now,
         );
-        account = this.db.get<Account>(
-          "SELECT * FROM accounts WHERE account_id = ?",
-          accountId,
-        )!;
-      } else {
+        if (!account) {
+          const accountId = `a_${randomToken(16)}`;
+          this.db.run(
+            `INSERT INTO accounts (account_id, issuer, client_id, subject, username, public_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            accountId,
+            ham.issuer,
+            ham.clientId,
+            info.sub,
+            info.username,
+            `p_${randomToken(9)}`,
+            now,
+            now,
+          );
+          account = this.db.get<Account>(
+            "SELECT * FROM accounts WHERE account_id = ?",
+            accountId,
+          )!;
+        } else {
+          this.db.run(
+            "UPDATE accounts SET username = ?, updated_at = ? WHERE account_id = ?",
+            info.username,
+            now,
+            account.account_id,
+          );
+        }
+        // HAM keeps one live token per account/client, so older sessions are now dead upstream.
+        const others = this.db.all<{ session_hash: string }>(
+          "SELECT session_hash FROM sessions WHERE account_id = ? AND revoked_at IS NULL",
+          account.account_id,
+        );
         this.db.run(
-          "UPDATE accounts SET username = ?, updated_at = ? WHERE account_id = ?",
-          info.username,
+          "UPDATE sessions SET revoked_at = ?, revoked_reason = 'superseded' WHERE account_id = ? AND revoked_at IS NULL",
           now,
           account.account_id,
         );
-      }
-      // HAM keeps one live token per account/client, so older sessions are now dead upstream.
-      const others = this.db.all<{ session_hash: string }>(
-        "SELECT session_hash FROM sessions WHERE account_id = ? AND revoked_at IS NULL",
-        account.account_id,
-      );
-      this.db.run(
-        "UPDATE sessions SET revoked_at = ?, revoked_reason = 'superseded' WHERE account_id = ? AND revoked_at IS NULL",
-        now,
-        account.account_id,
-      );
-      // Rotate the browser session (fixation defence); the pre-login session is retired.
-      this.db.run(
-        "DELETE FROM sessions WHERE session_hash = ? AND account_id IS NULL",
-        session.session_hash,
-      );
-      this.db.run(
-        "UPDATE sessions SET revoked_at = ?, revoked_reason = 'rotated' WHERE session_hash = ? AND revoked_at IS NULL",
-        now,
-        session.session_hash,
-      );
-      const created = this.createSession(account.account_id, tokenExp, {
-        value: exchanged.token,
-        exp: tokenExp,
+        // Rotate the browser session (fixation defence); the pre-login session is retired.
+        this.db.run(
+          "DELETE FROM sessions WHERE session_hash = ? AND account_id IS NULL",
+          session.session_hash,
+        );
+        this.db.run(
+          "UPDATE sessions SET revoked_at = ?, revoked_reason = 'rotated' WHERE session_hash = ? AND revoked_at IS NULL",
+          now,
+          session.session_hash,
+        );
+        const created = this.createSession(account.account_id, tokenExp, {
+          value: exchanged.token,
+          exp: tokenExp,
+        });
+        return {
+          id: created.id,
+          superseded: others.map((o) => o.session_hash),
+        };
       });
-      return { id: created.id, superseded: others.map((o) => o.session_hash) };
-    });
-    for (const hash of superseded)
-      this.hooks.onSessionEnded(hash, "superseded");
-    return {
-      ok: true,
-      setCookie: sessionCookie(this.config, id, tokenExp - now),
-      returnTo,
-    };
+      for (const hash of superseded)
+        this.hooks.onSessionEnded(hash, "superseded");
+      accepted = true;
+      return {
+        ok: true,
+        setCookie: sessionCookie(this.config, id, tokenExp - now),
+        returnTo,
+      };
+    } finally {
+      // A token issued to an interrupted/failed callback must not be left live.
+      if (!accepted)
+        await this.ham.revoke(exchanged.token).catch(() => undefined);
+    }
   }
 
   private token(row: SessionRow): string | null {
@@ -426,8 +437,8 @@ export class AuthService {
 
   /**
    * Verify an authenticated session. Reuses a verification for at most 30
-   * seconds (or token expiry). `fresh` forces introspection (room admission,
-   * deal start). Provider outages never extend authorization.
+   * seconds (or token expiry). `fresh` forces introspection (every protected HTTP request,
+   * socket connection and game start). Provider outages never extend authorization.
    */
   verify(
     sessionHash: string,
@@ -497,6 +508,11 @@ export class AuthService {
     )
       return { status: "revoked" };
     if (result.kind === "active") {
+      if (
+        checked >=
+        Math.min(now + LEASE_MS, row.token_exp, result.expSeconds * 1000)
+      )
+        return { status: "unavailable" };
       const account = this.db.get<Account>(
         "SELECT * FROM accounts WHERE account_id = ?",
         row.account_id,
@@ -521,12 +537,12 @@ export class AuthService {
       const exp = Math.min(row.token_exp, result.expSeconds * 1000);
       this.db.run(
         "UPDATE sessions SET verified_at = ?, token_exp = ?, expires_at = MIN(expires_at, ?) WHERE session_hash = ?",
-        checked,
+        now,
         exp,
         exp,
         sessionHash,
       );
-      return { status: "active", until: Math.min(checked + LEASE_MS, exp) };
+      return { status: "active", until: Math.min(now + LEASE_MS, exp) };
     }
     if (result.kind === "inactive") {
       const current = this.db.get<SessionRow>(

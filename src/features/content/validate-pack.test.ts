@@ -245,3 +245,99 @@ describe("parseQuestionPackJson", () => {
     expect(parseQuestionPackJson("null")).toEqual(validateQuestionPack(null));
   });
 });
+
+describe("content resource limits", () => {
+  it.each(["ham-starter-pack.json", "sample-pack-3x3.json"])(
+    "keeps built-in %s valid",
+    (file) => {
+      expect(
+        parseQuestionPackJson(
+          readFileSync(new URL(`./samples/${file}`, import.meta.url), "utf8"),
+        ).ok,
+      ).toBe(true);
+    },
+  );
+  it.each([
+    ["title", 120],
+    ["categoryTitle", 120],
+    ["roundTitle", 120],
+    ["prompt", 500],
+    ["answer", 500],
+    ["finalPrompt", 500],
+    ["finalAnswer", 500],
+    ["notes", 1000],
+    ["description", 1000],
+  ] as const)("bounds %s at %i characters", (field, max) => {
+    const pack = sample();
+    function set(value: string) {
+      switch (field) {
+        case "title":
+          pack.title = value;
+          return;
+        case "categoryTitle":
+          pack.categories[0].title = value;
+          return;
+        case "roundTitle":
+          pack.scoring.rounds[0].title = value;
+          return;
+        case "prompt":
+          pack.categories[0].clues[0].prompt = value;
+          return;
+        case "answer":
+          pack.categories[0].clues[0].answer = value;
+          return;
+        case "finalPrompt":
+          pack.categories[0].finalClue.prompt = value;
+          return;
+        case "finalAnswer":
+          pack.categories[0].finalClue.answer = value;
+          return;
+        case "notes":
+          pack.categories[0].clues[0].notes = value;
+          return;
+        case "description":
+          pack.description = value;
+          return;
+      }
+    }
+    set("x".repeat(max));
+    expect(validateQuestionPack(pack).ok).toBe(true);
+    set("x".repeat(max + 1));
+    expect(errorsFor(pack)).toContainEqual(
+      expect.objectContaining({
+        message: `Must be at most ${max} characters.`,
+      }),
+    );
+  });
+  it("bounds declared dimensions and arrays independently", () => {
+    const pack = sample();
+    pack.dimensions.categories = 13;
+    pack.dimensions.cluesPerCategory = 6;
+    pack.categories.push({
+      ...structuredClone(pack.categories[0]),
+      id: "extra-category",
+    });
+    pack.categories[0].clues.push({
+      ...pack.categories[0].clues[0],
+      id: "extra-clue",
+    });
+    pack.scoring.rounds = Array.from({ length: 5 }, (_, i) => ({
+      ...pack.scoring.rounds[0],
+      id: `round-${i}`,
+    }));
+    const errors = errorsFor(pack);
+    for (const path of [
+      "dimensions.categories",
+      "dimensions.cluesPerCategory",
+      "categories",
+      "categories[0].clues",
+      "scoring.rounds",
+    ])
+      expect(errors).toContainEqual(
+        expect.objectContaining({
+          path,
+          message: expect.stringContaining("Must be at most"),
+        }),
+      );
+  });
+});

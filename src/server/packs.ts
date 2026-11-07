@@ -6,8 +6,24 @@ import type { PackDocument, PackSummary } from "@/features/network/protocol";
 import type { SqlDatabase } from "./storage";
 import { HttpError } from "./http";
 
+const MAX_PACK_BYTES = 256 * 1024;
+const MAX_PACKS_PER_ACCOUNT = 50;
+function serializePack(raw: unknown): string {
+  const json = JSON.stringify(raw);
+  if (Buffer.byteLength(json) > MAX_PACK_BYTES)
+    throw new HttpError(413, "badRequest", "Packs must be at most 256 KiB.");
+  return json;
+}
+function summarize(pack: QuestionPack) {
+  return {
+    title: pack.title,
+    description: pack.description ?? null,
+    categories: pack.dimensions.categories,
+    cluesPerCategory: pack.dimensions.cluesPerCategory,
+  };
+}
 export function validatedPack(raw: unknown): QuestionPack {
-  const result = parseQuestionPackJson(JSON.stringify(raw));
+  const result = parseQuestionPackJson(serializePack(raw));
   if (!result.ok)
     throw new HttpError(400, "invalidPack", "The pack is invalid.", {
       validationErrors: result.errors,
@@ -31,6 +47,13 @@ export class Packs {
         throw new Error("Duplicate built-in pack id");
       this.builtIns.set(result.data.id, result.data);
     }
+    // Backfill once on upgrade. Listing never parses answer-bearing documents.
+    this.db.run(`UPDATE packs SET summary_json = json_object(
+      'title', json_extract(pack_json, '$.title'),
+      'description', json_extract(pack_json, '$.description'),
+      'categories', json_extract(pack_json, '$.dimensions.categories'),
+      'cluesPerCategory', json_extract(pack_json, '$.dimensions.cluesPerCategory')
+    ) WHERE summary_json IS NULL`);
     if (!this.builtIns.size) throw new Error("No built-in packs found");
   }
   document(id: string, ownerId: string): PackDocument {
@@ -54,52 +77,71 @@ export class Packs {
     );
   }
   list(ownerId: string): PackSummary[] {
-    const summarize = (
-      id: string,
-      pack: QuestionPack,
-      source: PackSummary["source"],
-      updatedAt: string | null,
-    ): PackSummary => ({
-      id,
-      title: pack.title,
-      description: pack.description ?? null,
-      categories: pack.dimensions.categories,
-      cluesPerCategory: pack.dimensions.cluesPerCategory,
-      source,
-      updatedAt,
-    });
     return [
-      ...[...this.builtIns].map(([id, pack]) =>
-        summarize(id, pack, "builtIn", null),
-      ),
+      ...[...this.builtIns].map(([id, pack]): PackSummary => ({
+        id,
+        ...summarize(pack),
+        source: "builtIn",
+        updatedAt: null,
+      })),
       ...this.db
-        .all<{
-          id: string;
-        }>("SELECT id FROM packs WHERE owner_id = ? ORDER BY updated_at DESC", ownerId)
-        .map(({ id }) => {
-          const doc = this.document(id, ownerId);
-          return summarize(id, doc.pack, "mine", doc.updatedAt);
-        }),
+        .all<{ id: string; summary_json: string; updated_at: string }>(
+          "SELECT id, summary_json, updated_at FROM packs WHERE owner_id = ? ORDER BY updated_at DESC",
+          ownerId,
+        )
+        .map((row): PackSummary => ({
+          ...JSON.parse(row.summary_json),
+          id: row.id,
+          source: "mine",
+          updatedAt: row.updated_at,
+        })),
     ];
   }
+
   save(raw: unknown, ownerId: string, existingId?: string): PackDocument {
-    if (existingId) this.document(existingId, ownerId);
+    if (
+      existingId &&
+      !this.db.get(
+        "SELECT 1 FROM packs WHERE id = ? AND owner_id = ?",
+        existingId,
+        ownerId,
+      )
+    )
+      throw new HttpError(404, "notFound", "Pack not found.");
+    if (
+      !existingId &&
+      this.db.get<{ n: number }>(
+        "SELECT count(*) n FROM packs WHERE owner_id = ?",
+        ownerId,
+      )!.n >= MAX_PACKS_PER_ACCOUNT
+    )
+      throw new HttpError(
+        409,
+        "conflict",
+        "An account can save at most 50 packs. Delete a pack first.",
+      );
     const id = existingId ?? randomUUID();
     if (this.builtIns.has(id))
       throw new HttpError(409, "conflict", "Built-in ids are reserved.");
     const pack = validatedPack({ ...validatedPack(raw), id });
     const updatedAt = new Date().toISOString();
     this.db.run(
-      "INSERT INTO packs(id, owner_id, pack_json, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET pack_json = excluded.pack_json, updated_at = excluded.updated_at",
+      "INSERT INTO packs(id, owner_id, pack_json, updated_at, summary_json) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET pack_json = excluded.pack_json, updated_at = excluded.updated_at, summary_json = excluded.summary_json",
       id,
       ownerId,
-      JSON.stringify(pack),
+      serializePack(pack),
       updatedAt,
+      JSON.stringify(summarize(pack)),
     );
     return { id, pack, updatedAt };
   }
   delete(id: string, ownerId: string): void {
-    this.document(id, ownerId);
-    this.db.run("DELETE FROM packs WHERE id = ? AND owner_id = ?", id, ownerId);
+    const deleted = this.db.run(
+      "DELETE FROM packs WHERE id = ? AND owner_id = ?",
+      id,
+      ownerId,
+    );
+    if (!deleted.changes)
+      throw new HttpError(404, "notFound", "Pack not found.");
   }
 }

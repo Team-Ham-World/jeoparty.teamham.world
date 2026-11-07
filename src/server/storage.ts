@@ -42,4 +42,14 @@ CREATE TABLE packs (
 CREATE INDEX packs_by_owner ON packs(owner_id);
 `,
   },
+  {
+    version: 2,
+    sql: `
+ALTER TABLE packs ADD COLUMN summary_json TEXT;
+CREATE TABLE quarantined_rooms (
+ code TEXT PRIMARY KEY, host_id TEXT NOT NULL, state_json TEXT NOT NULL,
+ recent_json TEXT NOT NULL, updated_at INTEGER NOT NULL
+);
+`,
+  },
 ];

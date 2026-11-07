@@ -26,32 +26,28 @@ export interface HamClient {
   revoke(token: string): Promise<"ok" | "unavailable">;
 }
 
-const tokenResponseSchema = z
-  .object({
-    access_token: z.string(),
-    token_type: z.string(),
-    expires_in: z.number(),
-    audience: z.string(),
-    sub: z.string(),
-    scope: z.string(),
-  })
-  .strict();
+const tokenResponseSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  expires_in: z.number(),
+  audience: z.string(),
+  sub: z.string(),
+  scope: z.string(),
+});
 
-const activeSchema = z
-  .object({
-    active: z.literal(true),
-    sub: z.string(),
-    username: z.string().nullable().optional(),
-    client_id: z.string(),
-    aud: z.string(),
-    iss: z.string(),
-    exp: z.number().int(),
-    scope: z.string(),
-    token_type: z.string(),
-  })
-  .strict();
+const activeSchema = z.object({
+  active: z.literal(true),
+  sub: z.string(),
+  username: z.string().nullable().optional(),
+  client_id: z.string(),
+  aud: z.string(),
+  iss: z.string(),
+  exp: z.number().int(),
+  scope: z.string(),
+  token_type: z.string(),
+});
 
-const inactiveSchema = z.object({ active: z.literal(false) }).strict();
+const inactiveSchema = z.object({ active: z.literal(false) });
 
 export function createHamClient(
   settings: HamSettings,
