@@ -120,9 +120,7 @@ describe("useRoomConnection", () => {
         .sent.map((s) => JSON.parse(s))
         .filter((m) => m.t === "cmd"),
     ).toEqual([sent]);
-    act(() =>
-      lastSocket().receive({ t: "ack", id: sent.id, ok: true, revision: 6 }),
-    );
+    act(() => lastSocket().receive({ t: "ack", id: sent.id, ok: true, revision: 6 }));
     expect(await outcome).toEqual({ ok: true, revision: 6 });
     unmount();
   });

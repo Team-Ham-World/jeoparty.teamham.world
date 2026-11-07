@@ -26,7 +26,9 @@ export function Sequenced<V extends Revisioned>({
 }) {
   const [index, setIndex] = useState(0);
   useEffect(() => {
-    const timers = steps.slice(1).map((step, i) => window.setTimeout(() => setIndex(i + 1), step.at));
+    const timers = steps
+      .slice(1)
+      .map((step, i) => window.setTimeout(() => setIndex(i + 1), step.at));
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [steps]);
   return <>{children(mockConnection(steps[index].view, { clockOffsetMs }))}</>;

@@ -10,8 +10,7 @@ export class Database implements SqlDatabase {
   private readonly cache = new Map<string, StatementSync>();
 
   constructor(file: string) {
-    if (file !== ":memory:")
-      fs.mkdirSync(path.dirname(file), { recursive: true });
+    if (file !== ":memory:") fs.mkdirSync(path.dirname(file), { recursive: true });
     this.raw = new DatabaseSync(file);
     this.raw.exec(
       "PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;",
@@ -39,9 +38,7 @@ export class Database implements SqlDatabase {
       this.transaction(() => {
         this.raw.exec(migration.sql);
         this.raw
-          .prepare(
-            "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
-          )
+          .prepare("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)")
           .run(migration.version, Date.now());
       });
     }

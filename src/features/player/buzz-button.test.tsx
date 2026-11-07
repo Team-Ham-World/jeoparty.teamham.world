@@ -6,7 +6,11 @@ import { SPECS, playerOf, type Spec } from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
 import { PlayerScreen } from "./player-screen";
 
-function renderPlayer(canBuzz: boolean, status: "live" | "reconnecting" = "live", spec: Spec = SPECS.open) {
+function renderPlayer(
+  canBuzz: boolean,
+  status: "live" | "reconnecting" = "live",
+  spec: Spec = SPECS.open,
+) {
   const sent: ClientCommand[] = [];
   const view = playerOf(spec, "p-medchu", { can: { buzz: canBuzz } });
   const onSend = vi.fn((cmd: ClientCommand) => sent.push(cmd));

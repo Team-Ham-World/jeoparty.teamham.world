@@ -1,4 +1,8 @@
-import type { CommandOutcome, ConnectionStatus, RoomConnection } from "@/features/network/connection";
+import type {
+  CommandOutcome,
+  ConnectionStatus,
+  RoomConnection,
+} from "@/features/network/connection";
 import type { ClientCommand, CloseReason } from "@/features/network/protocol";
 
 export interface MockOptions {
@@ -12,7 +16,10 @@ export interface MockOptions {
 }
 
 /** A RoomConnection that never touches the network, for previews and tests. */
-export function mockConnection<V extends { revision: number } | null>(view: V, options: MockOptions = {}): RoomConnection<NonNullable<V>> {
+export function mockConnection<V extends { revision: number } | null>(
+  view: V,
+  options: MockOptions = {},
+): RoomConnection<NonNullable<V>> {
   const status = options.status ?? (view ? "live" : "connecting");
   return {
     status,

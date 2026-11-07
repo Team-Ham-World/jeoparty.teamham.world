@@ -29,7 +29,12 @@ export class ApiError extends Error {
   readonly code: ApiErrorCode | "network";
   readonly validationErrors: ValidationError[];
 
-  constructor(status: number, code: ApiErrorCode | "network", message: string, validationErrors: ValidationError[] = []) {
+  constructor(
+    status: number,
+    code: ApiErrorCode | "network",
+    message: string,
+    validationErrors: ValidationError[] = [],
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
@@ -48,10 +53,15 @@ interface RequestOptions {
 }
 
 function isErrorBody(value: unknown): value is ApiErrorBody {
-  return typeof value === "object" && value !== null && typeof (value as ApiErrorBody).error === "string";
+  return (
+    typeof value === "object" && value !== null && typeof (value as ApiErrorBody).error === "string"
+  );
 }
 
-async function request<T>(path: string, { method = "GET", body, csrf }: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  { method = "GET", body, csrf }: RequestOptions = {},
+): Promise<T> {
   const headers: Record<string, string> = { accept: "application/json" };
   if (body !== undefined) headers["content-type"] = "application/json";
   if (method !== "GET" && csrf) headers[CSRF_HEADER] = csrf;
@@ -66,7 +76,11 @@ async function request<T>(path: string, { method = "GET", body, csrf }: RequestO
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(0, "network", "Can't reach the quiz server. Check your connection and try again.");
+    throw new ApiError(
+      0,
+      "network",
+      "Can't reach the quiz server. Check your connection and try again.",
+    );
   }
 
   if (response.status === 204) return undefined as T;
@@ -83,9 +97,18 @@ async function request<T>(path: string, { method = "GET", body, csrf }: RequestO
 
   if (!response.ok) {
     if (isErrorBody(payload)) {
-      throw new ApiError(response.status, payload.error, payload.message, payload.validationErrors ?? []);
+      throw new ApiError(
+        response.status,
+        payload.error,
+        payload.message,
+        payload.validationErrors ?? [],
+      );
     }
-    throw new ApiError(response.status, response.status >= 500 ? "internal" : "badRequest", `The server answered ${response.status}.`);
+    throw new ApiError(
+      response.status,
+      response.status >= 500 ? "internal" : "badRequest",
+      `The server answered ${response.status}.`,
+    );
   }
   return payload as T;
 }
@@ -109,7 +132,10 @@ export function logout(csrf: string): Promise<void> {
 
 // ---------------------------------------------------------------------- rooms
 
-export function createRoom(csrf: string, body: CreateRoomRequest = {}): Promise<CreateRoomResponse> {
+export function createRoom(
+  csrf: string,
+  body: CreateRoomRequest = {},
+): Promise<CreateRoomResponse> {
   return request<CreateRoomResponse>("/api/rooms", { method: "POST", body, csrf });
 }
 
@@ -127,7 +153,10 @@ export function leaveRoom(csrf: string, code: RoomCode): Promise<void> {
 
 /** Host only. Rotates the key, so older display links stop working. */
 export function createDisplayLink(csrf: string, code: RoomCode): Promise<DisplayLinkResponse> {
-  return request<DisplayLinkResponse>(`/api/rooms/${enc(code)}/display-link`, { method: "POST", csrf });
+  return request<DisplayLinkResponse>(`/api/rooms/${enc(code)}/display-link`, {
+    method: "POST",
+    csrf,
+  });
 }
 
 /**

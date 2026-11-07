@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, createDisplayLink, errorMessage, getRoom, listPacks } from "@/features/network/client/api";
+import {
+  ApiError,
+  createDisplayLink,
+  errorMessage,
+  getRoom,
+  listPacks,
+} from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
 import { ROOM_CODE_PATTERN, type PackSummary, type RoomSummary } from "@/features/network/protocol";
 import { ErrorNotice, LoadingNotice, SignInNotice } from "@/features/ui/page-chrome";
@@ -14,9 +20,22 @@ import { HostScreen } from "./host-screen";
 export function HostRoute({ code }: { code: string }) {
   const session = useSession();
 
-  if (!ROOM_CODE_PATTERN.test(code)) return <ErrorNotice title={`“${code}” isn't a room code`} body="Start a new game from the home page." />;
+  if (!ROOM_CODE_PATTERN.test(code))
+    return (
+      <ErrorNotice
+        title={`“${code}” isn't a room code`}
+        body="Start a new game from the home page."
+      />
+    );
   if (session.status === "loading") return <LoadingNotice label="Checking your sign-in" />;
-  if (session.status === "error") return <ErrorNotice title="Can't reach the quiz server" body={session.message} onRetry={session.reload} />;
+  if (session.status === "error")
+    return (
+      <ErrorNotice
+        title="Can't reach the quiz server"
+        body={session.message}
+        onRetry={session.reload}
+      />
+    );
   if (!session.session.signedIn) {
     return (
       <SignInNotice
@@ -31,7 +50,11 @@ export function HostRoute({ code }: { code: string }) {
 }
 
 function HostGate({ code, csrf }: { code: string; csrf: string }) {
-  const [room, setRoom] = useState<{ status: "loading" } | { status: "ready"; summary: RoomSummary } | { status: "error"; error: unknown }>({ status: "loading" });
+  const [room, setRoom] = useState<
+    | { status: "loading" }
+    | { status: "ready"; summary: RoomSummary }
+    | { status: "error"; error: unknown }
+  >({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +70,14 @@ function HostGate({ code, csrf }: { code: string; csrf: string }) {
   if (room.status === "loading") return <LoadingNotice label={`Opening room ${code}`} />;
   if (room.status === "error") {
     const missing = room.error instanceof ApiError && room.error.code === "notFound";
-    return <ErrorNotice title={missing ? `No room ${code}` : "Can't load this room"} body={missing ? "It may have closed. Start a new game from home." : errorMessage(room.error)} />;
+    return (
+      <ErrorNotice
+        title={missing ? `No room ${code}` : "Can't load this room"}
+        body={
+          missing ? "It may have closed. Start a new game from home." : errorMessage(room.error)
+        }
+      />
+    );
   }
   if (room.summary.myRole !== "host") {
     return (
@@ -82,7 +112,18 @@ function HostLive({ code, csrf }: { code: string; csrf: string }) {
     };
   }, []);
 
-  const onCreateDisplayLink = useCallback(async () => (await createDisplayLink(csrf, code)).url, [csrf, code]);
+  const onCreateDisplayLink = useCallback(
+    async () => (await createDisplayLink(csrf, code)).url,
+    [csrf, code],
+  );
 
-  return <HostScreen code={code} connection={connection} packs={packs} joinUrl={`${origin}/r/${code}`} onCreateDisplayLink={onCreateDisplayLink} />;
+  return (
+    <HostScreen
+      code={code}
+      connection={connection}
+      packs={packs}
+      joinUrl={`${origin}/r/${code}`}
+      onCreateDisplayLink={onCreateDisplayLink}
+    />
+  );
 }

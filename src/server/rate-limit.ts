@@ -4,10 +4,7 @@
  * full, the oldest entries are dropped.
  */
 export class RateLimiter {
-  private readonly windows = new Map<
-    string,
-    { count: number; resetAt: number }
-  >();
+  private readonly windows = new Map<string, { count: number; resetAt: number }>();
 
   constructor(
     private readonly now: () => number = Date.now,
@@ -25,12 +22,7 @@ export class RateLimiter {
   }
 
   /** Returns true when the action is allowed. */
-  take(
-    bucket: string,
-    subject: string,
-    limit: number,
-    windowMs: number,
-  ): boolean {
+  take(bucket: string, subject: string, limit: number, windowMs: number): boolean {
     const key = `${bucket}:${subject}`;
     const now = this.now();
     let entry = this.windows.get(key);
@@ -44,8 +36,7 @@ export class RateLimiter {
   }
 
   private sweep(now: number): void {
-    for (const [key, entry] of this.windows)
-      if (entry.resetAt <= now) this.windows.delete(key);
+    for (const [key, entry] of this.windows) if (entry.resetAt <= now) this.windows.delete(key);
     while (this.windows.size >= this.maxKeys) {
       const oldest = this.windows.keys().next().value;
       if (oldest === undefined) break;

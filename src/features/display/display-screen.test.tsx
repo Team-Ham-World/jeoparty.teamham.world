@@ -10,7 +10,11 @@ const ids = Object.keys(SPECS) as SpecId[];
 /** Every answer-like string the host can see for this scenario. */
 function privateStrings(id: SpecId): string[] {
   const host = hostFixture(id);
-  const strings = [host.clue?.answer, host.final?.answer, ...(host.final?.responses.map((r) => r.answer) ?? [])];
+  const strings = [
+    host.clue?.answer,
+    host.final?.answer,
+    ...(host.final?.responses.map((r) => r.answer) ?? []),
+  ];
   if (host.clue?.stage === "wager") strings.push(host.clue.prompt);
   if (host.final?.stage === "wagers") strings.push(host.final.prompt);
   return strings.filter((s): s is string => typeof s === "string" && s.length > 0);
@@ -23,7 +27,12 @@ function publicStrings(id: SpecId): string {
 
 describe("display privacy", () => {
   it.each(ids)("%s: renders no answer or hidden prompt the display view doesn't contain", (id) => {
-    const { container } = render(<DisplayScreen connection={mockConnection(displayFixture(id))} joinUrl="https://quiz.example/r/BCDFG" />);
+    const { container } = render(
+      <DisplayScreen
+        connection={mockConnection(displayFixture(id))}
+        joinUrl="https://quiz.example/r/BCDFG"
+      />,
+    );
     const text = container.textContent ?? "";
     const visible = publicStrings(id);
     for (const secret of privateStrings(id)) {
@@ -33,17 +42,32 @@ describe("display privacy", () => {
   });
 
   it("shows the answer once the view reveals it", () => {
-    render(<DisplayScreen connection={mockConnection(displayFixture("revealed"))} joinUrl="https://quiz.example/r/BCDFG" />);
+    render(
+      <DisplayScreen
+        connection={mockConnection(displayFixture("revealed"))}
+        joinUrl="https://quiz.example/r/BCDFG"
+      />,
+    );
     expect(screen.getByText("What is Lynx?")).toBeVisible();
   });
 
   it("has no controls: the TV never sends commands", () => {
-    const { container } = render(<DisplayScreen connection={mockConnection(displayFixture("board"))} joinUrl="https://quiz.example/r/BCDFG" />);
+    const { container } = render(
+      <DisplayScreen
+        connection={mockConnection(displayFixture("board"))}
+        joinUrl="https://quiz.example/r/BCDFG"
+      />,
+    );
     expect(container.querySelector("button, input, select, textarea")).toBeNull();
   });
 
   it("shows join instructions with the room code in the lobby", () => {
-    render(<DisplayScreen connection={mockConnection(displayFixture("lobby"))} joinUrl="https://quiz.example/r/BCDFG" />);
+    render(
+      <DisplayScreen
+        connection={mockConnection(displayFixture("lobby"))}
+        joinUrl="https://quiz.example/r/BCDFG"
+      />,
+    );
     expect(screen.getByLabelText("Room code B C D F G")).toBeVisible();
     expect(screen.getByRole("img", { name: /join room BCDFG/ })).toBeVisible();
   });

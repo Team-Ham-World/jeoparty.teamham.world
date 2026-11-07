@@ -36,8 +36,7 @@ export type AnyView = HostView | PlayerView | DisplayView;
 // latest role-specific `view`; it sends a new view after every accepted change.
 
 export type ClientHostCommand =
-  | Exclude<HostCommand, { type: "setPack" }>
-  | { type: "choosePack"; packId: string };
+  Exclude<HostCommand, { type: "setPack" }> | { type: "choosePack"; packId: string };
 export type ClientCommand = ClientHostCommand | PlayerCommand;
 
 export type ClientMessage =
@@ -48,12 +47,7 @@ export type ClientMessage =
   | { t: "ping"; at: number };
 
 export type TransportErrorCode =
-  | "badMessage"
-  | "notAllowed"
-  | "unknownPack"
-  | "rateLimited"
-  | "authUnavailable"
-  | "internal";
+  "badMessage" | "notAllowed" | "unknownPack" | "rateLimited" | "authUnavailable" | "internal";
 
 export type AckError = RejectionCode | TransportErrorCode;
 

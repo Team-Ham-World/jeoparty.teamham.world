@@ -19,31 +19,17 @@ export function encrypt(key: Buffer, plaintext: string, aad: string): Buffer {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(Buffer.from(aad, "utf8"));
-  const body = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
-    cipher.final(),
-  ]);
+  const body = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   return Buffer.concat([iv, cipher.getAuthTag(), body]);
 }
 
-export function decrypt(
-  key: Buffer,
-  blob: Uint8Array,
-  aad: string,
-): string | null {
+export function decrypt(key: Buffer, blob: Uint8Array, aad: string): string | null {
   try {
     const buf = Buffer.from(blob);
-    const decipher = crypto.createDecipheriv(
-      "aes-256-gcm",
-      key,
-      buf.subarray(0, 12),
-    );
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, buf.subarray(0, 12));
     decipher.setAAD(Buffer.from(aad, "utf8"));
     decipher.setAuthTag(buf.subarray(12, 28));
-    return Buffer.concat([
-      decipher.update(buf.subarray(28)),
-      decipher.final(),
-    ]).toString("utf8");
+    return Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]).toString("utf8");
   } catch {
     return null;
   }

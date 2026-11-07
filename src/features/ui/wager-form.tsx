@@ -92,7 +92,12 @@ export function WagerForm({
           </button>
         ))}
       </div>
-      <button type="submit" className="btn btn--primary btn--big btn--block" disabled={disabled} aria-busy={busy || undefined}>
+      <button
+        type="submit"
+        className="btn btn--primary btn--big btn--block"
+        disabled={disabled}
+        aria-busy={busy || undefined}
+      >
         {submitLabel}
       </button>
     </form>

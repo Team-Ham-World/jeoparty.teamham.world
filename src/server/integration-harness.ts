@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as watchdog, clearTimeout as clearWatchdog } from "node:timers";
 import { WebSocket } from "ws";
 import type { HostView, PlayerView, SettingsPatch } from "@/features/engine/contract";
-import type { AnyView, ClientCommand, ConnectionRole, ServerMessage } from "@/features/network/protocol";
+import type {
+  AnyView,
+  ClientCommand,
+  ConnectionRole,
+  ServerMessage,
+} from "@/features/network/protocol";
 import { Browser, type Harness } from "./test-harness";
 
 /** Records the bytes delivered to a real socket, including acknowledgments and closing frames. */
@@ -12,14 +17,14 @@ export class Wire {
   private readonly changed = new Set<() => void>();
   closeCode: number | null = null;
   constructor(readonly ws: WebSocket) {
-    ws.on("message", data => {
+    ws.on("message", (data) => {
       this.raw.push(data.toString());
       this.messages.push(JSON.parse(data.toString()));
-      this.changed.forEach(fn => fn());
+      this.changed.forEach((fn) => fn());
     });
-    ws.on("close", code => {
+    ws.on("close", (code) => {
       this.closeCode = code;
-      this.changed.forEach(fn => fn());
+      this.changed.forEach((fn) => fn());
     });
   }
   until<T>(read: () => T | undefined): Promise<T> {
@@ -41,7 +46,7 @@ export class Wire {
     });
   }
   get view(): AnyView {
-    const message = this.messages.findLast(m => m.t === "view");
+    const message = this.messages.findLast((m) => m.t === "view");
     if (!message || message.t !== "view") throw new Error("No view received");
     return message.view;
   }
@@ -57,17 +62,19 @@ export class Wire {
   }
   waitView(predicate: (view: AnyView) => boolean) {
     return this.until(() => {
-      const message = this.messages.findLast(m => m.t === "view");
+      const message = this.messages.findLast((m) => m.t === "view");
       return message?.t === "view" && predicate(message.view) ? message.view : undefined;
     });
   }
   async send(cmd: ClientCommand, id: string = randomUUID()) {
     const from = this.messages.length;
     this.ws.send(JSON.stringify({ t: "cmd", id, cmd }));
-    const ack = await this.until(() => this.messages.slice(from).find(
-      (m): m is Extract<ServerMessage, { t: "ack" }> => m.t === "ack" && m.id === id,
-    ));
-    if (ack.ok) await this.waitView(v => v.revision >= ack.revision);
+    const ack = await this.until(() =>
+      this.messages
+        .slice(from)
+        .find((m): m is Extract<ServerMessage, { t: "ack" }> => m.t === "ack" && m.id === id),
+    );
+    if (ack.ok) await this.waitView((v) => v.revision >= ack.revision);
     return ack;
   }
   async ok(cmd: ClientCommand, id?: string) {
@@ -81,7 +88,12 @@ export class Wire {
   }
 }
 
-export async function connect(h: Pick<Harness, "base" | "app">, code: string, role: ConnectionRole, browser: Browser) {
+export async function connect(
+  h: Pick<Harness, "base" | "app">,
+  code: string,
+  role: ConnectionRole,
+  browser: Browser,
+) {
   const ws = new WebSocket(`${h.base.replace("http:", "ws:")}/ws?room=${code}&role=${role}`, {
     headers: { cookie: browser.cookie, origin: h.app.config.publicOrigin },
   });
@@ -110,7 +122,8 @@ export async function table(h: Harness, count = 3) {
   await host.signIn("host");
   const code = await host.createRoom();
   const a = await connect(h, code, "host", host);
-  const browsers: Browser[] = [], players: Wire[] = [];
+  const browsers: Browser[] = [],
+    players: Wire[] = [];
   for (let i = 0; i < count; i++) {
     const b = new Browser(h);
     await b.signIn(`player${i}`);
@@ -125,7 +138,10 @@ export async function table(h: Harness, count = 3) {
 
 export async function start(a: Wire, packId: string, patch: SettingsPatch = {}) {
   await a.ok({ type: "choosePack", packId });
-  await a.ok({ type: "updateSettings", patch: { wagerClues: [0, 0], timers: { enabled: false }, ...patch } });
+  await a.ok({
+    type: "updateSettings",
+    patch: { wagerClues: [0, 0], timers: { enabled: false }, ...patch },
+  });
   await a.ok({ type: "startGame" });
   await a.ok({ type: "continue" });
 }

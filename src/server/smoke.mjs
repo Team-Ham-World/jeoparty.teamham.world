@@ -47,7 +47,10 @@ class Browser {
     const login = await this.request("/api/auth/login?return_to=/packs");
     const authorize = new URL(login.headers.get("location"));
     const consent = await this.request(authorize.pathname + authorize.search);
-    assert.ok((await consent.text()).includes("This is not HAM"), "Fixture consent stamp is missing");
+    assert.ok(
+      (await consent.text()).includes("This is not HAM"),
+      "Fixture consent stamp is missing",
+    );
     const form = new URLSearchParams(authorize.searchParams);
     form.set("username", name);
     const decision = await this.request("/__ham/authorize/decide", {
@@ -72,9 +75,9 @@ async function socket(code, role, browser) {
   sockets.push(ws);
   const messages = [];
   const changed = new Set();
-  ws.on("message", data => {
+  ws.on("message", (data) => {
     messages.push(JSON.parse(data.toString()));
-    changed.forEach(fn => fn());
+    changed.forEach((fn) => fn());
   });
   function waitFor(read) {
     const existing = read();
@@ -94,23 +97,24 @@ async function socket(code, role, browser) {
       changed.add(check);
     });
   }
-  const current = () => messages.findLast(m => m.t === "view")?.view;
+  const current = () => messages.findLast((m) => m.t === "view")?.view;
   async function view(predicate) {
-    return waitFor(() => predicate(current()) ? current() : undefined);
+    return waitFor(() => (predicate(current()) ? current() : undefined));
   }
   await new Promise((resolve, reject) => {
     ws.once("open", resolve);
     ws.once("error", reject);
   });
-  await view(v => !!v);
+  await view((v) => !!v);
   return {
-    messages, view,
+    messages,
+    view,
     async send(cmd) {
       const id = randomUUID();
       ws.send(JSON.stringify({ t: "cmd", id, cmd }));
-      const ack = await waitFor(() => messages.find(m => m.t === "ack" && m.id === id));
+      const ack = await waitFor(() => messages.find((m) => m.t === "ack" && m.id === id));
       assert.equal(ack.ok, true, `${cmd.type} rejected: ${ack.error}`);
-      return view(v => v?.revision >= ack.revision);
+      return view((v) => v?.revision >= ack.revision);
     },
   };
 }
@@ -121,7 +125,7 @@ try {
       clearTimeout(timeout);
       reject(new Error("Server exited during startup"));
     });
-    child.stdout.on("data", data => {
+    child.stdout.on("data", (data) => {
       if (data.toString().includes("HAM Quiz listening")) {
         clearTimeout(timeout);
         resolve();
@@ -130,7 +134,10 @@ try {
   });
   const host = new Browser();
   assert.deepEqual(await (await host.request("/api/health")).json(), { ok: true });
-  assert.deepEqual(await (await host.request("/api/session")).json(), { signedIn: false, authMode: "fixture" });
+  assert.deepEqual(await (await host.request("/api/session")).json(), {
+    signedIn: false,
+    authMode: "fixture",
+  });
   await host.signIn("smoke-host");
   for (const route of ["/", "/packs", "/r/BCDFG", "/host/BCDFG", "/display/BCDFG"]) {
     const page = await host.request(route);
@@ -153,7 +160,10 @@ try {
       resolve(res.statusCode);
     });
     ws.on("error", () => undefined);
-    ws.on("open", () => { ws.terminate(); reject(new Error("Wrong-Origin socket was accepted")); });
+    ws.on("open", () => {
+      ws.terminate();
+      reject(new Error("Wrong-Origin socket was accepted"));
+    });
   });
   assert.equal(rejected, 403);
   const created = await host.mutate("/api/rooms", {});
@@ -172,40 +182,63 @@ try {
   const key = new URLSearchParams(new URL(link.url).hash.slice(1)).get("key");
   assert.equal((await display.mutate("/api/display/claim", { code, key })).status, 204);
   const d = await socket(code, "display", display);
-  await a.send({ type: "updateSettings", patch: { wagerClues: [0, 0], timers: { enabled: false } } });
+  await a.send({
+    type: "updateSettings",
+    patch: { wagerClues: [0, 0], timers: { enabled: false } },
+  });
   await a.send({ type: "startGame" });
   const board = await a.send({ type: "continue" });
   const cell = board.board.categories[0].cells[0];
   const clue = await a.send({ type: "selectClue", clueId: cell.clueId });
-  for (const wire of [d, ...players.map(p => p.wire)]) {
-    const publicView = await wire.view(v => v?.revision === clue.revision);
+  for (const wire of [d, ...players.map((p) => p.wire)]) {
+    const publicView = await wire.view((v) => v?.revision === clue.revision);
     assert.equal(publicView.clue.answer, null);
     assert.ok(!JSON.stringify(publicView).includes(clue.clue.answer));
-    assert.ok(publicView.board.categories.every(c => c.cells.every(cell => !("wager" in cell))));
+    assert.ok(
+      publicView.board.categories.every((c) => c.cells.every((cell) => !("wager" in cell))),
+    );
   }
   await a.send({ type: "openBuzzers", clueId: cell.clueId });
   await players[0].wire.send({ type: "buzz", clueId: cell.clueId });
-  const answering = await a.view(v => v?.clue?.stage === "answering");
+  const answering = await a.view((v) => v?.clue?.stage === "answering");
   assert.equal(answering.clue.answeringPlayerId, players[0].id);
-  const judged = await a.send({ type: "judge", clueId: cell.clueId, attemptId: answering.clue.attempts[0].id, correct: true });
-  assert.equal(judged.players.find(p => p.id === players[0].id).score, cell.value);
+  const judged = await a.send({
+    type: "judge",
+    clueId: cell.clueId,
+    attemptId: answering.clue.attempts[0].id,
+    correct: true,
+  });
+  assert.equal(judged.players.find((p) => p.id === players[0].id).score, cell.value);
   const revealed = await a.send({ type: "reveal", clueId: cell.clueId });
-  for (const wire of [d, ...players.map(p => p.wire)]) {
-    assert.equal((await wire.view(v => v?.revision === revealed.revision)).clue.answer, clue.clue.answer);
+  for (const wire of [d, ...players.map((p) => p.wire)]) {
+    assert.equal(
+      (await wire.view((v) => v?.revision === revealed.revision)).clue.answer,
+      clue.clue.answer,
+    );
   }
   const returned = await a.send({ type: "returnToBoard", clueId: cell.clueId });
   assert.equal(returned.phase, "board");
   assert.equal(returned.board.categories[0].cells[0].state, "completed");
-  for (const wire of [d, ...players.map(p => p.wire)]) {
-    const v = await wire.view(v => v?.revision === returned.revision);
-    assert.equal(v.players.find(p => p.id === players[0].id).score, cell.value);
+  for (const wire of [d, ...players.map((p) => p.wire)]) {
+    const v = await wire.view((v) => v?.revision === returned.revision);
+    assert.equal(v.players.find((p) => p.id === players[0].id).score, cell.value);
   }
-  console.log("Production build smoke passed: health, session, fixture OAuth, Next pages and security headers, Origin rejection, room/join/display claim, select/open/buzz/judge/reveal/board, public privacy and score convergence.");
+  console.log(
+    "Production build smoke passed: health, session, fixture OAuth, Next pages and security headers, Origin rejection, room/join/display claim, select/open/buzz/judge/reveal/board, public privacy and score convergence.",
+  );
 } finally {
-  sockets.forEach(ws => ws.close());
-  const exit = new Promise(resolve => child.once("exit", resolve));
-  try { process.kill(-child.pid, "SIGTERM"); } catch { /* Already stopped. */ }
-  await Promise.race([exit, new Promise(resolve => setTimeout(resolve, 5000).unref())]);
-  try { process.kill(-child.pid, "SIGKILL"); } catch { /* Normal graceful shutdown. */ }
+  sockets.forEach((ws) => ws.close());
+  const exit = new Promise((resolve) => child.once("exit", resolve));
+  try {
+    process.kill(-child.pid, "SIGTERM");
+  } catch {
+    /* Already stopped. */
+  }
+  await Promise.race([exit, new Promise((resolve) => setTimeout(resolve, 5000).unref())]);
+  try {
+    process.kill(-child.pid, "SIGKILL");
+  } catch {
+    /* Normal graceful shutdown. */
+  }
   rmSync(directory, { recursive: true, force: true });
 }

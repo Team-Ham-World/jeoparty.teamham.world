@@ -30,9 +30,7 @@ describe("security review regressions", () => {
       ["--import", "tsx", "src/server/upgrade-reset-probe.mts"],
       { timeout: 15000 },
     );
-    expect(result.stdout).toContain(
-      "Survived wrong-Origin and slow-introspection TCP resets",
-    );
+    expect(result.stdout).toContain("Survived wrong-Origin and slow-introspection TCP resets");
   }, 20000);
 
   it.each([true, false])(
@@ -63,22 +61,17 @@ describe("security review regressions", () => {
             ? b.mutate(item.route, {}, "POST", headers("spoof", peer))
             : b.request(item.route, { headers: headers("spoof", peer) });
         expect((await send("192.0.2.1")).status).toBe(429);
-        expect((await send("192.0.2.2")).status).toBe(
-          trustProxy ? item.status : 429,
-        );
+        expect((await send("192.0.2.2")).status).toBe(trustProxy ? item.status : 429);
       }
       h.advance(60001);
       async function upgrade(peer: string, prefix: number) {
         return new Promise<number>((resolve, reject) => {
-          const ws = new WebSocket(
-            `${h!.base.replace("http:", "ws:")}/ws?room=BCDFG&role=host`,
-            {
-              headers: {
-                origin: h!.app.config.publicOrigin,
-                ...headers(String(prefix), peer),
-              },
+          const ws = new WebSocket(`${h!.base.replace("http:", "ws:")}/ws?room=BCDFG&role=host`, {
+            headers: {
+              origin: h!.app.config.publicOrigin,
+              ...headers(String(prefix), peer),
             },
-          );
+          });
           ws.on("error", () => undefined);
           ws.on("unexpected-response", (_, response) => {
             response.resume();
@@ -91,8 +84,7 @@ describe("security review regressions", () => {
           });
         });
       }
-      for (let i = 0; i < 60; i++)
-        expect(await upgrade("192.0.2.1", i)).toBe(404);
+      for (let i = 0; i < 60; i++) expect(await upgrade("192.0.2.1", i)).toBe(404);
       expect(await upgrade("192.0.2.1", 61)).toBe(429);
       expect(await upgrade("192.0.2.2", 62)).toBe(trustProxy ? 404 : 429);
     },
@@ -135,38 +127,26 @@ describe("security review regressions", () => {
     ["DELETE", "/api/packs/own"],
     ["POST", "/api/packs/own/duplicate"],
     ["POST", "/api/auth/logout"],
-  ])(
-    "freshly introspects protected HTTP %s %s within an existing lease",
-    async (method, route) => {
-      h = await harness();
-      const b = new Browser(h);
-      await b.signIn("host");
-      const session = h.app.auth.sessionFromCookieHeader(b.cookie)!;
-      const verified = h.app.db.get<{ verified_at: number }>(
-        "SELECT verified_at FROM sessions WHERE session_hash = ?",
-        session.session_hash,
-      );
-      h.app.fixture!.control.outage = true;
-      const response =
-        method === "GET"
-          ? await b.request(route)
-          : await b.mutate(route, {}, method);
-      expect(response.status).toBe(503);
-      expect(
-        h.app.db.get(
-          "SELECT verified_at FROM sessions WHERE session_hash = ?",
-          session.session_hash,
-        ),
-      ).toEqual(verified);
-      h.app.fixture!.control.outage = false;
-      h.app.fixture!.revokeUser("host");
-      const inactive =
-        method === "GET"
-          ? await b.request(route)
-          : await b.mutate(route, {}, method);
-      expect(inactive.status).toBe(401);
-    },
-  );
+  ])("freshly introspects protected HTTP %s %s within an existing lease", async (method, route) => {
+    h = await harness();
+    const b = new Browser(h);
+    await b.signIn("host");
+    const session = h.app.auth.sessionFromCookieHeader(b.cookie)!;
+    const verified = h.app.db.get<{ verified_at: number }>(
+      "SELECT verified_at FROM sessions WHERE session_hash = ?",
+      session.session_hash,
+    );
+    h.app.fixture!.control.outage = true;
+    const response = method === "GET" ? await b.request(route) : await b.mutate(route, {}, method);
+    expect(response.status).toBe(503);
+    expect(
+      h.app.db.get("SELECT verified_at FROM sessions WHERE session_hash = ?", session.session_hash),
+    ).toEqual(verified);
+    h.app.fixture!.control.outage = false;
+    h.app.fixture!.revokeUser("host");
+    const inactive = method === "GET" ? await b.request(route) : await b.mutate(route, {}, method);
+    expect(inactive.status).toBe(401);
+  });
 
   it("keeps a socket lease for low-latency commands but freshly verifies connect and every startGame retry", async () => {
     h = await harness(":memory:", { engine });
@@ -183,16 +163,12 @@ describe("security review regressions", () => {
     expect(await a.send({ type: "startGame" }, id)).toMatchObject({
       error: "authUnavailable",
     });
-    expect(
-      inspect.mock.calls.filter(([req]) => req.url.endsWith("/introspect")),
-    ).toHaveLength(2);
+    expect(inspect.mock.calls.filter(([req]) => req.url.endsWith("/introspect"))).toHaveLength(2);
     await expect(connect(h, code, "host", host)).rejects.toThrow("503");
     h.advance(30001);
     await h.app.tick();
     await a.until(() => a.closeCode ?? undefined);
-    expect(
-      [...h.app.rooms.get(code)!.connections].some((c) => c.role === "host"),
-    ).toBe(false);
+    expect([...h.app.rooms.get(code)!.connections].some((c) => c.role === "host")).toBe(false);
   });
 
   it("measures a renewed lease from introspection start, including provider latency", async () => {
@@ -272,9 +248,8 @@ describe("security review regressions", () => {
     h = await harness();
     const b = new Browser(h);
     await b.signIn("host");
-    const owner = h.app.auth.identityFor(
-      h.app.auth.sessionFromCookieHeader(b.cookie),
-    )!.account.account_id;
+    const owner = h.app.auth.identityFor(h.app.auth.sessionFromCookieHeader(b.cookie))!.account
+      .account_id;
     const packs = new Packs(h.app.db);
     const docs = Array.from({ length: 50 }, () => packs.save(sample, owner));
     const full = await b.mutate(`/api/packs/${sample.id}/duplicate`);
@@ -285,17 +260,10 @@ describe("security review regressions", () => {
     });
     const doc = docs[0];
     expect(
-      (
-        await b.mutate(
-          `/api/packs/${doc.id}`,
-          { pack: { ...doc.pack, title: "Updated" } },
-          "PUT",
-        )
-      ).status,
+      (await b.mutate(`/api/packs/${doc.id}`, { pack: { ...doc.pack, title: "Updated" } }, "PUT"))
+        .status,
     ).toBe(200);
-    expect(
-      (await b.mutate(`/api/packs/${doc.id}`, undefined, "DELETE")).status,
-    ).toBe(204);
+    expect((await b.mutate(`/api/packs/${doc.id}`, undefined, "DELETE")).status).toBe(204);
     const tooBig = await b.mutate("/api/packs", {
       pack: { ...sample, extension: "é".repeat(128 * 1024) },
     });
@@ -304,9 +272,7 @@ describe("security review regressions", () => {
       error: "badRequest",
       message: expect.stringContaining("256 KiB"),
     });
-    expect((await b.mutate(`/api/packs/${sample.id}/duplicate`)).status).toBe(
-      201,
-    );
+    expect((await b.mutate(`/api/packs/${sample.id}/duplicate`)).status).toBe(201);
     // A corrupt answer document cannot affect a summary listing.
     h.app.db.run("UPDATE packs SET pack_json = 'invalid json'");
     const list = await (await b.request("/api/packs")).json();
@@ -331,14 +297,9 @@ describe("security review regressions", () => {
         JSON.stringify(legacy),
       );
       const upgraded = new Packs(db); // Older packs need not meet the new limits to boot/list.
-      expect(
-        upgraded.list("a").find((pack) => pack.id === "legacy")?.title,
-      ).toBe(legacy.title);
+      expect(upgraded.list("a").find((pack) => pack.id === "legacy")?.title).toBe(legacy.title);
       upgraded.save(sample, "a", "legacy"); // Replacement and deletion still work for invalid old packs.
-      db.run(
-        "UPDATE packs SET pack_json = ? WHERE id = 'legacy'",
-        JSON.stringify(legacy),
-      );
+      db.run("UPDATE packs SET pack_json = ? WHERE id = 'legacy'", JSON.stringify(legacy));
       upgraded.delete("legacy", "a");
       db.run("UPDATE packs SET pack_json = 'broken'");
       expect(packs.list("a").find((pack) => pack.id === "old")).toMatchObject({
@@ -354,11 +315,7 @@ describe("security review regressions", () => {
     h = await harness();
     const b = new Browser(h);
     await b.signIn("host");
-    const codes = [
-      await b.createRoom(),
-      await b.createRoom(),
-      await b.createRoom(),
-    ];
+    const codes = [await b.createRoom(), await b.createRoom(), await b.createRoom()];
     const fourth = await b.mutate("/api/rooms", {});
     expect(fourth.status).toBe(409);
     expect(await fourth.json()).toMatchObject({
@@ -394,23 +351,16 @@ describe("security review regressions", () => {
       player = new Browser(h);
     await host.signIn("host");
     await player.signIn("player");
-    const codes = [
-      await host.createRoom(),
-      await host.createRoom(),
-      await host.createRoom(),
-    ];
+    const codes = [await host.createRoom(), await host.createRoom(), await host.createRoom()];
     await player.mutate(`/api/rooms/${codes[0]}/join`);
     await player.mutate(`/api/rooms/${codes[1]}/join`);
-    const id = h.app.auth.identityFor(
-      h.app.auth.sessionFromCookieHeader(player.cookie),
-    )!.account.public_id;
+    const id = h.app.auth.identityFor(h.app.auth.sessionFromCookieHeader(player.cookie))!.account
+      .public_id;
     const spy = vi.spyOn(h.engine.api, "playerView");
     const visited = async () => {
       spy.mockClear();
       expect((await player.request("/api/session")).status).toBe(200);
-      return spy.mock.calls
-        .map(([state]) => h!.engine.read(state).roomCode)
-        .sort();
+      return spy.mock.calls.map(([state]) => h!.engine.read(state).roomCode).sort();
     };
     expect(await visited()).toEqual(codes.slice(0, 2).sort());
     await player.mutate(`/api/rooms/${codes[0]}/leave`);
@@ -436,16 +386,10 @@ describe("security review regressions", () => {
     } as const;
     const id = randomUUID();
     const original = await a.ok(command, id);
-    const floods = [
-      players[0],
-      await connect(h, code, "player", browsers[0]),
-      d.wire,
-    ];
+    const floods = [players[0], await connect(h, code, "player", browsers[0]), d.wire];
     const row = () =>
-      h!.app.db.get<{ recent_json: string }>(
-        "SELECT recent_json FROM rooms WHERE code = ?",
-        code,
-      )!.recent_json;
+      h!.app.db.get<{ recent_json: string }>("SELECT recent_json FROM rooms WHERE code = ?", code)!
+        .recent_json;
     const before = row();
     const writes = vi.spyOn(h.app.db, "run");
     for (let i = 0; i < 180; i++) {
@@ -463,13 +407,9 @@ describe("security review regressions", () => {
       );
     }
     expect(row()).toBe(before);
-    expect(
-      writes.mock.calls.some(([sql]) => sql.startsWith("INSERT INTO rooms")),
-    ).toBe(false);
+    expect(writes.mock.calls.some(([sql]) => sql.startsWith("INSERT INTO rooms"))).toBe(false);
     expect(await a.send(command, id)).toEqual(original);
-    expect(a.host.players.find((p) => p.id === command.playerId)?.score).toBe(
-      123,
-    );
+    expect(a.host.players.find((p) => p.id === command.playerId)?.score).toBe(123);
     expect(a.host.scoreLog).toHaveLength(1);
   }, 20000);
 
@@ -491,9 +431,7 @@ describe("security review regressions", () => {
       code,
     )!;
     const recent: { identity: string }[] = JSON.parse(row.recent_json);
-    expect(
-      recent.filter((entry) => entry.identity.startsWith("player:")),
-    ).toHaveLength(32);
+    expect(recent.filter((entry) => entry.identity.startsWith("player:"))).toHaveLength(32);
     expect(await a.send({ type: "pause" }, id)).toEqual(original);
   });
 
@@ -514,9 +452,7 @@ describe("security review regressions", () => {
         host_id: string;
         updated_at: number;
       }>("SELECT * FROM rooms WHERE code = ?", valid)!;
-      const invalid = ["BCDFG", "CDFGH", "DFGHJ"].filter(
-        (code) => code !== valid,
-      );
+      const invalid = ["BCDFG", "CDFGH", "DFGHJ"].filter((code) => code !== valid);
       for (const [i, code] of invalid.entries())
         h.app.db.run(
           "INSERT INTO rooms(code, host_id, state_json, recent_json, updated_at) VALUES (?, ?, ?, ?, ?)",
@@ -528,17 +464,11 @@ describe("security review regressions", () => {
         );
       await h.stop();
       h = undefined;
-      const log = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
+      const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
       h = await harness(file);
       expect([...h.app.rooms.keys()]).toEqual([valid]);
-      expect(h.app.db.all("SELECT code FROM quarantined_rooms")).toHaveLength(
-        invalid.length,
-      );
-      expect(log.mock.calls).toEqual(
-        invalid.map((code) => ["Unrestorable room:", code]),
-      );
+      expect(h.app.db.all("SELECT code FROM quarantined_rooms")).toHaveLength(invalid.length);
+      expect(log.mock.calls).toEqual(invalid.map((code) => ["Unrestorable room:", code]));
       expect((await fetch(`${h.base}/api/health`)).status).toBe(200);
       // Restored rooms also repopulate the membership index.
       const restoredPlayer = new Browser(h);
@@ -554,9 +484,7 @@ describe("security review regressions", () => {
   });
 
   it.each(["0.0.0.0", "::", "192.0.2.1"])("rejects fixture HOST=%s", (host) => {
-    expect(() => loadConfig({ APP_ENV: "test", HOST: host })).toThrow(
-      "loopback HOST",
-    );
+    expect(() => loadConfig({ APP_ENV: "test", HOST: host })).toThrow("loopback HOST");
   });
   it.each(["development", "test", "production"])(
     "requires an encryption key in live %s",
@@ -612,40 +540,17 @@ describe("security review regressions", () => {
     expect(await client(active).introspect(token.access_token)).toMatchObject({
       kind: "active",
     });
-    expect(
-      await client({ active: false, future: true }).introspect(
-        token.access_token,
-      ),
-    ).toEqual({ kind: "inactive" });
-    for (const field of [
-      "access_token",
-      "token_type",
-      "expires_in",
-      "audience",
-      "sub",
-      "scope",
-    ])
-      expect(
-        await client({ ...token, [field]: null }).exchangeCode(
-          "code",
-          "verifier",
-        ),
-      ).toEqual({ kind: "unavailable" });
-    for (const field of [
-      "active",
-      "sub",
-      "client_id",
-      "aud",
-      "iss",
-      "exp",
-      "scope",
-      "token_type",
-    ])
-      expect(
-        await client({ ...active, [field]: null }).introspect(
-          token.access_token,
-        ),
-      ).toEqual({ kind: "unavailable" });
+    expect(await client({ active: false, future: true }).introspect(token.access_token)).toEqual({
+      kind: "inactive",
+    });
+    for (const field of ["access_token", "token_type", "expires_in", "audience", "sub", "scope"])
+      expect(await client({ ...token, [field]: null }).exchangeCode("code", "verifier")).toEqual({
+        kind: "unavailable",
+      });
+    for (const field of ["active", "sub", "client_id", "aud", "iss", "exp", "scope", "token_type"])
+      expect(await client({ ...active, [field]: null }).introspect(token.access_token)).toEqual({
+        kind: "unavailable",
+      });
   });
 
   it.each(["inactive", "mismatch", "revokedBrowser", "outage"])(
@@ -678,9 +583,8 @@ describe("security review regressions", () => {
       expect(result.status).toBe(mode === "outage" ? 503 : 302);
       expect(revokes).toHaveBeenCalledTimes(1);
       expect(
-        h.app.db.get<{ n: number }>(
-          "SELECT count(*) n FROM hamfx_tokens WHERE revoked_at IS NULL",
-        )!.n,
+        h.app.db.get<{ n: number }>("SELECT count(*) n FROM hamfx_tokens WHERE revoked_at IS NULL")!
+          .n,
       ).toBe(0);
     },
   );
@@ -698,9 +602,7 @@ describe("security review regressions", () => {
       expect(response.headers.get("x-frame-options")).toBe("DENY");
       expect(response.headers.get("referrer-policy")).toBe("same-origin");
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-      expect(response.headers.get("content-security-policy")).toContain(
-        "frame-ancestors 'none'",
-      );
+      expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
       expect(response.headers.has("strict-transport-security")).toBe(false);
     }
     const production = securityHeaders({
@@ -708,18 +610,14 @@ describe("security review regressions", () => {
       publicOrigin: "https://quiz.teamham.world",
     });
     expect(production["strict-transport-security"]).toBe("max-age=31536000");
-    expect(production["content-security-policy"]).toContain(
-      "script-src 'self' 'unsafe-inline'",
-    );
+    expect(production["content-security-policy"]).toContain("script-src 'self' 'unsafe-inline'");
     expect(production["content-security-policy"]).not.toContain("unsafe-eval");
     const development = securityHeaders({
       environment: "development",
       publicOrigin: "http://127.0.0.1:3401",
     });
     expect(development["content-security-policy"]).toContain("'unsafe-eval'");
-    expect(development["content-security-policy"]).toContain(
-      "ws://127.0.0.1:3401",
-    );
+    expect(development["content-security-policy"]).toContain("ws://127.0.0.1:3401");
     expect(development).not.toHaveProperty("strict-transport-security");
   });
 });

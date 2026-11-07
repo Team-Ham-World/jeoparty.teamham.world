@@ -29,32 +29,23 @@ async function socket(
   cookie: string,
   origin = "http://127.0.0.1:3101",
 ) {
-  const ws = new WebSocket(
-    `${h.base.replace("http:", "ws:")}/ws?room=${code}&role=${role}`,
-    { headers: { cookie, origin } },
-  );
+  const ws = new WebSocket(`${h.base.replace("http:", "ws:")}/ws?room=${code}&role=${role}`, {
+    headers: { cookie, origin },
+  });
   const messages: ServerMessage[] = [];
   ws.on("message", (raw) => messages.push(JSON.parse(raw.toString())));
   await new Promise<void>((resolve, reject) => {
     ws.once("open", resolve);
     ws.once("error", reject);
   });
-  await vi.waitFor(() =>
-    expect(messages.some((m) => m.t === "view")).toBe(true),
-  );
+  await vi.waitFor(() => expect(messages.some((m) => m.t === "view")).toBe(true));
   return { ws, messages };
 }
-async function rejectedSocket(
-  code: string,
-  role: string,
-  cookie: string,
-  origin?: string,
-) {
+async function rejectedSocket(code: string, role: string, cookie: string, origin?: string) {
   return new Promise<number>((resolve, reject) => {
-    const ws = new WebSocket(
-      `${h.base.replace("http:", "ws:")}/ws?room=${code}&role=${role}`,
-      { headers: { cookie, origin: origin ?? "http://127.0.0.1:3101" } },
-    );
+    const ws = new WebSocket(`${h.base.replace("http:", "ws:")}/ws?room=${code}&role=${role}`, {
+      headers: { cookie, origin: origin ?? "http://127.0.0.1:3101" },
+    });
     ws.on("unexpected-response", (_, res) => {
       res.resume();
       ws.terminate();
@@ -74,17 +65,18 @@ describe("HTTP room and pack boundaries", () => {
   it("creates a host, joins lobby players, prevents host self-join, leaves and waits during play", async () => {
     const { host, player, code, room } = await setup();
     expect(code).toMatch(/^[BCDFGHJKLMNPQRSTVWXZ]{5}$/);
-    expect(
-      await (await host.request(`/api/rooms/${code}`)).json(),
-    ).toMatchObject({ myRole: "host", playerCount: 1 });
+    expect(await (await host.request(`/api/rooms/${code}`)).json()).toMatchObject({
+      myRole: "host",
+      playerCount: 1,
+    });
     expect((await host.mutate(`/api/rooms/${code}/join`)).status).toBe(403);
     expect((await player.mutate(`/api/rooms/${code}/leave`)).status).toBe(204);
     await room.system({ type: "restored" });
     const playing = { ...h.engine.read(room.state), phase: "board" as const };
     room.state = h.engine.write(playing);
-    expect(
-      await (await player.mutate(`/api/rooms/${code}/join`)).json(),
-    ).toEqual({ role: "waiting" });
+    expect(await (await player.mutate(`/api/rooms/${code}/join`)).json()).toEqual({
+      role: "waiting",
+    });
   });
   it("lets the engine enforce capacity", async () => {
     const { code } = await setup();
@@ -111,13 +103,10 @@ describe("HTTP room and pack boundaries", () => {
     h = await harness();
     const b = new Browser(h);
     await b.signIn("host");
-    expect(
-      (await b.mutate(route, {}, method, { origin: "https://evil.invalid" }))
-        .status,
-    ).toBe(403);
-    expect(
-      (await b.mutate(route, {}, method, { "x-quiz-csrf": "bad" })).status,
-    ).toBe(403);
+    expect((await b.mutate(route, {}, method, { origin: "https://evil.invalid" })).status).toBe(
+      403,
+    );
+    expect((await b.mutate(route, {}, method, { "x-quiz-csrf": "bad" })).status).toBe(403);
   });
   it("display claim is the anonymous Origin-only CSRF exception", async () => {
     h = await harness();
@@ -134,33 +123,20 @@ describe("HTTP room and pack boundaries", () => {
     const { host, player, room } = await setup();
     const built = (await (await host.request("/api/packs")).json())[0];
     expect((await host.request(`/api/packs/${built.id}`)).status).toBe(404);
-    const doc = await (
-      await host.mutate(`/api/packs/${built.id}/duplicate`)
-    ).json();
+    const doc = await (await host.mutate(`/api/packs/${built.id}/duplicate`)).json();
     expect(doc.id).not.toBe(built.id);
     expect(doc.pack.id).toBe(doc.id);
     expect(doc.pack.title).toBe(`${built.title} (copy)`);
     expect((await player.request(`/api/packs/${doc.id}`)).status).toBe(404);
-    expect((await player.mutate(`/api/packs/${doc.id}/duplicate`)).status).toBe(
-      404,
-    );
-    expect(
-      (await host.mutate(`/api/packs/${doc.id}`, { pack: {} }, "PUT")).status,
-    ).toBe(400);
+    expect((await player.mutate(`/api/packs/${doc.id}/duplicate`)).status).toBe(404);
+    expect((await host.mutate(`/api/packs/${doc.id}`, { pack: {} }, "PUT")).status).toBe(400);
     const before = h.engine.read(room.state).pack!.title;
     expect(
-      (
-        await host.mutate(
-          `/api/packs/${doc.id}`,
-          { pack: { ...doc.pack, title: "Edited" } },
-          "PUT",
-        )
-      ).status,
+      (await host.mutate(`/api/packs/${doc.id}`, { pack: { ...doc.pack, title: "Edited" } }, "PUT"))
+        .status,
     ).toBe(200);
     expect(h.engine.read(room.state).pack!.title).toBe(before);
-    expect(
-      (await host.mutate(`/api/packs/${doc.id}`, undefined, "DELETE")).status,
-    ).toBe(204);
+    expect((await host.mutate(`/api/packs/${doc.id}`, undefined, "DELETE")).status).toBe(204);
   });
 });
 
@@ -168,9 +144,7 @@ describe("WebSocket and room actor", () => {
   it("requires identity, exact Origin and membership matching the role", async () => {
     const { code, player, host } = await setup();
     expect(await rejectedSocket(code, "host", "")).toBe(401);
-    expect(
-      await rejectedSocket(code, "host", host.cookie, "https://evil.invalid"),
-    ).toBe(403);
+    expect(await rejectedSocket(code, "host", host.cookie, "https://evil.invalid")).toBe(403);
     expect(await rejectedSocket(code, "host", player.cookie)).toBe(403);
     expect(await rejectedSocket(code, "player", host.cookie)).toBe(403);
     expect(await rejectedSocket(code, "display", host.cookie)).toBe(401);
@@ -190,9 +164,7 @@ describe("WebSocket and room actor", () => {
         .every((m) => m.view.audience === "player" && !("settings" in m.view)),
     ).toBe(true);
     const forbidden = randomUUID();
-    b.ws.send(
-      JSON.stringify({ t: "cmd", id: forbidden, cmd: { type: "startGame" } }),
-    );
+    b.ws.send(JSON.stringify({ t: "cmd", id: forbidden, cmd: { type: "startGame" } }));
     await vi.waitFor(() =>
       expect(ack(b.messages, forbidden)).toMatchObject({
         ok: false,
@@ -212,14 +184,10 @@ describe("WebSocket and room actor", () => {
     );
     a.ws.send(JSON.stringify({ t: "cmd", id, cmd: { type: "endGame" } }));
     await vi.waitFor(() =>
-      expect(
-        a.messages.filter((m) => m.t === "ack" && m.id === id),
-      ).toHaveLength(2),
+      expect(a.messages.filter((m) => m.t === "ack" && m.id === id)).toHaveLength(2),
     );
     expect(room.state.revision).toBe(before + 2);
-    expect(a.messages.filter((m) => m.t === "ack" && m.id === id)[1]).toEqual(
-      ack(a.messages, id),
-    );
+    expect(a.messages.filter((m) => m.t === "ack" && m.id === id)[1]).toEqual(ack(a.messages, id));
     a.ws.close();
     b.ws.close();
   });
@@ -231,10 +199,7 @@ describe("WebSocket and room actor", () => {
           "SELECT state_json, recent_json FROM rooms WHERE code = ?",
           room.code,
         )!;
-        const revision =
-          message.t === "ack" && message.ok
-            ? message.revision
-            : room.state.revision;
+        const revision = message.t === "ack" && message.ok ? message.revision : room.state.revision;
         expect(JSON.parse(row.state_json).revision).toBe(revision);
         if (message.t === "ack") expect(row.recent_json).toContain(message.id);
       }
@@ -260,9 +225,7 @@ describe("WebSocket and room actor", () => {
         throw new Error("disk full");
       });
     send.mockClear();
-    await expect(
-      room.command(c, randomUUID(), { type: "resume" }),
-    ).rejects.toThrow("disk full");
+    await expect(room.command(c, randomUUID(), { type: "resume" })).rejects.toThrow("disk full");
     expect(room.state.revision).toBe(before);
     expect(send).not.toHaveBeenCalled();
     spy.mockRestore();
@@ -290,17 +253,11 @@ describe("WebSocket and room actor", () => {
   });
   it("rotates display keys, revokes old grants and rejects all display commands", async () => {
     const { code, host, player } = await setup();
-    expect(
-      (await player.mutate(`/api/rooms/${code}/display-link`)).status,
-    ).toBe(403);
-    const link = await (
-        await host.mutate(`/api/rooms/${code}/display-link`)
-      ).json(),
+    expect((await player.mutate(`/api/rooms/${code}/display-link`)).status).toBe(403);
+    const link = await (await host.mutate(`/api/rooms/${code}/display-link`)).json(),
       key = new URLSearchParams(new URL(link.url).hash.slice(1)).get("key");
     const display = new Browser(h);
-    expect(
-      (await display.mutate("/api/display/claim", { code, key })).status,
-    ).toBe(204);
+    expect((await display.mutate("/api/display/claim", { code, key })).status).toBe(204);
     const d = await socket(code, "display", display.cookie);
     expect(d.messages.find((m) => m.t === "view")).toMatchObject({
       view: { audience: "display" },
@@ -315,15 +272,9 @@ describe("WebSocket and room actor", () => {
     );
     await host.mutate(`/api/rooms/${code}/display-link`);
     await vi.waitFor(() =>
-      expect(
-        d.messages.some(
-          (m) => m.t === "closing" && m.reason === "displayRevoked",
-        ),
-      ).toBe(true),
+      expect(d.messages.some((m) => m.t === "closing" && m.reason === "displayRevoked")).toBe(true),
     );
-    expect(
-      (await display.mutate("/api/display/claim", { code, key })).status,
-    ).toBe(403);
+    expect((await display.mutate("/api/display/claim", { code, key })).status).toBe(403);
     expect(await rejectedSocket(code, "display", display.cookie)).toBe(401);
   });
   it("sends signedInElsewhere when a new login supersedes a connected account", async () => {
@@ -354,9 +305,7 @@ describe("WebSocket and room actor", () => {
     const revision = h.app.rooms.get(code)!.state.revision;
     a.ws.send(JSON.stringify({ t: "cmd", id, cmd: { type: "startGame" } }));
     await vi.waitFor(() =>
-      expect(
-        a.messages.filter((m) => m.t === "ack" && m.id === id),
-      ).toHaveLength(2),
+      expect(a.messages.filter((m) => m.t === "ack" && m.id === id)).toHaveLength(2),
     );
     expect(h.app.rooms.get(code)!.state.revision).toBe(revision + 1);
     a.ws.close();
@@ -396,9 +345,7 @@ describe("WebSocket and room actor", () => {
       const first = await socket(code, "host", host.cookie),
         id = randomUUID();
       first.ws.send(JSON.stringify({ t: "cmd", id, cmd: { type: "pause" } }));
-      await vi.waitFor(() =>
-        expect(ack(first.messages, id)).toMatchObject({ ok: true }),
-      );
+      await vi.waitFor(() => expect(ack(first.messages, id)).toMatchObject({ ok: true }));
       const original = ack(first.messages, id);
       await h.stop();
       h = await harness(path.join(directory, "quiz.sqlite"));
@@ -406,12 +353,8 @@ describe("WebSocket and room actor", () => {
       expect(h.app.rooms.has(code)).toBe(true);
       const second = await socket(code, "host", host.cookie),
         revision = h.app.rooms.get(code)!.state.revision;
-      second.ws.send(
-        JSON.stringify({ t: "cmd", id, cmd: { type: "endGame" } }),
-      );
-      await vi.waitFor(() =>
-        expect(ack(second.messages, id)).toEqual(original),
-      );
+      second.ws.send(JSON.stringify({ t: "cmd", id, cmd: { type: "endGame" } }));
+      await vi.waitFor(() => expect(ack(second.messages, id)).toEqual(original));
       expect(h.app.rooms.get(code)!.state.revision).toBe(revision);
       second.ws.close();
     } finally {
@@ -425,16 +368,12 @@ describe("WebSocket and room actor", () => {
       a = await socket(code, "host", host.cookie),
       b = await socket(code, "host", host.cookie);
     const hostPresence = () =>
-      h.engine.applied.filter(
-        (cmd) => cmd.type === "setPresence" && cmd.target.role === "host",
-      );
+      h.engine.applied.filter((cmd) => cmd.type === "setPresence" && cmd.target.role === "host");
     expect(hostPresence()).toEqual([
       { type: "setPresence", target: { role: "host" }, connected: true },
     ]);
     a.ws.close();
-    await vi.waitFor(() =>
-      expect(h.app.rooms.get(code)!.connections.size).toBe(1),
-    );
+    await vi.waitFor(() => expect(h.app.rooms.get(code)!.connections.size).toBe(1));
     expect(hostPresence()).toHaveLength(1);
     b.ws.close();
     await vi.waitFor(() => expect(hostPresence()).toHaveLength(2));
@@ -443,15 +382,11 @@ describe("WebSocket and room actor", () => {
   it("revokes connected inactive tokens and renews mutable usernames through system commands", async () => {
     const { code, player } = await setup(),
       a = await socket(code, "player", player.cookie);
-    h.app.db.run(
-      "UPDATE hamfx_accounts SET username = 'renamed' WHERE username = 'player'",
-    );
+    h.app.db.run("UPDATE hamfx_accounts SET username = 'renamed' WHERE username = 'player'");
     h.advance(27000);
     await h.app.tick();
     expect(
-      h.engine.applied.some(
-        (cmd) => cmd.type === "renamePlayer" && cmd.name === "renamed",
-      ),
+      h.engine.applied.some((cmd) => cmd.type === "renamePlayer" && cmd.name === "renamed"),
     ).toBe(true);
     h.app.fixture!.revokeUser("renamed");
     h.advance(27000);

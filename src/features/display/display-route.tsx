@@ -24,7 +24,9 @@ const claims = new Map<string, Promise<void>>();
  * Without a key it connects with any grant cookie it already has.
  */
 export function DisplayRoute({ code }: { code: string }) {
-  const [state, setState] = useState<{ status: "claiming" | "ready" | "error"; message?: string }>({ status: "claiming" });
+  const [state, setState] = useState<{ status: "claiming" | "ready" | "error"; message?: string }>({
+    status: "claiming",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +36,11 @@ export function DisplayRoute({ code }: { code: string }) {
 
     const stripKey = () => {
       if (key && window.location.hash) {
-        window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+        window.history.replaceState(
+          window.history.state,
+          "",
+          window.location.pathname + window.location.search,
+        );
       }
     };
     claim.then(
@@ -68,7 +74,8 @@ export function DisplayRoute({ code }: { code: string }) {
       <main id="main-content" className="tv tv--notice">
         <Lockup className="tv-notice__lockup" />
         <h1>
-          Setting up the big screen<span className="loading-dots" />
+          Setting up the big screen
+          <span className="loading-dots" />
         </h1>
       </main>
     );

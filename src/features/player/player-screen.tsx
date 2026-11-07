@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { MAX_PLAYERS, type ClueView, type FinalView, type PlayerView, type PublicPlayer } from "@/features/engine/contract";
+import {
+  MAX_PLAYERS,
+  type ClueView,
+  type FinalView,
+  type PlayerView,
+  type PublicPlayer,
+} from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
 import { BoardGrid } from "@/features/board/board-grid";
 import { HotHam, Lockup } from "@/features/ui/brand";
@@ -40,7 +46,15 @@ export function PlayerScreen({
   );
 }
 
-function PlayerBody({ code, connection, onLeave }: { code: string; connection: RoomConnection<PlayerView>; onLeave?: () => void }) {
+function PlayerBody({
+  code,
+  connection,
+  onLeave,
+}: {
+  code: string;
+  connection: RoomConnection<PlayerView>;
+  onLeave?: () => void;
+}) {
   const { view, status, stale } = connection;
   const { run, pending } = useCommand(connection);
   const fresh = useFreshEvent(view);
@@ -54,7 +68,8 @@ function PlayerBody({ code, connection, onLeave }: { code: string; connection: R
       <main id="main-content" className="notice">
         <span className="stamp stamp--dashed">Room {code}</span>
         <h1>
-          Connecting<span className="loading-dots" />
+          Connecting
+          <span className="loading-dots" />
         </h1>
         <p className="muted">Hang tight. Your phone becomes a buzzer in a second.</p>
       </main>
@@ -84,7 +99,9 @@ function PlayerBody({ code, connection, onLeave }: { code: string; connection: R
         ) : null}
         <div className="pl-me__score">
           <span className="eyebrow">Score</span>
-          <strong className={`score ${view.me.score < 0 ? "score--neg" : ""}`}>{formatScore(view.me.score)}</strong>
+          <strong className={`score ${view.me.score < 0 ? "score--neg" : ""}`}>
+            {formatScore(view.me.score)}
+          </strong>
         </div>
       </section>
 
@@ -104,10 +121,17 @@ function PlayerBody({ code, connection, onLeave }: { code: string; connection: R
       </div>
 
       <main id="main-content" className="pl-main">
-        <PlayerPhase view={view} stale={stale} run={run} pending={pending} clockOffsetMs={connection.clockOffsetMs} />
+        <PlayerPhase
+          view={view}
+          stale={stale}
+          run={run}
+          pending={pending}
+          clockOffsetMs={connection.clockOffsetMs}
+        />
       </main>
 
-      {onLeave && (view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting") ? (
+      {onLeave &&
+      (view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting") ? (
         <footer className="pl-foot">
           <button type="button" className="btn btn--quiet btn--small" onClick={onLeave}>
             Leave room
@@ -124,9 +148,18 @@ function PlayerBody({ code, connection, onLeave }: { code: string; connection: R
 }
 
 /** A short "Correct!" / "Incorrect" flash for the player who was judged. Never blocks input. */
-function JudgedFlash({ view, fresh }: { view: PlayerView; fresh: ReturnType<typeof useFreshEvent> }) {
+function JudgedFlash({
+  view,
+  fresh,
+}: {
+  view: PlayerView;
+  fresh: ReturnType<typeof useFreshEvent>;
+}) {
   const event = fresh?.event;
-  const mine = event && (event.kind === "judged" || event.kind === "finalJudged") && event.playerId === view.me.id;
+  const mine =
+    event &&
+    (event.kind === "judged" || event.kind === "finalJudged") &&
+    event.playerId === view.me.id;
   const revision = mine ? fresh.revision : null;
   const correct = mine ? event.correct : null;
   useEffect(() => {
@@ -134,7 +167,11 @@ function JudgedFlash({ view, fresh }: { view: PlayerView; fresh: ReturnType<type
   }, [revision, correct]);
   if (!mine) return null;
   return (
-    <div key={fresh.revision} className={`pl-flash ${event.correct ? "pl-flash--good" : "pl-flash--bad"}`} aria-hidden="true">
+    <div
+      key={fresh.revision}
+      className={`pl-flash ${event.correct ? "pl-flash--good" : "pl-flash--bad"}`}
+      aria-hidden="true"
+    >
       <span>{event.correct ? "Correct!" : "Incorrect"}</span>
       <strong>{formatDelta(event.delta)}</strong>
     </div>
@@ -162,7 +199,9 @@ function PlayerPhase({
     case "roundIntro":
       return (
         <div className="pl-center stack">
-          <span className="stamp stamp--ink">{view.round ? `Round ${view.round.index + 1} of ${view.round.total}` : "New round"}</span>
+          <span className="stamp stamp--ink">
+            {view.round ? `Round ${view.round.index + 1} of ${view.round.total}` : "New round"}
+          </span>
           <h1 className="pl-big marker">{view.round?.title ?? "Next round"}</h1>
           <p className="pl-lede">
             {view.controllerId === view.me.id ? (
@@ -171,7 +210,8 @@ function PlayerPhase({
               </>
             ) : (
               <>
-                <strong className="name">{nameOf(view.players, view.controllerId)}</strong> picks first.
+                <strong className="name">{nameOf(view.players, view.controllerId)}</strong> picks
+                first.
               </>
             )}
           </p>
@@ -180,9 +220,27 @@ function PlayerPhase({
     case "board":
       return <PlayerBoard view={view} />;
     case "clue":
-      return view.clue ? <PlayerClue view={view} clue={view.clue} stale={stale} run={run} pending={pending} clockOffsetMs={clockOffsetMs} /> : null;
+      return view.clue ? (
+        <PlayerClue
+          view={view}
+          clue={view.clue}
+          stale={stale}
+          run={run}
+          pending={pending}
+          clockOffsetMs={clockOffsetMs}
+        />
+      ) : null;
     case "final":
-      return view.final ? <PlayerFinal view={view} final={view.final} stale={stale} run={run} pending={pending} clockOffsetMs={clockOffsetMs} /> : null;
+      return view.final ? (
+        <PlayerFinal
+          view={view}
+          final={view.final}
+          stale={stale}
+          run={run}
+          pending={pending}
+          clockOffsetMs={clockOffsetMs}
+        />
+      ) : null;
     case "results":
       return <PlayerResults view={view} />;
   }
@@ -208,7 +266,10 @@ function PlayerLobby({ view }: { view: PlayerView }) {
       <div className="stack stack--tight">
         <span className="stamp stamp--red">You&apos;re in</span>
         <h1 className="pl-big">Waiting for the host to start</h1>
-        <p className="muted">Keep this page open. Your phone is your buzzer, and the questions show up on the big screen.</p>
+        <p className="muted">
+          Keep this page open. Your phone is your buzzer, and the questions show up on the big
+          screen.
+        </p>
       </div>
       <section className="panel panel--flat" aria-labelledby="lobby-players">
         <h2 id="lobby-players" className="panel__title">
@@ -236,8 +297,8 @@ function WaitingForNextGame({ view }: { view: PlayerView }) {
         <span className="stamp stamp--dashed">On the bench</span>
         <h1 className="pl-big">You&apos;re in for the next game</h1>
         <p className="muted">
-          {over ? "This game just finished." : "A game is already running."} When the host chooses <strong>Play again</strong>, you&apos;ll join
-          automatically if a seat is free.
+          {over ? "This game just finished." : "A game is already running."} When the host chooses{" "}
+          <strong>Play again</strong>, you&apos;ll join automatically if a seat is free.
         </p>
       </div>
       <section className="panel panel--flat" aria-labelledby="bench-scores">
@@ -256,7 +317,9 @@ function Scoreboard({ players, meId }: { players: readonly PublicPlayer[]; meId?
       {players.map((player) => (
         <li key={player.id} className={player.id === meId ? "pl-list__me" : undefined}>
           <span className="name">{player.name}</span>
-          <span className={`score ${player.score < 0 ? "score--neg" : ""}`}>{formatScore(player.score)}</span>
+          <span className={`score ${player.score < 0 ? "score--neg" : ""}`}>
+            {formatScore(player.score)}
+          </span>
         </li>
       ))}
     </ol>
@@ -291,7 +354,17 @@ function PlayerBoard({ view }: { view: PlayerView }) {
   );
 }
 
-function ClueCard({ clue, title, valueLabel, children }: { clue: ClueView; title?: string; valueLabel?: string; children?: React.ReactNode }) {
+function ClueCard({
+  clue,
+  title,
+  valueLabel,
+  children,
+}: {
+  clue: ClueView;
+  title?: string;
+  valueLabel?: string;
+  children?: React.ReactNode;
+}) {
   const prompt = clue.prompt ?? "";
   return (
     <article className="pl-clue" aria-labelledby="pl-clue-cat">
@@ -300,10 +373,17 @@ function ClueCard({ clue, title, valueLabel, children }: { clue: ClueView; title
           {title ?? clue.categoryTitle}
         </h2>
         <span className="pl-clue__value num">
-          {valueLabel ?? (clue.kind === "wager" && clue.wager !== null ? `Wager ${formatScore(clue.wager)}` : formatScore(clue.value))}
+          {valueLabel ??
+            (clue.kind === "wager" && clue.wager !== null
+              ? `Wager ${formatScore(clue.wager)}`
+              : formatScore(clue.value))}
         </span>
       </header>
-      {prompt ? <p className={`pl-clue__prompt ${prompt.length > 160 ? "pl-clue__prompt--long" : ""}`}>{prompt}</p> : null}
+      {prompt ? (
+        <p className={`pl-clue__prompt ${prompt.length > 160 ? "pl-clue__prompt--long" : ""}`}>
+          {prompt}
+        </p>
+      ) : null}
       {children}
     </article>
   );
@@ -358,7 +438,8 @@ function PlayerClue({
           </section>
         ) : (
           <p className="pl-waiting">
-            <strong className="name">{nameOf(view.players, view.controllerId)}</strong> is placing a wager. Only they answer this one.
+            <strong className="name">{nameOf(view.players, view.controllerId)}</strong> is placing a
+            wager. Only they answer this one.
           </p>
         )}
       </div>
@@ -376,8 +457,12 @@ function PlayerClue({
         ) : null}
       </ClueCard>
 
-      {clue.stage === "answering" && view.timer ? <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} /> : null}
-      {clue.stage === "open" && view.timer ? <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} /> : null}
+      {clue.stage === "answering" && view.timer ? (
+        <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
+      ) : null}
+      {clue.stage === "open" && view.timer ? (
+        <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
+      ) : null}
 
       {answeringMe ? (
         <div className="pl-up" role="status">
@@ -386,15 +471,26 @@ function PlayerClue({
         </div>
       ) : clue.stage === "answering" ? (
         <p className="pl-waiting">
-          <strong className="name">{nameOf(view.players, clue.answeringPlayerId)}</strong> is answering.
+          <strong className="name">{nameOf(view.players, clue.answeringPlayerId)}</strong> is
+          answering.
         </p>
-      ) : clue.kind === "wager" && !lastAttempt && (clue.stage === "closed" || clue.stage === "revealed") ? (
+      ) : clue.kind === "wager" &&
+        !lastAttempt &&
+        (clue.stage === "closed" || clue.stage === "revealed") ? (
         <p className="pl-waiting">The host skipped this wager clue. No score change.</p>
       ) : clue.stage === "revealed" || (clue.stage === "closed" && lastAttempt) ? (
         lastAttempt ? (
           <p className={`pl-result pl-result--${lastAttempt.result}`}>
-            <span className="name">{lastAttempt.playerId === view.me.id ? "You" : nameOf(view.players, lastAttempt.playerId)}</span>
-            {lastAttempt.result === "correct" ? " got it" : lastAttempt.result === "incorrect" ? " missed it" : " answered"}
+            <span className="name">
+              {lastAttempt.playerId === view.me.id
+                ? "You"
+                : nameOf(view.players, lastAttempt.playerId)}
+            </span>
+            {lastAttempt.result === "correct"
+              ? " got it"
+              : lastAttempt.result === "incorrect"
+                ? " missed it"
+                : " answered"}
             {lastAttempt.delta !== null ? <strong> {formatDelta(lastAttempt.delta)}</strong> : null}
           </p>
         ) : (
@@ -402,7 +498,10 @@ function PlayerClue({
         )
       ) : null}
 
-      {clue.kind === "standard" && clue.stage !== "revealed" && !answeringMe && !(clue.stage === "closed" && lastAttempt?.result === "correct") ? (
+      {clue.kind === "standard" &&
+      clue.stage !== "revealed" &&
+      !answeringMe &&
+      !(clue.stage === "closed" && lastAttempt?.result === "correct") ? (
         <BuzzButton view={view} clue={clue} stale={stale} run={run} />
       ) : null}
     </div>
@@ -436,8 +535,19 @@ function PlayerFinal({
     return (
       <div className="stack">
         {header}
-        <p className="pl-waiting">You&apos;re sitting this one out. Only players with more than 0 points play the final round. Watch the big screen!</p>
-        {final.prompt ? <ClueCard clue={finalAsClue(final)} title="Final clue" valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""} /> : null}
+        <p className="pl-waiting">
+          You&apos;re sitting this one out. Only players with more than 0 points play the final
+          round. Watch the big screen!
+        </p>
+        {final.prompt ? (
+          <ClueCard
+            clue={finalAsClue(final)}
+            title="Final clue"
+            valueLabel={
+              view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""
+            }
+          />
+        ) : null}
       </div>
     );
   }
@@ -449,14 +559,16 @@ function PlayerFinal({
       <div className="stack">
         {header}
         <p className="muted">
-          You&apos;ll see the clue after wagers lock. {final.wagerSubmittedIds.length} of {plural(final.eligiblePlayerIds.length, "player")}{" "}
+          You&apos;ll see the clue after wagers lock. {final.wagerSubmittedIds.length} of{" "}
+          {plural(final.eligiblePlayerIds.length, "player")}{" "}
           {final.wagerSubmittedIds.length === 1 ? "has" : "have"} wagered.
         </p>
         {submitted !== null ? (
           <p className="final-status" role="status">
             <span className="stamp stamp--good stamp--flat">Locked in</span>
             <span>
-              Your wager: <strong className="num">{formatScore(submitted)}</strong>. You can change it until the host shows the clue.
+              Your wager: <strong className="num">{formatScore(submitted)}</strong>. You can change
+              it until the host shows the clue.
             </span>
           </p>
         ) : null}
@@ -485,7 +597,11 @@ function PlayerFinal({
     return (
       <div className="stack">
         {header}
-        <ClueCard clue={finalAsClue(final)} title="Final clue" valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""} />
+        <ClueCard
+          clue={finalAsClue(final)}
+          title="Final clue"
+          valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}
+        />
         {view.timer ? <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} /> : null}
         {view.can.finalAnswer ? (
           <FinalAnswerForm
@@ -504,7 +620,11 @@ function PlayerFinal({
   return (
     <div className="stack">
       {header}
-      <ClueCard clue={finalAsClue(final)} title="Final clue" valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}>
+      <ClueCard
+        clue={finalAsClue(final)}
+        title="Final clue"
+        valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}
+      >
         {final.answer ? (
           <div className="pl-answer">
             <span className="eyebrow">Answer</span>
@@ -523,10 +643,15 @@ function PlayerFinal({
         </h2>
         <ol className="pl-scores">
           {final.responses.map((response) => (
-            <li key={response.playerId} className={response.playerId === view.me.id ? "pl-list__me" : undefined}>
+            <li
+              key={response.playerId}
+              className={response.playerId === view.me.id ? "pl-list__me" : undefined}
+            >
               <span className="name">
                 {nameOf(view.players, response.playerId)}
-                {response.answer !== null ? <span className="pl-said">“{response.answer}”</span> : null}
+                {response.answer !== null ? (
+                  <span className="pl-said">“{response.answer}”</span>
+                ) : null}
               </span>
               <span>
                 {response.status === "hidden"
@@ -565,26 +690,47 @@ function PlayerResults({ view }: { view: PlayerView }) {
   const mine = results.standings.find((s) => s.playerId === view.me.id);
   const won = results.winnerIds.includes(view.me.id);
   const shared = won && results.winnerIds.length > 1;
-  const winners = results.standings.filter((s) => results.winnerIds.includes(s.playerId)).map((s) => s.name);
+  const winners = results.standings
+    .filter((s) => results.winnerIds.includes(s.playerId))
+    .map((s) => s.name);
   return (
     <div className="stack">
       <div className="stack stack--tight pl-center">
         <span className={`stamp ${won ? "stamp--red" : "stamp--ink"}`}>Game over</span>
-        <h1 className="pl-big">{won ? (shared ? "Shared win!" : "You won!") : mine ? `You placed ${ordinal(mine.rank)}` : "Thanks for playing"}</h1>
+        <h1 className="pl-big">
+          {won
+            ? shared
+              ? "Shared win!"
+              : "You won!"
+            : mine
+              ? `You placed ${ordinal(mine.rank)}`
+              : "Thanks for playing"}
+        </h1>
         <p className="pl-lede">
-          {won ? (shared ? `You share the top spot with ${listNames(winners.filter((n) => n !== view.me.name))}.` : "Top score. Take a bow.") : `${shared || winners.length > 1 ? "Winners" : "Winner"}: ${listNames(winners)}`}
+          {won
+            ? shared
+              ? `You share the top spot with ${listNames(winners.filter((n) => n !== view.me.name))}.`
+              : "Top score. Take a bow."
+            : `${shared || winners.length > 1 ? "Winners" : "Winner"}: ${listNames(winners)}`}
         </p>
       </div>
       <ol className="pl-scores pl-scores--results">
         {results.standings.map((standing) => (
-          <li key={standing.playerId} className={standing.playerId === view.me.id ? "pl-list__me" : undefined}>
+          <li
+            key={standing.playerId}
+            className={standing.playerId === view.me.id ? "pl-list__me" : undefined}
+          >
             <span className="pl-rank num">{ordinal(standing.rank)}</span>
             <span className="name">{standing.name}</span>
-            <span className={`score ${standing.score < 0 ? "score--neg" : ""}`}>{formatScore(standing.score)}</span>
+            <span className={`score ${standing.score < 0 ? "score--neg" : ""}`}>
+              {formatScore(standing.score)}
+            </span>
           </li>
         ))}
       </ol>
-      <p className="muted pl-center">The host can start another game from here. Stay on this page to play again.</p>
+      <p className="muted pl-center">
+        The host can start another game from here. Stay on this page to play again.
+      </p>
     </div>
   );
 }

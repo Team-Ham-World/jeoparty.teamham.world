@@ -18,11 +18,19 @@ export function ConnectionPill({ status }: { status: ConnectionStatus }) {
 }
 
 /** Shown while the view is stale: everything still renders, actions are off. */
-export function StaleBanner({ status, className = "" }: { status: ConnectionStatus; className?: string }) {
+export function StaleBanner({
+  status,
+  className = "",
+}: {
+  status: ConnectionStatus;
+  className?: string;
+}) {
   if (status === "live" || status === "closed") return null;
   return (
     <div className={`banner banner--warn ${className}`} role="status">
-      <span>{status === "connecting" ? "Connecting to the room…" : "Connection lost. Reconnecting…"}</span>
+      <span>
+        {status === "connecting" ? "Connecting to the room…" : "Connection lost. Reconnecting…"}
+      </span>
       <p>Buttons are off until we catch up with the game.</p>
     </div>
   );
@@ -35,7 +43,10 @@ export interface ClosedCopy {
   actionLabel: string;
 }
 
-export function closedCopy(reason: CloseReason | null, role: "host" | "player" | "display"): ClosedCopy {
+export function closedCopy(
+  reason: CloseReason | null,
+  role: "host" | "player" | "display",
+): ClosedCopy {
   switch (reason) {
     case "removed":
       return {
@@ -75,7 +86,10 @@ export function closedCopy(reason: CloseReason | null, role: "host" | "player" |
     case "roomClosed":
       return {
         title: "This room has closed",
-        body: role === "host" ? "Start a new game from home whenever you like." : "Thanks for playing! Ask the host for a new room code.",
+        body:
+          role === "host"
+            ? "Start a new game from home whenever you like."
+            : "Thanks for playing! Ask the host for a new room code.",
         action: "home",
         actionLabel: "Go home",
       };
@@ -89,7 +103,10 @@ export function closedCopy(reason: CloseReason | null, role: "host" | "player" |
     default:
       return {
         title: "Disconnected",
-        body: role === "display" ? "This display can't reach the room. Ask the host for a new display link." : "We can't reach this room right now.",
+        body:
+          role === "display"
+            ? "This display can't reach the room. Ask the host for a new display link."
+            : "We can't reach this room right now.",
         action: "reload",
         actionLabel: "Try again",
       };
@@ -120,11 +137,18 @@ export function ClosedNotice({
             {copy.actionLabel}
           </Link>
         ) : copy.action === "signIn" ? (
-          <a className="btn btn--primary" href={`/api/auth/login?return_to=${encodeURIComponent(returnTo)}`}>
+          <a
+            className="btn btn--primary"
+            href={`/api/auth/login?return_to=${encodeURIComponent(returnTo)}`}
+          >
             {copy.actionLabel}
           </a>
         ) : (
-          <button type="button" className="btn btn--primary" onClick={() => window.location.reload()}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => window.location.reload()}
+          >
             {copy.actionLabel}
           </button>
         )}

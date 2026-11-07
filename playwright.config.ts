@@ -26,7 +26,8 @@ const PORT = Number(process.env.E2E_PORT ?? 3501);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 function cachedChromium(): string | undefined {
-  const root = process.env.PLAYWRIGHT_BROWSERS_PATH || path.join(homedir(), ".cache", "ms-playwright");
+  const root =
+    process.env.PLAYWRIGHT_BROWSERS_PATH || path.join(homedir(), ".cache", "ms-playwright");
   if (!existsSync(root)) return undefined;
   const builds = readdirSync(root)
     .map((name) => /^(chromium_headless_shell|chromium)-(\d+)$/.exec(name))
@@ -38,7 +39,10 @@ function cachedChromium(): string | undefined {
     const candidates =
       kind === "chromium_headless_shell"
         ? readdirSync(base).map((sub) => path.join(base, sub, "chrome-headless-shell"))
-        : readdirSync(base).flatMap((sub) => [path.join(base, sub, "chrome"), path.join(base, sub, "Chromium.app", "Contents", "MacOS", "Chromium")]);
+        : readdirSync(base).flatMap((sub) => [
+            path.join(base, sub, "chrome"),
+            path.join(base, sub, "Chromium.app", "Contents", "MacOS", "Chromium"),
+          ]);
     const found = candidates.find((file) => existsSync(file));
     if (found) return found;
   }
@@ -64,7 +68,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   timeout: 180_000,
   expect: { timeout: 15_000 },
-  reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "test-results/e2e-report" }]] : [["list"]],
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never", outputFolder: "test-results/e2e-report" }]]
+    : [["list"]],
   outputDir: "test-results/e2e",
   use: {
     baseURL: BASE_URL,

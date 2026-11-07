@@ -1,11 +1,6 @@
 import crypto from "node:crypto";
 import type { HamSettings } from "../config.js";
-import {
-  pkceChallenge,
-  randomToken,
-  sha256Hex,
-  timingSafeEqualText,
-} from "../crypto.js";
+import { pkceChallenge, randomToken, sha256Hex, timingSafeEqualText } from "../crypto.js";
 import type { SqlDatabase } from "../storage.js";
 
 /**
@@ -56,13 +51,10 @@ export function createHamFixture(
         "cache-control": "no-store",
       },
     });
-  const oauthError = (error: string, status = 400): Response =>
-    json({ error }, status);
+  const oauthError = (error: string, status = 400): Response => json({ error }, status);
 
   function uniqueParams(params: URLSearchParams): boolean {
-    return [...new Set(params.keys())].every(
-      (key) => params.getAll(key).length === 1,
-    );
+    return [...new Set(params.keys())].every((key) => params.getAll(key).length === 1);
   }
 
   function validAuthorizeParams(p: URLSearchParams): boolean {
@@ -96,16 +88,10 @@ export function createHamFixture(
 
   function authorizePage(p: URLSearchParams): Response {
     const hidden = [...p.entries()]
-      .map(
-        ([k, v]) =>
-          `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`,
-      )
+      .map(([k, v]) => `<input type="hidden" name="${escapeHtml(k)}" value="${escapeHtml(v)}">`)
       .join("");
     const presets = ["Alice", "Bea", "Carlo", "Dani"]
-      .map(
-        (n) =>
-          `<button name="username" value="${n.toLowerCase()}" type="submit">${n}</button>`,
-      )
+      .map((n) => `<button name="username" value="${n.toLowerCase()}" type="submit">${n}</button>`)
       .join("");
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Development sign-in fixture</title>
@@ -176,12 +162,10 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
       "code_challenge_method",
     ]) {
       const values = form.getAll(key);
-      if (values.length !== 1)
-        return new Response("Invalid request", { status: 400 });
+      if (values.length !== 1) return new Response("Invalid request", { status: 400 });
       authz.set(key, values[0]!);
     }
-    if (!validAuthorizeParams(authz))
-      return new Response("Invalid request", { status: 400 });
+    if (!validAuthorizeParams(authz)) return new Response("Invalid request", { status: 400 });
     const target = new URL(settings.redirectUri);
     target.searchParams.set("state", authz.get("state")!);
     target.searchParams.set("iss", settings.issuer);
@@ -189,9 +173,7 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
       target.searchParams.set("error", "access_denied");
       return redirect(target.toString());
     }
-    const username = (form.get("username") || form.get("custom") || "")
-      .trim()
-      .toLowerCase();
+    const username = (form.get("username") || form.get("custom") || "").trim().toLowerCase();
     if (!/^[a-z0-9_.-]{1,32}$/.test(username))
       return new Response("Choose a test username", { status: 400 });
     const sub = subjectFor(username, form.get("hide_username") === "1");
@@ -207,18 +189,11 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
     return redirect(target.toString());
   }
 
-  async function backendForm(
-    request: Request,
-  ): Promise<URLSearchParams | Response> {
+  async function backendForm(request: Request): Promise<URLSearchParams | Response> {
     if (control.outage) return oauthError("temporarily_unavailable", 503);
     const auth = request.headers.get("authorization");
-    if (!auth || !timingSafeEqualText(auth, basic))
-      return oauthError("invalid_client", 401);
-    if (
-      !/^application\/x-www-form-urlencoded/i.test(
-        request.headers.get("content-type") ?? "",
-      )
-    ) {
+    if (!auth || !timingSafeEqualText(auth, basic)) return oauthError("invalid_client", 401);
+    if (!/^application\/x-www-form-urlencoded/i.test(request.headers.get("content-type") ?? "")) {
       return oauthError("invalid_request", 415);
     }
     const params = new URLSearchParams(await request.text());
@@ -231,8 +206,7 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
     if (params instanceof Response) return params;
     if (params.get("grant_type") !== "authorization_code")
       return oauthError("unsupported_grant_type");
-    if (params.get("redirect_uri") !== settings.redirectUri)
-      return oauthError("invalid_grant");
+    if (params.get("redirect_uri") !== settings.redirectUri) return oauthError("invalid_grant");
     const code = params.get("code") ?? "";
     const verifier = params.get("code_verifier") ?? "";
     const codeHash = sha256Hex(code);
@@ -257,11 +231,7 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
         );
       return oauthError("invalid_grant");
     }
-    db.run(
-      "UPDATE hamfx_codes SET consumed_at = ? WHERE code_hash = ?",
-      now(),
-      codeHash,
-    );
+    db.run("UPDATE hamfx_codes SET consumed_at = ? WHERE code_hash = ?", now(), codeHash);
     if (
       row.expires_at <= now() ||
       !PARAM.test(verifier) ||
@@ -283,11 +253,7 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
       row.sub,
       now() + control.tokenTtlMs,
     );
-    db.run(
-      "UPDATE hamfx_codes SET token_hash = ? WHERE code_hash = ?",
-      tokenHash,
-      codeHash,
-    );
+    db.run("UPDATE hamfx_codes SET token_hash = ? WHERE code_hash = ?", tokenHash, codeHash);
     return json({
       access_token: accessToken,
       token_type: "Bearer",
@@ -312,8 +278,7 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
        FROM hamfx_tokens t JOIN hamfx_accounts a ON a.sub = t.sub WHERE t.token_hash = ?`,
       sha256Hex(params.get("token") ?? ""),
     );
-    if (!row || row.revoked_at !== null || row.expires_at <= now())
-      return json({ active: false });
+    if (!row || row.revoked_at !== null || row.expires_at <= now()) return json({ active: false });
     return json({
       active: true,
       sub: row.sub,
@@ -357,14 +322,11 @@ button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible
           return new Response("Invalid authorization request", { status: 400 });
         return authorizePage(url.searchParams);
       }
-      if (request.method === "POST" && path === "/authorize/decide")
-        return decide(request);
-      if (request.method === "POST" && path === "/api/auth/game/token")
-        return token(request);
+      if (request.method === "POST" && path === "/authorize/decide") return decide(request);
+      if (request.method === "POST" && path === "/api/auth/game/token") return token(request);
       if (request.method === "POST" && path === "/api/auth/game/introspect")
         return introspect(request);
-      if (request.method === "POST" && path === "/api/auth/game/revoke")
-        return revoke(request);
+      if (request.method === "POST" && path === "/api/auth/game/revoke") return revoke(request);
       if (request.method === "POST" && path === "/control") {
         const body = (await request.json().catch(() => ({}))) as Partial<{
           outage: boolean;

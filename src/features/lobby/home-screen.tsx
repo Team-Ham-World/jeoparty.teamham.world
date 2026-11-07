@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
-import { ROOM_CODE_ALPHABET, ROOM_CODE_PATTERN, type PackSummary, type SessionInfo } from "@/features/network/protocol";
+import {
+  ROOM_CODE_ALPHABET,
+  ROOM_CODE_PATTERN,
+  type PackSummary,
+  type SessionInfo,
+} from "@/features/network/protocol";
 import { loginUrl } from "@/features/network/client/api";
 import { PageHeader } from "@/features/ui/page-chrome";
 
@@ -26,7 +31,14 @@ export interface HomeScreenProps {
   onSignOut: () => void;
 }
 
-export function HomeScreen({ session, packs, packsError, onCreateGame, onJoin, onSignOut }: HomeScreenProps) {
+export function HomeScreen({
+  session,
+  packs,
+  packsError,
+  onCreateGame,
+  onJoin,
+  onSignOut,
+}: HomeScreenProps) {
   return (
     <>
       <PageHeader session={session} onSignOut={onSignOut} />
@@ -39,7 +51,8 @@ export function HomeScreen({ session, packs, packsError, onCreateGame, onJoin, o
             <span className="marker">Beat your friends</span> to the buzzer.
           </h1>
           <p className="home-hero__lede">
-            One of you hosts from a laptop, the board goes up on the TV, and everyone else buzzes in from their phone.
+            One of you hosts from a laptop, the board goes up on the TV, and everyone else buzzes in
+            from their phone.
           </p>
         </section>
 
@@ -51,7 +64,10 @@ export function HomeScreen({ session, packs, packsError, onCreateGame, onJoin, o
         ) : (
           <section className="panel taped home-signin" aria-labelledby="signin-title">
             <h2 id="signin-title">Sign in to host or play</h2>
-            <p className="muted">HAM Quiz is for HAM friends. Sign in with your HAM account and you&apos;ll come right back here.</p>
+            <p className="muted">
+              HAM Quiz is for HAM friends. Sign in with your HAM account and you&apos;ll come right
+              back here.
+            </p>
             <div className="row">
               <a className="btn btn--primary btn--big" href={loginUrl("/")}>
                 Sign in with HAM
@@ -66,13 +82,16 @@ export function HomeScreen({ session, packs, packsError, onCreateGame, onJoin, o
           </h2>
           <ol className="home-steps">
             <li>
-              <strong>The host</strong> creates a game, picks a question pack and puts the board on a TV with the display link.
+              <strong>The host</strong> creates a game, picks a question pack and puts the board on
+              a TV with the display link.
             </li>
             <li>
-              <strong>Players (2–6)</strong> join with the 5-letter room code and use their phone as a buzzer.
+              <strong>Players (2–6)</strong> join with the 5-letter room code and use their phone as
+              a buzzer.
             </li>
             <li>
-              <strong>The host</strong> reads each clue, opens the buzzers and judges answers. Highest score wins.
+              <strong>The host</strong> reads each clue, opens the buzzers and judges answers.
+              Highest score wins.
             </li>
           </ol>
         </section>
@@ -81,7 +100,15 @@ export function HomeScreen({ session, packs, packsError, onCreateGame, onJoin, o
   );
 }
 
-function HostCard({ packs, packsError, onCreateGame }: { packs: PackSummary[] | null; packsError: string | null; onCreateGame: (packId: string | undefined) => Promise<void> }) {
+function HostCard({
+  packs,
+  packsError,
+  onCreateGame,
+}: {
+  packs: PackSummary[] | null;
+  packsError: string | null;
+  onCreateGame: (packId: string | undefined) => Promise<void>;
+}) {
   const id = useId();
   const [packId, setPackId] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -109,12 +136,19 @@ function HostCard({ packs, packsError, onCreateGame }: { packs: PackSummary[] | 
           <label className="field__label" htmlFor={`${id}-pack`}>
             Question pack
           </label>
-          <select id={`${id}-pack`} className="input" value={chosen} onChange={(event) => setPackId(event.target.value)} disabled={!packs || packs.length === 0}>
+          <select
+            id={`${id}-pack`}
+            className="input"
+            value={chosen}
+            onChange={(event) => setPackId(event.target.value)}
+            disabled={!packs || packs.length === 0}
+          >
             {packs === null ? <option value="">Loading packs…</option> : null}
             {packs?.map((pack) => (
               <option key={pack.id} value={pack.id}>
                 {pack.title}
-                {pack.source === "mine" ? " (mine)" : ""} · {pack.categories}×{pack.cluesPerCategory}
+                {pack.source === "mine" ? " (mine)" : ""} · {pack.categories}×
+                {pack.cluesPerCategory}
               </option>
             ))}
           </select>
@@ -127,7 +161,12 @@ function HostCard({ packs, packsError, onCreateGame }: { packs: PackSummary[] | 
           </p>
         ) : null}
         <div className="row">
-          <button type="submit" className="btn btn--primary btn--big" disabled={busy} aria-busy={busy || undefined}>
+          <button
+            type="submit"
+            className="btn btn--primary btn--big"
+            disabled={busy}
+            aria-busy={busy || undefined}
+          >
             {busy ? "Creating…" : "Create game"}
           </button>
           <Link className="btn btn--quiet" href="/packs">

@@ -48,7 +48,8 @@
   --stage-bad: #ff9a8a;
 
   /* Type */
-  --font-display: "Bricolage Grotesque Variable", "Bricolage Fallback", system-ui, "Arial Black", sans-serif;
+  --font-display:
+    "Bricolage Grotesque Variable", "Bricolage Fallback", system-ui, "Arial Black", sans-serif;
   --font-body: "Atkinson Hyperlegible", "Atkinson Fallback", Verdana, system-ui, sans-serif;
   --fs-xs: 0.8125rem;
   --fs-sm: 0.875rem;

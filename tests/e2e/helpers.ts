@@ -2,7 +2,14 @@
  * Shared steps for the HAM Quiz end-to-end tests. Every "person" is a
  * separate browser context (own cookies), like a separate device.
  */
-import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 
 export const PHONE = { width: 390, height: 844 };
 export const SMALL_PHONE = { width: 360, height: 740 };
@@ -22,8 +29,16 @@ function baseURL(): string {
 }
 
 /** A new device. Console errors from the page are collected for assertions. */
-export async function device(browser: Browser, name: string, viewport = PHONE): Promise<Person & { errors: string[] }> {
-  const context = await browser.newContext({ baseURL: baseURL(), viewport, reducedMotion: "reduce" });
+export async function device(
+  browser: Browser,
+  name: string,
+  viewport = PHONE,
+): Promise<Person & { errors: string[] }> {
+  const context = await browser.newContext({
+    baseURL: baseURL(),
+    viewport,
+    reducedMotion: "reduce",
+  });
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(`${name}: ${error.message}`));
@@ -47,7 +62,9 @@ export async function createGame(host: Page, username: string, packTitle: string
   await signIn(host, username, "/");
   const select = host.getByLabel("Question pack");
   await expect(select.locator("option", { hasText: packTitle }).first()).toBeAttached();
-  const label = (await select.locator("option").allInnerTexts()).find((text) => text.startsWith(packTitle));
+  const label = (await select.locator("option").allInnerTexts()).find((text) =>
+    text.startsWith(packTitle),
+  );
   if (!label) throw new Error(`No pack starting with ${packTitle}`);
   await select.selectOption({ label });
   await host.getByRole("button", { name: "Create game" }).click();
@@ -73,23 +90,44 @@ export async function openDisplay(tv: Page, link: string): Promise<void> {
 }
 
 /** A player signs in from the room link and joins. */
-export async function joinAsPlayer(player: Person, code: string, { nextGame = false } = {}): Promise<void> {
+export async function joinAsPlayer(
+  player: Person,
+  code: string,
+  { nextGame = false } = {},
+): Promise<void> {
   await signIn(player.page, player.name, `/r/${code}`);
-  await player.page.getByRole("button", { name: nextGame ? "Join the next game" : "Join game" }).click();
-  await expect(player.page.getByRole("heading", { name: nextGame ? "You're in for the next game" : "Waiting for the host to start" })).toBeVisible();
+  await player.page
+    .getByRole("button", { name: nextGame ? "Join the next game" : "Join game" })
+    .click();
+  await expect(
+    player.page.getByRole("heading", {
+      name: nextGame ? "You're in for the next game" : "Waiting for the host to start",
+    }),
+  ).toBeVisible();
 }
 
 /** Lobby settings form helpers. */
-export async function saveSettings(host: Page, changes: (host: Page) => Promise<void>): Promise<void> {
+export async function saveSettings(
+  host: Page,
+  changes: (host: Page) => Promise<void>,
+): Promise<void> {
   await changes(host);
   await host.getByRole("button", { name: "Save settings" }).click();
-  await expect(host.getByRole("form", { name: "Game settings" }).getByText("Saved", { exact: true })).toBeVisible();
+  await expect(
+    host.getByRole("form", { name: "Game settings" }).getByText("Saved", { exact: true }),
+  ).toBeVisible();
 }
 
-export async function setTimers(host: Page, seconds: { buzz?: number; answer?: number; final?: number }): Promise<void> {
-  if (seconds.buzz) await host.getByLabel("Buzz window (s)", { exact: true }).fill(String(seconds.buzz));
-  if (seconds.answer) await host.getByLabel("Answer time (s)", { exact: true }).fill(String(seconds.answer));
-  if (seconds.final) await host.getByLabel("Final answer time (s)", { exact: true }).fill(String(seconds.final));
+export async function setTimers(
+  host: Page,
+  seconds: { buzz?: number; answer?: number; final?: number },
+): Promise<void> {
+  if (seconds.buzz)
+    await host.getByLabel("Buzz window (s)", { exact: true }).fill(String(seconds.buzz));
+  if (seconds.answer)
+    await host.getByLabel("Answer time (s)", { exact: true }).fill(String(seconds.answer));
+  if (seconds.final)
+    await host.getByLabel("Final answer time (s)", { exact: true }).fill(String(seconds.final));
 }
 
 /** Available host board cells, optionally only wager or only standard ones. */

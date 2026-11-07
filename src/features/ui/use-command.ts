@@ -33,7 +33,8 @@ export function useCommand<V>(connection: RoomConnection<V>) {
       setPending(cmd.type);
       try {
         const outcome = await connection.send(cmd);
-        if (!outcome.ok && !options.quiet?.includes(outcome.error)) toast(FALLBACK[outcome.error] ?? outcome.message);
+        if (!outcome.ok && !options.quiet?.includes(outcome.error))
+          toast(FALLBACK[outcome.error] ?? outcome.message);
         return outcome;
       } catch {
         toast("That didn't send. Try again.");

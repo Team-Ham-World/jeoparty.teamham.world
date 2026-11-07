@@ -48,18 +48,30 @@ const log = (label: string) => (cmd: unknown) => console.info(`[preview ${label}
 
 type ConnOpts = { status?: ConnectionStatus; closeReason?: CloseReason; reject?: string };
 
-function player(id: string, title: string, spec: Spec, me: PlayerId, extra: Parameters<typeof playerOf>[2] = {}, conn: ConnOpts = {}): PreviewEntry {
+function player(
+  id: string,
+  title: string,
+  spec: Spec,
+  me: PlayerId,
+  extra: Parameters<typeof playerOf>[2] = {},
+  conn: ConnOpts = {},
+): PreviewEntry {
   return {
     id: `player-${id}`,
     group: "Player",
     title,
     viewport: "phone",
     render: () => {
-      const view: PlayerView | null = conn.status === "connecting" ? null : playerOf(spec, me, extra);
+      const view: PlayerView | null =
+        conn.status === "connecting" ? null : playerOf(spec, me, extra);
       return (
         <PlayerScreen
           code={ROOM}
-          connection={mockConnection(view, { ...conn, clockOffsetMs: CLOCK_OFFSET, onSend: log("player") })}
+          connection={mockConnection(view, {
+            ...conn,
+            clockOffsetMs: CLOCK_OFFSET,
+            onSend: log("player"),
+          })}
           onLeave={() => console.info("[preview] leave")}
         />
       );
@@ -76,10 +88,16 @@ function host(id: string, title: string, spec: SpecId, conn: ConnOpts = {}): Pre
     render: () => (
       <HostScreen
         code={ROOM}
-        connection={mockConnection(conn.status === "connecting" ? null : hostFixture(spec), { ...conn, clockOffsetMs: CLOCK_OFFSET, onSend: log("host") })}
+        connection={mockConnection(conn.status === "connecting" ? null : hostFixture(spec), {
+          ...conn,
+          clockOffsetMs: CLOCK_OFFSET,
+          onSend: log("host"),
+        })}
         packs={PACKS}
         joinUrl={JOIN_URL}
-        onCreateDisplayLink={async () => `https://quiz.teamham.world/display/${ROOM}#key=preview-only-key`}
+        onCreateDisplayLink={async () =>
+          `https://quiz.teamham.world/display/${ROOM}#key=preview-only-key`
+        }
       />
     ),
   };
@@ -93,7 +111,10 @@ function display(id: string, title: string, spec: SpecId, conn: ConnOpts = {}): 
     viewport: "tv",
     render: () => (
       <DisplayScreen
-        connection={mockConnection(conn.status === "connecting" ? null : displayFixture(spec), { ...conn, clockOffsetMs: CLOCK_OFFSET })}
+        connection={mockConnection(conn.status === "connecting" ? null : displayFixture(spec), {
+          ...conn,
+          clockOffsetMs: CLOCK_OFFSET,
+        })}
         joinUrl={JOIN_URL}
       />
     ),
@@ -117,11 +138,35 @@ function samplePack(): QuestionPack {
             id: newId(),
             tier: tier as 1 | 2 | 3,
             type: "text" as const,
-            prompt: c === 0 ? ["This 1992 browser draws pages in your terminal.", "The first emoticon was posted on this university's message board.", "RFC 2324 defines this protocol for coffee pots."][k] : ["Baking soda is this chemical compound.", "This reaction browns your toast.", "Cream of tartar is a byproduct of making this drink."][k],
-            answer: c === 0 ? ["What is Lynx?", "What is Carnegie Mellon?", "What is HTCPCP?"][k] : ["What is sodium bicarbonate?", "What is the Maillard reaction?", "What is wine?"][k],
+            prompt:
+              c === 0
+                ? [
+                    "This 1992 browser draws pages in your terminal.",
+                    "The first emoticon was posted on this university's message board.",
+                    "RFC 2324 defines this protocol for coffee pots.",
+                  ][k]
+                : [
+                    "Baking soda is this chemical compound.",
+                    "This reaction browns your toast.",
+                    "Cream of tartar is a byproduct of making this drink.",
+                  ][k],
+            answer:
+              c === 0
+                ? ["What is Lynx?", "What is Carnegie Mellon?", "What is HTCPCP?"][k]
+                : [
+                    "What is sodium bicarbonate?",
+                    "What is the Maillard reaction?",
+                    "What is wine?",
+                  ][k],
           })),
         } as unknown as Parameters<typeof withFinalClue>[0],
-        { id: newId(), tier: "final", type: "text", prompt: c === 0 ? "This chess computer beat the world champion in 1997." : "", answer: c === 0 ? "What is Deep Blue?" : "" },
+        {
+          id: newId(),
+          tier: "final",
+          type: "text",
+          prompt: c === 0 ? "This chess computer beat the world champion in 1997." : "",
+          answer: c === 0 ? "What is Deep Blue?" : "",
+        },
       ),
     ),
     dimensions: { categories: 2, cluesPerCategory: 3 },
@@ -137,14 +182,30 @@ export const PREVIEWS: PreviewEntry[] = [
     group: "Home",
     title: "Signed out (dev fixture)",
     viewport: "laptop",
-    render: () => <HomeScreen session={SESSION_SIGNED_OUT} packs={null} onCreateGame={async () => {}} onJoin={() => {}} onSignOut={() => {}} />,
+    render: () => (
+      <HomeScreen
+        session={SESSION_SIGNED_OUT}
+        packs={null}
+        onCreateGame={async () => {}}
+        onJoin={() => {}}
+        onSignOut={() => {}}
+      />
+    ),
   },
   {
     id: "home-signed-in",
     group: "Home",
     title: "Signed in",
     viewport: "laptop",
-    render: () => <HomeScreen session={SESSION_SIGNED_IN} packs={PACKS} onCreateGame={async () => {}} onJoin={() => {}} onSignOut={() => {}} />,
+    render: () => (
+      <HomeScreen
+        session={SESSION_SIGNED_IN}
+        packs={PACKS}
+        onCreateGame={async () => {}}
+        onJoin={() => {}}
+        onSignOut={() => {}}
+      />
+    ),
   },
 
   // -------------------------------------------------------------- player
@@ -177,29 +238,88 @@ export const PREVIEWS: PreviewEntry[] = [
       </Sequenced>
     ),
   },
-  player("wager-you", "Wager clue: your wager", SPECS.wager, "p-ivvy", { can: { wager: { min: 5, max: 1200 } } }),
+  player("wager-you", "Wager clue: your wager", SPECS.wager, "p-ivvy", {
+    can: { wager: { min: 5, max: 1200 } },
+  }),
   player("wager-other", "Wager clue: watching", SPECS.wager, ME),
   player("wager-answering", "Wager clue: you're up", SPECS.wagerAnswering, "p-ivvy"),
   player("long", "Long name + 300-character prompt", SPECS.longClue, "p-max"),
-  player("final-wager", "Final: wager", SPECS.finalWagers, "p-ivvy", { can: { finalWager: { min: 0, max: 1200 } } }),
-  player("final-wager-submitted", "Final: wager locked in", SPECS.finalWagers, "p-ivvy", { can: { finalWager: { min: 0, max: 1200 } }, myFinal: { wager: 500, answer: null } }),
+  player("final-wager", "Final: wager", SPECS.finalWagers, "p-ivvy", {
+    can: { finalWager: { min: 0, max: 1200 } },
+  }),
+  player("final-wager-submitted", "Final: wager locked in", SPECS.finalWagers, "p-ivvy", {
+    can: { finalWager: { min: 0, max: 1200 } },
+    myFinal: { wager: 500, answer: null },
+  }),
   player("final-ineligible", "Final: sitting out", SPECS.finalAnswering, "p-scarlet"),
-  player("final-answer", "Final: type your answer", SPECS.finalAnswering, "p-medchu", { can: { finalAnswer: true }, myFinal: { wager: 800, answer: null } }),
-  player("final-answer-submitted", "Final: answer submitted", SPECS.finalAnswering, "p-ivvy", { can: { finalAnswer: true }, myFinal: { wager: 1200, answer: "What is HAL 9000?" } }),
-  player("final-judging", "Final: judging", SPECS.finalJudging, "p-ivvy", { myFinal: { wager: 1200, answer: "What is HAL 9000?" } }),
-  player("final-done", "Final: done", SPECS.finalDone, ME, { myFinal: { wager: 800, answer: "Deep Blue" } }),
+  player("final-answer", "Final: type your answer", SPECS.finalAnswering, "p-medchu", {
+    can: { finalAnswer: true },
+    myFinal: { wager: 800, answer: null },
+  }),
+  player("final-answer-submitted", "Final: answer submitted", SPECS.finalAnswering, "p-ivvy", {
+    can: { finalAnswer: true },
+    myFinal: { wager: 1200, answer: "What is HAL 9000?" },
+  }),
+  player("final-judging", "Final: judging", SPECS.finalJudging, "p-ivvy", {
+    myFinal: { wager: 1200, answer: "What is HAL 9000?" },
+  }),
+  player("final-done", "Final: done", SPECS.finalDone, ME, {
+    myFinal: { wager: 800, answer: "Deep Blue" },
+  }),
   player("results-win", "Results: shared win", SPECS.results, ME),
   player("results-lose", "Results: 3rd place", SPECS.results, "p-ivvy"),
   player("paused", "Paused by host", SPECS.paused, ME),
   player("host-offline", "Host offline", SPECS.hostOffline, ME),
   player("restored", "Restored after restart", SPECS.restored, ME),
-  player("stale", "Reconnecting (actions off)", SPECS.open, ME, { can: { buzz: true } }, { status: "reconnecting" }),
-  player("rejected", "Rejected command toast", SPECS.open, ME, { can: { buzz: true } }, { reject: "Buzzers are closed for this clue." }),
+  player(
+    "stale",
+    "Reconnecting (actions off)",
+    SPECS.open,
+    ME,
+    { can: { buzz: true } },
+    { status: "reconnecting" },
+  ),
+  player(
+    "rejected",
+    "Rejected command toast",
+    SPECS.open,
+    ME,
+    { can: { buzz: true } },
+    { reject: "Buzzers are closed for this clue." },
+  ),
   player("connecting", "Connecting", SPECS.lobby, ME, {}, { status: "connecting" }),
-  player("closed-removed", "Closed: removed", SPECS.lobby, ME, {}, { status: "closed", closeReason: "removed" }),
-  player("closed-elsewhere", "Closed: signed in elsewhere", SPECS.lobby, ME, {}, { status: "closed", closeReason: "signedInElsewhere" }),
-  player("closed-auth", "Closed: sign-in expired", SPECS.lobby, ME, {}, { status: "closed", closeReason: "authExpired" }),
-  player("closed-room", "Closed: room closed", SPECS.lobby, ME, {}, { status: "closed", closeReason: "roomClosed" }),
+  player(
+    "closed-removed",
+    "Closed: removed",
+    SPECS.lobby,
+    ME,
+    {},
+    { status: "closed", closeReason: "removed" },
+  ),
+  player(
+    "closed-elsewhere",
+    "Closed: signed in elsewhere",
+    SPECS.lobby,
+    ME,
+    {},
+    { status: "closed", closeReason: "signedInElsewhere" },
+  ),
+  player(
+    "closed-auth",
+    "Closed: sign-in expired",
+    SPECS.lobby,
+    ME,
+    {},
+    { status: "closed", closeReason: "authExpired" },
+  ),
+  player(
+    "closed-room",
+    "Closed: room closed",
+    SPECS.lobby,
+    ME,
+    {},
+    { status: "closed", closeReason: "roomClosed" },
+  ),
 
   // ---------------------------------------------------------------- host
   host("lobby", "Lobby: ready to start", "lobby"),
@@ -265,7 +385,10 @@ export const PREVIEWS: PreviewEntry[] = [
   display("restored", "Restored after restart", "restored"),
   display("stale", "Reconnecting", "board", { status: "reconnecting" }),
   display("connecting", "Connecting", "lobby", { status: "connecting" }),
-  display("closed", "Closed: display link replaced", "lobby", { status: "closed", closeReason: "displayRevoked" }),
+  display("closed", "Closed: display link replaced", "lobby", {
+    status: "closed",
+    closeReason: "displayRevoked",
+  }),
 
   // --------------------------------------------------------------- packs
   {
@@ -291,7 +414,12 @@ export const PREVIEWS: PreviewEntry[] = [
       <ToastProvider>
         <PageHeader session={SESSION_SIGNED_IN} onSignOut={() => {}} />
         <main id="main-content" className="page">
-          <PackEditor initial={samplePack()} isNew={false} onSave={async () => {}} onNavigate={() => {}} />
+          <PackEditor
+            initial={samplePack()}
+            isNew={false}
+            onSave={async () => {}}
+            onNavigate={() => {}}
+          />
         </main>
       </ToastProvider>
     ),

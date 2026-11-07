@@ -1,8 +1,21 @@
-import type { QuestionPack } from '@/features/content';
-import type { AttemptView, BoardView, HostBoardCellView, ClueView, FinalResponseView, GameEvent, GameSettings, PauseView, Phase, PublicPlayer, ScoreLogEntry, TimerView } from './contract';
+import type { QuestionPack } from "@/features/content";
+import type {
+  AttemptView,
+  BoardView,
+  HostBoardCellView,
+  ClueView,
+  FinalResponseView,
+  GameEvent,
+  GameSettings,
+  PauseView,
+  Phase,
+  PublicPlayer,
+  ScoreLogEntry,
+  TimerView,
+} from "./contract";
 
 export interface FinalState {
-  stage: 'wagers' | 'answering' | 'judging' | 'done';
+  stage: "wagers" | "answering" | "judging" | "done";
   categoryTitle: string;
   prompt: string;
   answer: string;
@@ -15,7 +28,7 @@ export interface FinalState {
 
 /** Internal, persisted data. Only role-specific views may leave the server. */
 export interface GameState {
-  readonly schema: 'ham-quiz/game@1';
+  readonly schema: "ham-quiz/game@1";
   readonly revision: number;
   readonly roomCode: string;
   rng: number;
@@ -31,7 +44,14 @@ export interface GameState {
   controllerId: string | null;
   roundIndex: number;
   boards: BoardView<HostBoardCellView>[];
-  clue: (Omit<ClueView, 'prompt' | 'answer'> & { prompt: string; answer: string; attempts: AttemptView[]; ended: boolean }) | null;
+  clue:
+    | (Omit<ClueView, "prompt" | "answer"> & {
+        prompt: string;
+        answer: string;
+        attempts: AttemptView[];
+        ended: boolean;
+      })
+    | null;
   final: FinalState | null;
   scoreLog: ScoreLogEntry[];
   lastEvent: { revision: number; event: GameEvent } | null;

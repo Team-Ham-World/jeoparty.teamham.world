@@ -4,7 +4,10 @@ import { parseQuestionPackJson, validateQuestionPack } from "./index";
 import type { QuestionPack, ValidationError } from "./types";
 
 // Node-only test fixture: never import the answer-bearing pack in a UI module.
-const sampleJson = readFileSync(new URL("./samples/ham-starter-pack.json", import.meta.url), "utf8");
+const sampleJson = readFileSync(
+  new URL("./samples/ham-starter-pack.json", import.meta.url),
+  "utf8",
+);
 
 function sample(): QuestionPack {
   const result = parseQuestionPackJson(sampleJson);
@@ -57,7 +60,10 @@ describe("validateQuestionPack", () => {
   it.each(["id", "title"] as const)("rejects blank root %s", (field) => {
     const pack = sample();
     pack[field] = " \t ";
-    expect(errorsFor(pack)).toContainEqual({ path: field, message: "Expected a non-empty string." });
+    expect(errorsFor(pack)).toContainEqual({
+      path: field,
+      message: "Expected a non-empty string.",
+    });
   });
 
   it.each(["prompt", "answer"] as const)("rejects empty, blank, or missing %s", (field) => {
@@ -120,10 +126,15 @@ describe("validateQuestionPack", () => {
     const pack = sample();
     pack.dimensions.categories = 11;
     pack.categories[0].clues.pop();
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "dimensions.categories", message: "Declared 11 categories, but found 12." },
-      { path: "categories[0].clues", message: "Expected 5 clues from dimensions.cluesPerCategory, but found 4." },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "dimensions.categories", message: "Declared 11 categories, but found 12." },
+        {
+          path: "categories[0].clues",
+          message: "Expected 5 clues from dimensions.cluesPerCategory, but found 4.",
+        },
+      ]),
+    );
   });
 
   it.each([0, -1, 2.5, "5"])("rejects invalid dimensions %s", (value) => {
@@ -136,23 +147,34 @@ describe("validateQuestionPack", () => {
     });
   });
 
-  it.each(["scores", "buzzers", "used", "currentClue", "players", "credentials", "usedClues"])("rejects live state field %s even when empty", (field) => {
-    const pack = sample();
-    pack[field] = null;
-    expect(errorsFor(pack)).toContainEqual({
-      path: field,
-      message: `Live game state field "${field}" is not allowed in a question pack.`,
-    });
-  });
+  it.each(["scores", "buzzers", "used", "currentClue", "players", "credentials", "usedClues"])(
+    "rejects live state field %s even when empty",
+    (field) => {
+      const pack = sample();
+      pack[field] = null;
+      expect(errorsFor(pack)).toContainEqual({
+        path: field,
+        message: `Live game state field "${field}" is not allowed in a question pack.`,
+      });
+    },
+  );
 
   it("checks for live state inside clues and nested extension metadata", () => {
     const pack = sample();
     pack.categories[0].clues[1].used = false;
     pack.metadata = { extension: [{ scores: {} }] };
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "categories[0].clues[1].used", message: 'Live game state field "used" is not allowed in a question pack.' },
-      { path: "metadata.extension[0].scores", message: 'Live game state field "scores" is not allowed in a question pack.' },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        {
+          path: "categories[0].clues[1].used",
+          message: 'Live game state field "used" is not allowed in a question pack.',
+        },
+        {
+          path: "metadata.extension[0].scores",
+          message: 'Live game state field "scores" is not allowed in a question pack.',
+        },
+      ]),
+    );
   });
 
   it("rejects invalid final clues", () => {
@@ -160,10 +182,12 @@ describe("validateQuestionPack", () => {
     const final: Record<string, unknown> = pack.categories[0].finalClue;
     final.tier = 5;
     final.answer = " ";
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "categories[0].finalClue.tier", message: 'Expected the tier "final".' },
-      { path: "categories[0].finalClue.answer", message: "Expected a non-empty string." },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "categories[0].finalClue.tier", message: 'Expected the tier "final".' },
+        { path: "categories[0].finalClue.answer", message: "Expected a non-empty string." },
+      ]),
+    );
   });
 
   it("requires final clues and arrays rather than malformed containers", () => {
@@ -172,10 +196,12 @@ describe("validateQuestionPack", () => {
     const secondCategory: Record<string, unknown> = pack.categories[1];
     delete firstCategory.finalClue;
     secondCategory.clues = null;
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "categories[0].finalClue", message: "Expected an object." },
-      { path: "categories[1].clues", message: "Expected an array." },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "categories[0].finalClue", message: "Expected an object." },
+        { path: "categories[1].clues", message: "Expected an array." },
+      ]),
+    );
   });
 
   it("rejects missing tier scoring and unknown default rounds", () => {
@@ -183,18 +209,26 @@ describe("validateQuestionPack", () => {
     const points: Record<string, unknown> = pack.scoring.rounds[0].pointsByTier;
     delete points[3];
     pack.scoring.defaultRoundId = "missing-round";
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "scoring.rounds[0].pointsByTier.3", message: "Expected a positive safe integer." },
-      { path: "scoring.defaultRoundId", message: "Must reference an ID in scoring.rounds." },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "scoring.rounds[0].pointsByTier.3", message: "Expected a positive safe integer." },
+        { path: "scoring.defaultRoundId", message: "Must reference an ID in scoring.rounds." },
+      ]),
+    );
   });
 
   it("rejects empty rounds and non-integer round points", () => {
     const pack = sample();
     pack.scoring.rounds[0].pointsByTier[1] = 1.5;
-    expect(errorsFor(pack)).toContainEqual({ path: "scoring.rounds[0].pointsByTier.1", message: "Expected a positive safe integer." });
+    expect(errorsFor(pack)).toContainEqual({
+      path: "scoring.rounds[0].pointsByTier.1",
+      message: "Expected a positive safe integer.",
+    });
     pack.scoring.rounds = [];
-    expect(errorsFor(pack)).toContainEqual({ path: "scoring.rounds", message: "Expected at least one scoring round." });
+    expect(errorsFor(pack)).toContainEqual({
+      path: "scoring.rounds",
+      message: "Expected at least one scoring round.",
+    });
   });
 
   it("rejects unsupported schema versions, reserved clue types, and static points", () => {
@@ -204,11 +238,19 @@ describe("validateQuestionPack", () => {
     const clue: Record<string, unknown> = pack.categories[0].clues[0];
     clue.type = "daily_double";
     clue.points = 200;
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "schemaVersion", message: 'Expected schema version "3.0.0".' },
-      { path: "categories[0].clues[0].type", message: 'Only text clues are supported in F0; omit type or use "text".' },
-      { path: "categories[0].clues[0].points", message: "Static clue points are not supported; use tier and scoring.rounds." },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "schemaVersion", message: 'Expected schema version "3.0.0".' },
+        {
+          path: "categories[0].clues[0].type",
+          message: 'Only text clues are supported in F0; omit type or use "text".',
+        },
+        {
+          path: "categories[0].clues[0].points",
+          message: "Static clue points are not supported; use tier and scoring.rounds.",
+        },
+      ]),
+    );
   });
 
   it("checks known optional metadata fields", () => {
@@ -216,16 +258,21 @@ describe("validateQuestionPack", () => {
     pack.categories[0].clues[0].tags = [" "];
     const root: Record<string, unknown> = pack;
     root.metadata = [];
-    expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "categories[0].clues[0].tags[0]", message: "Expected a non-empty string." },
-      { path: "metadata", message: "Expected an object." },
-    ]));
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "categories[0].clues[0].tags[0]", message: "Expected a non-empty string." },
+        { path: "metadata", message: "Expected an object." },
+      ]),
+    );
   });
 
   it("reports cyclic unknown input rather than recursing indefinitely", () => {
     const pack = sample();
     pack.extension = pack;
-    expect(errorsFor(pack)).toContainEqual({ path: "extension", message: "Circular references are not valid JSON content." });
+    expect(errorsFor(pack)).toContainEqual({
+      path: "extension",
+      message: "Circular references are not valid JSON content.",
+    });
   });
 });
 
@@ -247,16 +294,11 @@ describe("parseQuestionPackJson", () => {
 });
 
 describe("content resource limits", () => {
-  it.each(["ham-starter-pack.json", "sample-pack-3x3.json"])(
-    "keeps built-in %s valid",
-    (file) => {
-      expect(
-        parseQuestionPackJson(
-          readFileSync(new URL(`./samples/${file}`, import.meta.url), "utf8"),
-        ).ok,
-      ).toBe(true);
-    },
-  );
+  it.each(["ham-starter-pack.json", "sample-pack-3x3.json"])("keeps built-in %s valid", (file) => {
+    expect(
+      parseQuestionPackJson(readFileSync(new URL(`./samples/${file}`, import.meta.url), "utf8")).ok,
+    ).toBe(true);
+  });
   it.each([
     ["title", 120],
     ["categoryTitle", 120],

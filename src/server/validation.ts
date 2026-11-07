@@ -1,9 +1,5 @@
 import { z } from "zod";
-import type {
-  ClientCommand,
-  ClientMessage,
-  ConnectionRole,
-} from "@/features/network/protocol";
+import type { ClientCommand, ClientMessage, ConnectionRole } from "@/features/network/protocol";
 import { ROOM_CODE_PATTERN } from "@/features/network/protocol";
 
 export function isSafeReturnPath(path: string): boolean {
@@ -11,8 +7,7 @@ export function isSafeReturnPath(path: string): boolean {
     path === "/" ||
     path === "/packs" ||
     /^\/packs\/[A-Za-z0-9_-]{1,128}$/.test(path) ||
-    (/^\/(r|host)\/[^/]+$/.test(path) &&
-      ROOM_CODE_PATTERN.test(path.split("/")[2]))
+    (/^\/(r|host)\/[^/]+$/.test(path) && ROOM_CODE_PATTERN.test(path.split("/")[2]))
   );
 }
 const id = z.string().min(1).max(128);
@@ -49,14 +44,9 @@ export const commandSchema = z.union([
     "endGame",
     "playAgain",
   ].map(empty),
-  ...[
-    "selectClue",
-    "openBuzzers",
-    "endAttempts",
-    "reveal",
-    "returnToBoard",
-    "buzz",
-  ].map((type) => z.object({ type: z.literal(type), ...clue }).strict()),
+  ...["selectClue", "openBuzzers", "endAttempts", "reveal", "returnToBoard", "buzz"].map((type) =>
+    z.object({ type: z.literal(type), ...clue }).strict(),
+  ),
   ...["removePlayer", "revealFinalResponse"].map((type) =>
     z.object({ type: z.literal(type), ...player }).strict(),
   ),
@@ -70,9 +60,7 @@ export const commandSchema = z.union([
       correct: z.boolean(),
     })
     .strict(),
-  z
-    .object({ type: z.literal("judgeFinal"), ...player, correct: z.boolean() })
-    .strict(),
+  z.object({ type: z.literal("judgeFinal"), ...player, correct: z.boolean() }).strict(),
   z
     .object({
       type: z.literal("adjustScore"),
@@ -81,13 +69,9 @@ export const commandSchema = z.union([
       reason: z.string().min(1).max(120),
     })
     .strict(),
-  z
-    .object({ type: z.literal("submitWager"), ...clue, amount: integer })
-    .strict(),
+  z.object({ type: z.literal("submitWager"), ...clue, amount: integer }).strict(),
   z.object({ type: z.literal("submitFinalWager"), amount: integer }).strict(),
-  z
-    .object({ type: z.literal("submitFinalAnswer"), text: z.string().max(200) })
-    .strict(),
+  z.object({ type: z.literal("submitFinalAnswer"), text: z.string().max(200) }).strict(),
 ]);
 const messageSchema = z.union([
   z.object({ t: z.literal("cmd"), id: z.uuid(), cmd: commandSchema }).strict(),
@@ -99,10 +83,7 @@ export function parseClientMessage(raw: unknown): ClientMessage | null {
   // Schemas built from mapped literal arrays widen to string; validation above is exhaustive.
   return parsed.success ? (parsed.data as ClientMessage) : null;
 }
-export function commandAllowed(
-  role: ConnectionRole,
-  command: ClientCommand,
-): boolean {
+export function commandAllowed(role: ConnectionRole, command: ClientCommand): boolean {
   const playerOnly = ["buzz", "submitFinalWager", "submitFinalAnswer"];
   if (role === "display") return false;
   return role === "player"

@@ -13,9 +13,7 @@ export class HttpError extends Error {
   }
 }
 
-export function parseCookies(
-  header: string | undefined,
-): Map<string, string[]> {
+export function parseCookies(header: string | undefined): Map<string, string[]> {
   const cookies = new Map<string, string[]>();
   if (!header || header.length > 8192) return cookies;
   for (const part of header.split(";")) {
@@ -97,33 +95,24 @@ export function redirect(
   res.end();
 }
 
-export async function readBody(
-  req: IncomingMessage,
-  maxBytes = 4096,
-): Promise<Buffer> {
+export async function readBody(req: IncomingMessage, maxBytes = 4096): Promise<Buffer> {
   const declared = Number(req.headers["content-length"] ?? "0");
-  if (declared > maxBytes)
-    throw new HttpError(413, "badRequest", "Request body is too large.");
+  if (declared > maxBytes) throw new HttpError(413, "badRequest", "Request body is too large.");
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of req) {
     total += (chunk as Buffer).length;
-    if (total > maxBytes)
-      throw new HttpError(413, "badRequest", "Request body is too large.");
+    if (total > maxBytes) throw new HttpError(413, "badRequest", "Request body is too large.");
     chunks.push(chunk as Buffer);
   }
   return Buffer.concat(chunks);
 }
 
-export async function readJson(
-  req: IncomingMessage,
-  maxBytes = 4096,
-): Promise<unknown> {
+export async function readJson(req: IncomingMessage, maxBytes = 4096): Promise<unknown> {
   const type = req.headers["content-type"] ?? "";
   const body = await readBody(req, maxBytes);
   if (body.length === 0) return {};
-  if (!/^application\/json\b/i.test(type))
-    throw new HttpError(415, "badRequest", "Expected JSON.");
+  if (!/^application\/json\b/i.test(type)) throw new HttpError(415, "badRequest", "Expected JSON.");
   try {
     return JSON.parse(new TextDecoder().decode(body)) as unknown;
   } catch {
@@ -132,10 +121,7 @@ export async function readJson(
 }
 
 /** Convert a Node request into a Fetch Request (used for the dev fixture routes). */
-export async function toFetchRequest(
-  req: IncomingMessage,
-  origin: string,
-): Promise<Request> {
+export async function toFetchRequest(req: IncomingMessage, origin: string): Promise<Request> {
   const url = new URL(req.url ?? "/", origin);
   const method = req.method ?? "GET";
   const headers = new Headers();
@@ -143,16 +129,11 @@ export async function toFetchRequest(
     if (typeof value === "string") headers.set(key, value);
   }
   const body =
-    method === "GET" || method === "HEAD"
-      ? undefined
-      : new Uint8Array(await readBody(req, 8192));
+    method === "GET" || method === "HEAD" ? undefined : new Uint8Array(await readBody(req, 8192));
   return new Request(url, { method, headers, body });
 }
 
-export async function sendFetchResponse(
-  res: ServerResponse,
-  response: Response,
-): Promise<void> {
+export async function sendFetchResponse(res: ServerResponse, response: Response): Promise<void> {
   const headers: Record<string, string> = { ...BASE_HEADERS };
   response.headers.forEach((value, key) => {
     headers[key] = value;

@@ -19,10 +19,14 @@ import {
   setTimers,
 } from "./helpers";
 
-test("host, TV and three phones play a full game with wagers, a final round and play again", async ({ browser }) => {
+test("host, TV and three phones play a full game with wagers, a final round and play again", async ({
+  browser,
+}) => {
   const host = await device(browser, "g-host", LAPTOP);
   const tv = await device(browser, "tv", TV);
-  const players = await Promise.all(["g-alice", "g-bea", "g-carlo"].map((name) => device(browser, name)));
+  const players = await Promise.all(
+    ["g-alice", "g-bea", "g-carlo"].map((name) => device(browser, name)),
+  );
   const [alice, bea, carlo] = players;
   const H = host.page;
 
@@ -115,7 +119,9 @@ test("host, TV and three phones play a full game with wagers, a final round and 
   await pickClue(H, "wager");
   await H.getByRole("button", { name: "Skip this clue (no score change)" }).click();
   await expect(tv.page.getByText("Skipped · no score change")).toBeVisible();
-  await expect(loser.page.getByText("The host skipped this wager clue. No score change.")).toBeVisible();
+  await expect(
+    loser.page.getByText("The host skipped this wager clue. No score change."),
+  ).toBeVisible();
   await expect(phoneScore(loser.page)).toHaveText(before);
   await revealAndReturn(H);
 
@@ -141,7 +147,9 @@ test("host, TV and three phones play a full game with wagers, a final round and 
   const finalPrompt = (await H.locator(".host-prompt p").innerText()).trim();
   await expect(tv.page.getByText(finalPrompt)).toHaveCount(0);
   for (const player of players) {
-    await expect(player.page.getByRole("heading", { name: "Place your final wager" })).toBeVisible();
+    await expect(
+      player.page.getByRole("heading", { name: "Place your final wager" }),
+    ).toBeVisible();
     await player.page.getByRole("button", { name: "Half" }).click();
     await player.page.getByRole("button", { name: "Lock in wager" }).click();
     await expect(player.page.getByText("Locked in")).toBeVisible();
@@ -170,13 +178,17 @@ test("host, TV and three phones play a full game with wagers, a final round and 
   const judged: string[] = [];
   await expect(H.getByRole("button", { name: /^Reveal .*'s response$/ })).toBeVisible();
   while (await H.getByRole("button", { name: /^Reveal .*'s response$/ }).isVisible()) {
-    const label = (await H.getByRole("button", { name: /^Reveal .*'s response$/ }).innerText()).trim();
+    const label = (
+      await H.getByRole("button", { name: /^Reveal .*'s response$/ }).innerText()
+    ).trim();
     const name = /^Reveal (.*)'s response$/.exec(label)![1];
     await H.getByRole("button", { name: label }).click();
     await expect(tv.page.getByText(`“${answers.get(name)}”`)).toBeVisible();
     await H.getByRole("button", { name: name === loser.name ? /^Correct/ : /^Incorrect/ }).click();
     judged.push(name);
-    await expect(H.getByRole("button", { name: /^(Reveal .*'s response|Show results)$/ })).toBeVisible();
+    await expect(
+      H.getByRole("button", { name: /^(Reveal .*'s response|Show results)$/ }),
+    ).toBeVisible();
   }
   expect(judged.sort()).toEqual([...answers.keys()].sort());
   await H.getByRole("button", { name: "Show results" }).click();
@@ -185,7 +197,9 @@ test("host, TV and three phones play a full game with wagers, a final round and 
   const headline = (await H.locator("#host-results-title").innerText()).trim();
   expect(headline).toMatch(/wins!$|^Shared win/);
   await expect(tv.page.locator(".tv-results")).toBeVisible();
-  const winners = await Promise.all(players.map(async (p) => /You won!|Shared win!/.test(await p.page.locator("h1").innerText())));
+  const winners = await Promise.all(
+    players.map(async (p) => /You won!|Shared win!/.test(await p.page.locator("h1").innerText())),
+  );
   expect(winners.filter(Boolean).length).toBeGreaterThanOrEqual(1);
   await expect(dani.page.getByText("This game just finished.")).toBeVisible();
 
@@ -193,7 +207,9 @@ test("host, TV and three phones play a full game with wagers, a final round and 
   await H.getByRole("button", { name: "Play again" }).click();
   await expect(H.getByRole("heading", { name: "Set up the game" })).toBeVisible();
   await expect(H.locator(".host-roster li")).toHaveCount(4);
-  await expect(dani.page.getByRole("heading", { name: "Waiting for the host to start" })).toBeVisible();
+  await expect(
+    dani.page.getByRole("heading", { name: "Waiting for the host to start" }),
+  ).toBeVisible();
   await expect(phoneScore(winner.page)).toHaveText("0");
   await expect(tv.page.getByText("4 players in")).toBeVisible();
 

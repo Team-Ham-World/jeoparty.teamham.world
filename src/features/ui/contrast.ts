@@ -17,7 +17,8 @@ export function contrastRatio(a: string, b: string): number {
 export function readTokens(css: string): Record<string, string> {
   const root = /:root\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? "";
   const tokens: Record<string, string> = {};
-  for (const match of root.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})\b/g)) tokens[match[1]] = match[2].toLowerCase();
+  for (const match of root.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})\b/g))
+    tokens[match[1]] = match[2].toLowerCase();
   return tokens;
 }
 

@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 export interface Toast {
   id: number;
@@ -25,7 +33,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (message, tone = "bad") => {
       const id = nextId.current++;
       // Keep the newest three; repeated identical messages replace each other.
-      setToasts((list) => [...list.filter((t) => t.message !== message).slice(-2), { id, message, tone }]);
+      setToasts((list) => [
+        ...list.filter((t) => t.message !== message).slice(-2),
+        { id, message, tone },
+      ]);
       window.setTimeout(() => dismiss(id), 6000);
     },
     [dismiss],

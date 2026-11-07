@@ -9,18 +9,26 @@ import { vibrate } from "@/features/ui/haptics";
 import type { RunOptions } from "@/features/ui/use-command";
 
 /** What the big button says and why, from the view alone. */
-export function buzzCopy(view: PlayerView, clue: ClueView, stale: boolean): { label: string; help: string } {
+export function buzzCopy(
+  view: PlayerView,
+  clue: ClueView,
+  stale: boolean,
+): { label: string; help: string } {
   if (stale) return { label: "Offline", help: "Reconnecting. Buzzing is off until we catch up." };
   if (view.paused) return { label: "Paused", help: "The game is paused." };
   if (view.can.buzz) return { label: "Buzz!", help: "First buzz the server gets wins." };
-  if (clue.lockedOutPlayerIds.includes(view.me.id)) return { label: "Locked", help: "You already had a go at this clue." };
+  if (clue.lockedOutPlayerIds.includes(view.me.id))
+    return { label: "Locked", help: "You already had a go at this clue." };
   switch (clue.stage) {
     case "reading":
       return { label: "Wait", help: "Buzzers open when the host finishes reading." };
     case "open":
       return { label: "Wait", help: "You can't buzz on this clue." };
     case "answering":
-      return { label: "Hold", help: `${nameOf(view.players, clue.answeringPlayerId)} got there first.` };
+      return {
+        label: "Hold",
+        help: `${nameOf(view.players, clue.answeringPlayerId)} got there first.`,
+      };
     case "closed":
       return { label: "Closed", help: "No more buzzes on this clue." };
     default:
@@ -54,7 +62,10 @@ export function BuzzButton({
     setSentFor(clue.clueId);
     vibrate(35);
     // Losing the race is normal: the button already says who got there first, so no error toast.
-    void run({ type: "buzz", clueId: clue.clueId }, { quiet: ["buzzersClosed", "alreadyAttempted"] }).then((outcome) => {
+    void run(
+      { type: "buzz", clueId: clue.clueId },
+      { quiet: ["buzzersClosed", "alreadyAttempted"] },
+    ).then((outcome) => {
       if (outcome && !outcome.ok) setSentFor(null);
     });
   }

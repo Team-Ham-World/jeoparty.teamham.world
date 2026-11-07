@@ -1,4 +1,9 @@
-import type { BoardCellView, BoardView, ClueId, HostBoardCellView } from "@/features/engine/contract";
+import type {
+  BoardCellView,
+  BoardView,
+  ClueId,
+  HostBoardCellView,
+} from "@/features/engine/contract";
 import { formatScore } from "@/features/ui/format";
 
 /*
@@ -73,12 +78,27 @@ export function BoardGrid<Cell extends BoardCellView>({
               }
               return (
                 <div key={cell.clueId} className={className}>
-                  <span className="board__value" aria-hidden={cell.state === "completed" ? true : undefined}>
+                  <span
+                    className="board__value"
+                    aria-hidden={cell.state === "completed" ? true : undefined}
+                  >
                     {value}
                   </span>
-                  {cell.state === "completed" ? <span className="board__done" aria-hidden="true">done</span> : null}
-                  {cell.state === "active" ? <span className="board__now" aria-hidden="true">now</span> : null}
-                  {wager && cell.state !== "completed" ? <span className="board__hot" aria-hidden="true">Hot</span> : null}
+                  {cell.state === "completed" ? (
+                    <span className="board__done" aria-hidden="true">
+                      done
+                    </span>
+                  ) : null}
+                  {cell.state === "active" ? (
+                    <span className="board__now" aria-hidden="true">
+                      now
+                    </span>
+                  ) : null}
+                  {wager && cell.state !== "completed" ? (
+                    <span className="board__hot" aria-hidden="true">
+                      Hot
+                    </span>
+                  ) : null}
                   <span className="sr-only">
                     {cell.state === "completed" ? `${value}, ` : ""}
                     {STATE_WORD[cell.state]}

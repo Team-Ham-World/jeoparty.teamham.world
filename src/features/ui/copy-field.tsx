@@ -24,7 +24,14 @@ export function CopyField({ value, label }: { value: string; label: string }) {
         {label}
       </label>
       <div className="copy-field">
-        <input ref={input} id={id} className="input" readOnly value={value} onFocus={(event) => event.currentTarget.select()} />
+        <input
+          ref={input}
+          id={id}
+          className="input"
+          readOnly
+          value={value}
+          onFocus={(event) => event.currentTarget.select()}
+        />
         <button type="button" className="btn" onClick={copy}>
           {copied ? "Copied" : "Copy"}
         </button>

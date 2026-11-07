@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { parseQuestionPackJson, validateQuestionPack, type DifficultyTier, type QuestionPack, type ValidationError } from "@/features/content";
+import {
+  parseQuestionPackJson,
+  validateQuestionPack,
+  type DifficultyTier,
+  type QuestionPack,
+  type ValidationError,
+} from "@/features/content";
 import { ConfirmDialog } from "@/features/ui/dialog";
 import { formatScore, plural } from "@/features/ui/format";
 import { useToast } from "@/features/ui/toasts";
@@ -41,7 +47,13 @@ export interface PackEditorProps {
  * clue each. Validates locally with the shared content validator before
  * saving, then shows any server errors on the same fields by their `path`.
  */
-export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors = [] }: PackEditorProps) {
+export function PackEditor({
+  initial,
+  isNew,
+  onSave,
+  onNavigate,
+  initialErrors = [],
+}: PackEditorProps) {
   const toast = useToast();
   const [pack, setPack] = useState<QuestionPack>(initial);
   const [saved, setSaved] = useState<string>(() => JSON.stringify(packForSave(initial)));
@@ -91,9 +103,16 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
       setErrors([]);
       const first = result.errors[0];
       // Paths point into the file, not this draft, so describe them without this pack's titles.
-      const where = first ? describePath(first.path, { ...pack, categories: [] }, FINAL_CLUE_FIELD) : null;
-      const what = first ? `${where}: ${friendlyMessage(first.message)}` : "it isn't a HAM Quiz pack";
-      const more = result.errors.length > 1 ? ` (and ${plural(result.errors.length - 1, "more problem")})` : "";
+      const where = first
+        ? describePath(first.path, { ...pack, categories: [] }, FINAL_CLUE_FIELD)
+        : null;
+      const what = first
+        ? `${where}: ${friendlyMessage(first.message)}`
+        : "it isn't a HAM Quiz pack";
+      const more =
+        result.errors.length > 1
+          ? ` (and ${plural(result.errors.length - 1, "more problem")})`
+          : "";
       toast(`Couldn't import ${file.name}. ${what}${more} Nothing was changed.`);
       return;
     }
@@ -104,11 +123,16 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
   }
 
   function exportFile() {
-    const blob = new Blob([JSON.stringify(packForSave(pack), null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(packForSave(pack), null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${(pack.title.trim() || "ham-quiz-pack").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.json`;
+    link.download = `${(pack.title.trim() || "ham-quiz-pack")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -117,7 +141,8 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
 
   const cluesPerCategory = pack.categories[0]?.clues.length ?? 0;
   const uneven = pack.categories.some((c) => c.clues.length !== cluesPerCategory);
-  const defaultRound = pack.scoring.rounds.find((r) => r.id === pack.scoring.defaultRoundId) ?? pack.scoring.rounds[0];
+  const defaultRound =
+    pack.scoring.rounds.find((r) => r.id === pack.scoring.defaultRoundId) ?? pack.scoring.rounds[0];
 
   return (
     <div className="ed">
@@ -137,23 +162,47 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
           )}
         </div>
         <div className="row">
-          <input ref={fileInput} type="file" accept="application/json,.json" className="sr-only" tabIndex={-1} onChange={importFile} aria-hidden="true" />
-          <button type="button" className="btn btn--small" onClick={() => fileInput.current?.click()}>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={importFile}
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            className="btn btn--small"
+            onClick={() => fileInput.current?.click()}
+          >
             Import JSON
           </button>
           <button type="button" className="btn btn--small" onClick={exportFile}>
             Export JSON
           </button>
-          <button type="button" className="btn btn--primary" onClick={save} disabled={!canSave} aria-busy={saving || undefined}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={save}
+            disabled={!canSave}
+            aria-busy={saving || undefined}
+          >
             {isNew ? "Save pack" : "Save changes"}
           </button>
         </div>
       </div>
 
-      <h1 className="ed-title marker">{isNew ? "New pack" : pack.title.trim() || "Untitled pack"}</h1>
+      <h1 className="ed-title marker">
+        {isNew ? "New pack" : pack.title.trim() || "Untitled pack"}
+      </h1>
 
       {errors.length > 0 ? (
-        <section className="banner banner--bad ed-errors" aria-labelledby="ed-errors-title" tabIndex={-1}>
+        <section
+          className="banner banner--bad ed-errors"
+          aria-labelledby="ed-errors-title"
+          tabIndex={-1}
+        >
           <h2 id="ed-errors-title">{plural(errors.length, "problem")} to fix</h2>
           <ul>
             {errors.slice(0, 12).map((e, i) => (
@@ -184,7 +233,14 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
           Details
         </h2>
         <div className="ed-grid">
-          <TextField label="Title" path="title" value={pack.title} error={err("title")} onChange={(title) => setPack({ ...pack, title })} placeholder="Friday Night Brain Melt" />
+          <TextField
+            label="Title"
+            path="title"
+            value={pack.title}
+            error={err("title")}
+            onChange={(title) => setPack({ ...pack, title })}
+            placeholder="Friday Night Brain Melt"
+          />
           <TextField
             label="Description (optional)"
             path="description"
@@ -202,13 +258,25 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
           <button
             type="button"
             className="btn btn--small"
-            onClick={() => setPack({ ...pack, scoring: { ...pack.scoring, rounds: [...pack.scoring.rounds, blankRound(`Round ${pack.scoring.rounds.length + 1}`, 2)] } })}
+            onClick={() =>
+              setPack({
+                ...pack,
+                scoring: {
+                  ...pack.scoring,
+                  rounds: [
+                    ...pack.scoring.rounds,
+                    blankRound(`Round ${pack.scoring.rounds.length + 1}`, 2),
+                  ],
+                },
+              })
+            }
           >
             Add scoring round
           </button>
         </div>
         <p className="muted ed-help">
-          Points per difficulty tier. The default round scores round 1; round 2 uses the next one (or doubles the default).
+          Points per difficulty tier. The default round scores round 1; round 2 uses the next one
+          (or doubles the default).
         </p>
         <div className="ed-table-wrap">
           <table className="ed-table">
@@ -236,7 +304,18 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                       aria-label={`Scoring round ${r + 1} name`}
                       value={round.title}
                       aria-invalid={err(`scoring.rounds[${r}].title`) ? true : undefined}
-                      onChange={(e) => setPack({ ...pack, scoring: { ...pack.scoring, rounds: replaceAt(pack.scoring.rounds, r, { ...round, title: e.target.value }) } })}
+                      onChange={(e) =>
+                        setPack({
+                          ...pack,
+                          scoring: {
+                            ...pack.scoring,
+                            rounds: replaceAt(pack.scoring.rounds, r, {
+                              ...round,
+                              title: e.target.value,
+                            }),
+                          },
+                        })
+                      }
                     />
                   </td>
                   <td className="ed-center">
@@ -245,7 +324,9 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                       name="default-round"
                       aria-label={`Use ${round.title || `round ${r + 1}`} as the default`}
                       checked={pack.scoring.defaultRoundId === round.id}
-                      onChange={() => setPack({ ...pack, scoring: { ...pack.scoring, defaultRoundId: round.id } })}
+                      onChange={() =>
+                        setPack({ ...pack, scoring: { ...pack.scoring, defaultRoundId: round.id } })
+                      }
                     />
                   </td>
                   {TIERS.map((t) => {
@@ -263,7 +344,13 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                             const n = Number(e.target.value.replace(/[^0-9]/g, ""));
                             setPack({
                               ...pack,
-                              scoring: { ...pack.scoring, rounds: replaceAt(pack.scoring.rounds, r, { ...round, pointsByTier: { ...round.pointsByTier, [t]: n } }) },
+                              scoring: {
+                                ...pack.scoring,
+                                rounds: replaceAt(pack.scoring.rounds, r, {
+                                  ...round,
+                                  pointsByTier: { ...round.pointsByTier, [t]: n },
+                                }),
+                              },
                             });
                           }}
                         />
@@ -278,7 +365,10 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                       aria-label={`Remove scoring round ${round.title || r + 1}`}
                       onClick={() => {
                         const rounds = removeAt(pack.scoring.rounds, r);
-                        const defaultRoundId = pack.scoring.defaultRoundId === round.id ? rounds[0].id : pack.scoring.defaultRoundId;
+                        const defaultRoundId =
+                          pack.scoring.defaultRoundId === round.id
+                            ? rounds[0].id
+                            : pack.scoring.defaultRoundId;
                         setPack({ ...pack, scoring: { ...pack.scoring, rounds, defaultRoundId } });
                       }}
                     >
@@ -301,14 +391,19 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
         </div>
         <p className="muted ed-help">
           A game uses up to 6 categories per round. Give every category the same number of clues
-          {uneven ? <strong className="ed-warn"> (they differ right now)</strong> : null}. Each category also needs a final-round clue.
+          {uneven ? <strong className="ed-warn"> (they differ right now)</strong> : null}. Each
+          category also needs a final-round clue.
         </p>
 
         {pack.categories.map((category, c) => {
           const name = category.title.trim() || `Category ${c + 1}`;
           const final = finalClueOf(category);
           return (
-            <article key={category.id} className="panel ed-cat" aria-labelledby={`cat-${category.id}`}>
+            <article
+              key={category.id}
+              className="panel ed-cat"
+              aria-labelledby={`cat-${category.id}`}
+            >
               <header className="ed-cat__head">
                 <h3 id={`cat-${category.id}`} className="ed-cat__num">
                   <span className="sr-only">{name}, </span>Category {c + 1}
@@ -319,12 +414,22 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                     path={`categories[${c}].title`}
                     value={category.title}
                     error={err(`categories[${c}].title`)}
-                    onChange={(title) => setPack(updateCategory(pack, c, (cat) => ({ ...cat, title })))}
+                    onChange={(title) =>
+                      setPack(updateCategory(pack, c, (cat) => ({ ...cat, title })))
+                    }
                     placeholder="Internet Lore"
                   />
                 </div>
                 <div className="row ed-cat__tools">
-                  <button type="button" className="btn btn--small" disabled={c === 0} aria-label={`Move ${name} up`} onClick={() => setPack({ ...pack, categories: move(pack.categories, c, c - 1) })}>
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    disabled={c === 0}
+                    aria-label={`Move ${name} up`}
+                    onClick={() =>
+                      setPack({ ...pack, categories: move(pack.categories, c, c - 1) })
+                    }
+                  >
                     ↑
                   </button>
                   <button
@@ -332,11 +437,19 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                     className="btn btn--small"
                     disabled={c === pack.categories.length - 1}
                     aria-label={`Move ${name} down`}
-                    onClick={() => setPack({ ...pack, categories: move(pack.categories, c, c + 1) })}
+                    onClick={() =>
+                      setPack({ ...pack, categories: move(pack.categories, c, c + 1) })
+                    }
                   >
                     ↓
                   </button>
-                  <button type="button" className="btn btn--small" disabled={pack.categories.length <= 1} aria-label={`Remove ${name}`} onClick={() => setRemovingCategory(c)}>
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    disabled={pack.categories.length <= 1}
+                    aria-label={`Remove ${name}`}
+                    onClick={() => setRemovingCategory(c)}
+                  >
                     Remove
                   </button>
                 </div>
@@ -363,7 +476,13 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                           className="input"
                           value={clue.tier}
                           aria-invalid={err(`${base}.tier`) ? true : undefined}
-                          onChange={(e) => setPack(updateClue(pack, c, k, { tier: Number(e.target.value) as DifficultyTier }))}
+                          onChange={(e) =>
+                            setPack(
+                              updateClue(pack, c, k, {
+                                tier: Number(e.target.value) as DifficultyTier,
+                              }),
+                            )
+                          }
                         >
                           {TIERS.map((t) => (
                             <option key={t} value={t}>
@@ -371,7 +490,9 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                             </option>
                           ))}
                         </select>
-                        <span className="field__hint num">{value ? `${formatScore(value)} pts` : ""}</span>
+                        <span className="field__hint num">
+                          {value ? `${formatScore(value)} pts` : ""}
+                        </span>
                       </div>
                       <TextField
                         multiline
@@ -390,13 +511,24 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                         onChange={(answer) => setPack(updateClue(pack, c, k, { answer }))}
                         placeholder="What is…?"
                       />
-                      <div className="ed-clue__tools" role="group" aria-label={`Clue ${k + 1} tools`}>
+                      <div
+                        className="ed-clue__tools"
+                        role="group"
+                        aria-label={`Clue ${k + 1} tools`}
+                      >
                         <button
                           type="button"
                           className="btn btn--small"
                           disabled={k === 0}
                           aria-label={`Move clue ${k + 1} up`}
-                          onClick={() => setPack(updateCategory(pack, c, (cat) => ({ ...cat, clues: move(cat.clues, k, k - 1) })))}
+                          onClick={() =>
+                            setPack(
+                              updateCategory(pack, c, (cat) => ({
+                                ...cat,
+                                clues: move(cat.clues, k, k - 1),
+                              })),
+                            )
+                          }
                         >
                           ↑
                         </button>
@@ -405,7 +537,14 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                           className="btn btn--small"
                           disabled={k === category.clues.length - 1}
                           aria-label={`Move clue ${k + 1} down`}
-                          onClick={() => setPack(updateCategory(pack, c, (cat) => ({ ...cat, clues: move(cat.clues, k, k + 1) })))}
+                          onClick={() =>
+                            setPack(
+                              updateCategory(pack, c, (cat) => ({
+                                ...cat,
+                                clues: move(cat.clues, k, k + 1),
+                              })),
+                            )
+                          }
                         >
                           ↓
                         </button>
@@ -414,7 +553,14 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                           className="btn btn--small"
                           disabled={category.clues.length <= 1}
                           aria-label={`Remove clue ${k + 1}`}
-                          onClick={() => setPack(updateCategory(pack, c, (cat) => ({ ...cat, clues: removeAt(cat.clues, k) })))}
+                          onClick={() =>
+                            setPack(
+                              updateCategory(pack, c, (cat) => ({
+                                ...cat,
+                                clues: removeAt(cat.clues, k),
+                              })),
+                            )
+                          }
                         >
                           ✕
                         </button>
@@ -428,7 +574,10 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                 className="btn btn--small ed-add"
                 onClick={() =>
                   setPack(
-                    updateCategory(pack, c, (cat) => ({ ...cat, clues: [...cat.clues, blankClue(TIERS[Math.min(cat.clues.length, 4)])] })),
+                    updateCategory(pack, c, (cat) => ({
+                      ...cat,
+                      clues: [...cat.clues, blankClue(TIERS[Math.min(cat.clues.length, 4)])],
+                    })),
                   )
                 }
               >
@@ -461,13 +610,28 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
           );
         })}
 
-        <button type="button" className="btn btn--big ed-add-cat" onClick={() => setPack({ ...pack, categories: [...pack.categories, blankCategory(cluesPerCategory || 5)] })}>
+        <button
+          type="button"
+          className="btn btn--big ed-add-cat"
+          onClick={() =>
+            setPack({
+              ...pack,
+              categories: [...pack.categories, blankCategory(cluesPerCategory || 5)],
+            })
+          }
+        >
           + Add category
         </button>
       </section>
 
       <div className="ed-foot">
-        <button type="button" className="btn btn--primary btn--big" onClick={save} disabled={!canSave} aria-busy={saving || undefined}>
+        <button
+          type="button"
+          className="btn btn--primary btn--big"
+          onClick={save}
+          disabled={!canSave}
+          aria-busy={saving || undefined}
+        >
           {isNew ? "Save pack" : "Save changes"}
         </button>
       </div>
@@ -480,7 +644,8 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
         cancelLabel="Keep it"
         onCancel={() => setRemovingCategory(null)}
         onConfirm={() => {
-          if (removingCategory !== null) setPack({ ...pack, categories: removeAt(pack.categories, removingCategory) });
+          if (removingCategory !== null)
+            setPack({ ...pack, categories: removeAt(pack.categories, removingCategory) });
           setRemovingCategory(null);
         }}
       />
@@ -558,8 +723,18 @@ function useUnsavedGuard(active: boolean) {
       event.returnValue = "";
     }
     function onClick(event: MouseEvent) {
-      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const anchor = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const anchor = (event.target as Element | null)?.closest?.(
+        "a[href]",
+      ) as HTMLAnchorElement | null;
       if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
       const url = new URL(anchor.href, window.location.href);
       if (url.origin !== window.location.origin) return;

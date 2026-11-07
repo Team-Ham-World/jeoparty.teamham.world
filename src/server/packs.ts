@@ -39,12 +39,9 @@ export class Packs {
     for (const file of readdirSync(directory)
       .sort()
       .filter((file) => file.endsWith(".json"))) {
-      const result = parseQuestionPackJson(
-        readFileSync(path.join(directory, file), "utf8"),
-      );
+      const result = parseQuestionPackJson(readFileSync(path.join(directory, file), "utf8"));
       if (!result.ok) throw new Error(`Invalid built-in pack: ${file}`);
-      if (this.builtIns.has(result.data.id))
-        throw new Error("Duplicate built-in pack id");
+      if (this.builtIns.has(result.data.id)) throw new Error("Duplicate built-in pack id");
       this.builtIns.set(result.data.id, result.data);
     }
     // Backfill once on upgrade. Listing never parses answer-bearing documents.
@@ -72,9 +69,7 @@ export class Packs {
   resolve(id: string | undefined, ownerId: string): QuestionPack {
     const selected = id ?? this.builtIns.keys().next().value;
     if (!selected) throw new HttpError(404, "notFound", "Pack not found.");
-    return structuredClone(
-      this.builtIns.get(selected) ?? this.document(selected, ownerId).pack,
-    );
+    return structuredClone(this.builtIns.get(selected) ?? this.document(selected, ownerId).pack);
   }
   list(ownerId: string): PackSummary[] {
     return [
@@ -108,19 +103,13 @@ export class Packs {
   save(raw: unknown, ownerId: string, existingId?: string): PackDocument {
     if (
       existingId &&
-      !this.db.get(
-        "SELECT 1 FROM packs WHERE id = ? AND owner_id = ?",
-        existingId,
-        ownerId,
-      )
+      !this.db.get("SELECT 1 FROM packs WHERE id = ? AND owner_id = ?", existingId, ownerId)
     )
       throw new HttpError(404, "notFound", "Pack not found.");
     if (
       !existingId &&
-      this.db.get<{ n: number }>(
-        "SELECT count(*) n FROM packs WHERE owner_id = ?",
-        ownerId,
-      )!.n >= MAX_PACKS_PER_ACCOUNT
+      this.db.get<{ n: number }>("SELECT count(*) n FROM packs WHERE owner_id = ?", ownerId)!.n >=
+        MAX_PACKS_PER_ACCOUNT
     )
       throw new HttpError(
         409,
@@ -128,8 +117,7 @@ export class Packs {
         "An account can save at most 50 packs. Delete a pack first.",
       );
     const id = existingId ?? randomUUID();
-    if (this.builtIns.has(id))
-      throw new HttpError(409, "conflict", "Built-in ids are reserved.");
+    if (this.builtIns.has(id)) throw new HttpError(409, "conflict", "Built-in ids are reserved.");
     const pack = validatedPack({ ...validatedPack(raw), id });
     const updatedAt = new Date().toISOString();
     this.db.run(
@@ -143,12 +131,7 @@ export class Packs {
     return { id, pack, updatedAt };
   }
   delete(id: string, ownerId: string): void {
-    const deleted = this.db.run(
-      "DELETE FROM packs WHERE id = ? AND owner_id = ?",
-      id,
-      ownerId,
-    );
-    if (!deleted.changes)
-      throw new HttpError(404, "notFound", "Pack not found.");
+    const deleted = this.db.run("DELETE FROM packs WHERE id = ? AND owner_id = ?", id, ownerId);
+    if (!deleted.changes) throw new HttpError(404, "notFound", "Pack not found.");
   }
 }

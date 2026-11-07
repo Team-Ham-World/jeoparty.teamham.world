@@ -48,16 +48,9 @@ export interface RoomDeps {
   engine: EngineApi;
   packs: Packs;
   now: () => number;
-  verify(
-    sessionHash: string,
-    fresh: boolean,
-  ): Promise<"active" | "inactive" | "unavailable">;
+  verify(sessionHash: string, fresh: boolean): Promise<"active" | "inactive" | "unavailable">;
   onClosed(code: string): void;
-  onMembersChanged(
-    code: string,
-    previous: Set<string>,
-    current: Set<string>,
-  ): void;
+  onMembersChanged(code: string, previous: Set<string>, current: Set<string>): void;
 }
 export class Room {
   readonly connections = new Set<Connection>();
@@ -112,9 +105,7 @@ export class Room {
   }
   private indexMembers(): void {
     const view = this.deps.engine.displayView(this.state, this.deps.now());
-    const current = new Set(
-      [...view.players, ...view.waitingPlayers].map((p) => p.id),
-    );
+    const current = new Set([...view.players, ...view.waitingPlayers].map((p) => p.id));
     this.deps.onMembersChanged(this.code, this.members, current);
     this.members = current;
   }
@@ -130,8 +121,7 @@ export class Room {
             timerId: deadline.timerId,
           }).catch(() => {
             // Save failures must not drop the deadline. Retry without acknowledging an unsaved change.
-            if (!this.closed)
-              this.timer = setTimeout(() => this.schedule(), 1000);
+            if (!this.closed) this.timer = setTimeout(() => this.schedule(), 1000);
           });
         },
         Math.max(0, deadline.at - this.deps.now()),
@@ -139,10 +129,7 @@ export class Room {
       this.timer.unref?.();
     }
   }
-  private apply(
-    actor: Actor,
-    command: Command,
-  ): ReturnType<EngineApi["apply"]> {
+  private apply(actor: Actor, command: Command): ReturnType<EngineApi["apply"]> {
     if (this.closed) throw new HttpError(404, "notFound", "Room closed.");
     return this.deps.engine.apply(this.state, actor, command, this.deps.now());
   }
@@ -158,26 +145,14 @@ export class Room {
   }
   summary(identity: Identity): RoomSummary {
     const view = this.deps.engine.displayView(this.state, this.deps.now());
-    const me = this.deps.engine.playerView(
-      this.state,
-      identity.account.public_id,
-      this.deps.now(),
-    );
+    const me = this.deps.engine.playerView(this.state, identity.account.public_id, this.deps.now());
     const account = this.deps.db.get<{
       username: string | null;
       public_id: string;
-    }>(
-      "SELECT username, public_id FROM accounts WHERE account_id = ?",
-      this.hostId,
-    );
+    }>("SELECT username, public_id FROM accounts WHERE account_id = ?", this.hostId);
     return {
       code: this.code,
-      status:
-        view.phase === "lobby"
-          ? "lobby"
-          : view.phase === "results"
-            ? "finished"
-            : "playing",
+      status: view.phase === "lobby" ? "lobby" : view.phase === "results" ? "finished" : "playing",
       hostName:
         account?.username?.slice(0, 32) ||
         `Player ${account?.public_id.slice(-4).toUpperCase() ?? "????"}`,
@@ -196,11 +171,7 @@ export class Room {
   join(identity: Identity): Promise<"player" | "waiting"> {
     return this.run(() => {
       if (identity.account.account_id === this.hostId)
-        throw new HttpError(
-          403,
-          "forbidden",
-          "The host cannot join as a player.",
-        );
+        throw new HttpError(403, "forbidden", "The host cannot join as a player.");
       const id = identity.account.public_id;
       let view = this.deps.engine.playerView(this.state, id, this.deps.now());
       if (!view) {
@@ -232,10 +203,7 @@ export class Room {
         { type: "removeMember", playerId: identity.account.public_id },
       );
       if (result.ok) this.commit(result.state);
-      this.closeWhere(
-        (c) => c.publicId === identity.account.public_id,
-        "removed",
-      );
+      this.closeWhere((c) => c.publicId === identity.account.public_id, "removed");
       this.broadcast();
     });
   }
@@ -291,10 +259,7 @@ export class Room {
           { kind: "system" },
           {
             type: "setPresence",
-            target:
-              c.role === "host"
-                ? { role: "host" }
-                : { role: "player", playerId: c.publicId },
+            target: c.role === "host" ? { role: "host" } : { role: "player", playerId: c.publicId },
             connected: true,
           },
         );
@@ -306,8 +271,7 @@ export class Room {
   }
   detach(c: Connection): Promise<void> {
     return this.run(() => {
-      if (!this.connections.delete(c) || this.closed || c.role === "display")
-        return;
+      if (!this.connections.delete(c) || this.closed || c.role === "display") return;
       if (
         [...this.connections].some(
           (other) => other.role === c.role && other.publicId === c.publicId,
@@ -318,10 +282,7 @@ export class Room {
         { kind: "system" },
         {
           type: "setPresence",
-          target:
-            c.role === "host"
-              ? { role: "host" }
-              : { role: "player", playerId: c.publicId },
+          target: c.role === "host" ? { role: "host" } : { role: "player", playerId: c.publicId },
           connected: false,
         },
       );
@@ -347,11 +308,7 @@ export class Room {
         ? await this.deps.verify(c.sessionHash, cmd.type === "startGame")
         : "inactive";
       if (verified !== "active" && c.role !== "display") {
-        if (
-          verified === "unavailable" &&
-          !cached &&
-          c.authorizedUntil > this.deps.now()
-        ) {
+        if (verified === "unavailable" && !cached && c.authorizedUntil > this.deps.now()) {
           const ack: Ack = {
             t: "ack",
             id,
@@ -371,8 +328,7 @@ export class Room {
       let state = this.state;
       if (
         !commandAllowed(c.role, cmd) ||
-        (c.role === "player" &&
-          !this.deps.engine.playerView(state, c.publicId, this.deps.now()))
+        (c.role === "player" && !this.deps.engine.playerView(state, c.publicId, this.deps.now()))
       ) {
         ack = {
           t: "ack",
@@ -403,9 +359,7 @@ export class Room {
           };
         else {
           const result = this.apply(
-            c.role === "host"
-              ? { kind: "host" }
-              : { kind: "player", playerId: c.publicId },
+            c.role === "host" ? { kind: "host" } : { kind: "player", playerId: c.publicId },
             command,
           );
           if (result.ok) {
@@ -423,12 +377,8 @@ export class Room {
       }
       // Only accepted commands need durable replay. One identity cannot evict another's retries.
       if (ack.ok) {
-        const own = this.recent
-          .filter((entry) => entry.identity === identity)
-          .slice(-31);
-        const others = this.recent.filter(
-          (entry) => entry.identity !== identity,
-        );
+        const own = this.recent.filter((entry) => entry.identity === identity).slice(-31);
+        const others = this.recent.filter((entry) => entry.identity !== identity);
         this.commit(state, [...others, ...own, { identity, ack }]);
       }
       c.send(ack);

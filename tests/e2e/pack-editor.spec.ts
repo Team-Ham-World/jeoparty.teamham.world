@@ -10,9 +10,15 @@ import { LAPTOP, device, signIn } from "./helpers";
 
 const SAMPLE = path.join(process.cwd(), "src/features/content/samples/sample-pack-3x3.json");
 
-test("write a pack, fix validation errors, save, export, import, duplicate, delete and play it", async ({ browser }, testInfo) => {
+test("write a pack, fix validation errors, save, export, import, duplicate, delete and play it", async ({
+  browser,
+}, testInfo) => {
   // A fresh account per repeat/retry, so "No packs yet" holds on a shared server.
-  const author = await device(browser, `e-author-${testInfo.repeatEachIndex}-${testInfo.retry}`, LAPTOP);
+  const author = await device(
+    browser,
+    `e-author-${testInfo.repeatEachIndex}-${testInfo.retry}`,
+    LAPTOP,
+  );
   const P = author.page;
   await signIn(P, author.name, "/packs");
   await expect(P.getByText("No packs yet.")).toBeVisible();
@@ -33,11 +39,15 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   await P.getByLabel("Title", { exact: true }).fill("Kitchen Lab");
   await P.getByLabel("Category title").fill("Kitchen Science");
   for (const n of [5, 4, 3]) await P.getByRole("button", { name: `Remove clue ${n}` }).click();
-  await P.getByLabel("Clue 1", { exact: true }).fill("Water boils at this many degrees Celsius at sea level.");
+  await P.getByLabel("Clue 1", { exact: true }).fill(
+    "Water boils at this many degrees Celsius at sea level.",
+  );
   await P.getByLabel("Answer", { exact: true }).nth(0).fill("What is 100?");
   await P.getByLabel("Clue 2", { exact: true }).fill("Sodium bicarbonate is better known as this.");
   await P.getByLabel("Answer", { exact: true }).nth(1).fill("What is baking soda?");
-  await P.getByLabel("Final clue", { exact: true }).fill("This scale measures the heat of chili peppers.");
+  await P.getByLabel("Final clue", { exact: true }).fill(
+    "This scale measures the heat of chili peppers.",
+  );
   await P.getByLabel("Final answer", { exact: true }).fill("What is the Scoville scale?");
   await P.getByRole("button", { name: "Save pack" }).first().click();
   await P.waitForURL(/\/packs\/(?!new$)[^/]+$/);
@@ -55,16 +65,26 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   await expect(P.locator(".ed-bar__status")).toHaveText("Saved");
 
   // --- Export JSON ------------------------------------------------------------
-  const [download] = await Promise.all([P.waitForEvent("download"), P.getByRole("button", { name: "Export JSON" }).click()]);
+  const [download] = await Promise.all([
+    P.waitForEvent("download"),
+    P.getByRole("button", { name: "Export JSON" }).click(),
+  ]);
   expect(download.suggestedFilename()).toBe("kitchen-lab.json");
   const exported = JSON.parse(await readFile((await download.path())!, "utf8"));
-  expect(exported).toMatchObject({ title: "Kitchen Lab", description: "Science you can eat.", dimensions: { categories: 1, cluesPerCategory: 2 } });
+  expect(exported).toMatchObject({
+    title: "Kitchen Lab",
+    description: "Science you can eat.",
+    dimensions: { categories: 1, cluesPerCategory: 2 },
+  });
 
   // --- Import: a broken file changes nothing, a good one fills a new pack ---
   await P.goto("/packs/new");
   const broken = testInfo.outputPath("broken.json");
   await writeFile(broken, JSON.stringify({ title: "" }));
-  let chooser = Promise.all([P.waitForEvent("filechooser"), P.getByRole("button", { name: "Import JSON" }).click()]);
+  let chooser = Promise.all([
+    P.waitForEvent("filechooser"),
+    P.getByRole("button", { name: "Import JSON" }).click(),
+  ]);
   await (await chooser)[0].setFiles(broken);
   await expect(P.locator(".toast")).toContainText("Couldn't import broken.json.");
   await expect(P.locator(".toast")).toContainText("Nothing was changed.");
@@ -73,7 +93,10 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   const good = testInfo.outputPath("imported.json");
   const sample = JSON.parse(await readFile(SAMPLE, "utf8"));
   await writeFile(good, JSON.stringify({ ...sample, title: "Imported Snack" }));
-  chooser = Promise.all([P.waitForEvent("filechooser"), P.getByRole("button", { name: "Import JSON" }).click()]);
+  chooser = Promise.all([
+    P.waitForEvent("filechooser"),
+    P.getByRole("button", { name: "Import JSON" }).click(),
+  ]);
   await (await chooser)[0].setFiles(good);
   await expect(P.getByLabel("Title", { exact: true })).toHaveValue("Imported Snack");
   await expect(P.getByRole("heading", { name: "Categories (3)" })).toBeVisible();
@@ -83,20 +106,30 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
 
   // --- List: duplicate, delete, copy a built-in -------------------------------
   await P.goto("/packs");
-  const mine = P.locator("section", { has: P.getByRole("heading", { name: "My packs" }) }).locator(".pack-card");
+  const mine = P.locator("section", { has: P.getByRole("heading", { name: "My packs" }) }).locator(
+    ".pack-card",
+  );
   await expect(mine).toHaveCount(2);
   await expect(mine.filter({ hasText: "Kitchen Lab" })).toContainText("1 category × 2 clues");
-  await mine.filter({ hasText: "Imported Snack" }).getByRole("button", { name: "Duplicate" }).click();
+  await mine
+    .filter({ hasText: "Imported Snack" })
+    .getByRole("button", { name: "Duplicate" })
+    .click();
   await P.waitForURL(/\/packs\/(?!new$)[^/]+$/);
   await P.goto("/packs");
   await expect(mine).toHaveCount(3);
   await expect(mine.filter({ hasText: "Imported Snack (copy)" })).toHaveCount(1); // Copies are titled as copies.
-  await mine.filter({ hasText: "Imported Snack (copy)" }).getByRole("button", { name: "Delete" }).click();
+  await mine
+    .filter({ hasText: "Imported Snack (copy)" })
+    .getByRole("button", { name: "Delete" })
+    .click();
   const confirm = P.getByRole("dialog", { name: /^Delete “Imported Snack \(copy\)”\?$/ });
   await expect(confirm.getByRole("button", { name: "Keep it" })).toBeFocused(); // The safe choice is focused first.
   await confirm.getByRole("button", { name: "Delete pack" }).click();
   await expect(mine).toHaveCount(2);
-  await P.locator(".pack-card", { hasText: "Ham Snack" }).getByRole("button", { name: "Copy to my packs" }).click();
+  await P.locator(".pack-card", { hasText: "Ham Snack" })
+    .getByRole("button", { name: "Copy to my packs" })
+    .click();
   await P.waitForURL(/\/packs\/(?!new$)[^/]+$/);
   await expect(P.getByLabel("Title", { exact: true })).toHaveValue("Ham Snack (copy)");
 
@@ -104,7 +137,9 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   await P.goto("/");
   const select = P.getByLabel("Question pack");
   await expect(select.locator("option", { hasText: "Kitchen Lab" })).toBeAttached();
-  const label = (await select.locator("option").allInnerTexts()).find((text) => text.startsWith("Kitchen Lab"))!;
+  const label = (await select.locator("option").allInnerTexts()).find((text) =>
+    text.startsWith("Kitchen Lab"),
+  )!;
   await select.selectOption({ label });
   await P.getByRole("button", { name: "Create game" }).click();
   await P.waitForURL(/\/host\/[A-Z]{5}$/);

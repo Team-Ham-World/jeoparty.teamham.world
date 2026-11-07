@@ -6,7 +6,11 @@ import type { PackSummary } from "@/features/network/protocol";
 import { ConfirmDialog } from "@/features/ui/dialog";
 import { plural } from "@/features/ui/format";
 
-const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+const dateFormat = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
 
 export function PacksList({
   packs,
@@ -28,7 +32,9 @@ export function PacksList({
       <div className="packs-head">
         <div className="stack stack--tight">
           <h1 className="marker">Question packs</h1>
-          <p className="muted">Write your own categories and clues, or copy a built-in pack and remix it.</p>
+          <p className="muted">
+            Write your own categories and clues, or copy a built-in pack and remix it.
+          </p>
         </div>
         <Link className="btn btn--primary btn--big" href="/packs/new">
           + New pack
@@ -38,7 +44,9 @@ export function PacksList({
       <section aria-labelledby="mine-title" className="stack">
         <h2 id="mine-title">My packs</h2>
         {mine.length === 0 ? (
-          <p className="panel panel--sunk">No packs yet. Start a new one, or copy a built-in pack below.</p>
+          <p className="panel panel--sunk">
+            No packs yet. Start a new one, or copy a built-in pack below.
+          </p>
         ) : (
           <ul className="packs-grid">
             {mine.map((pack) => (
@@ -46,10 +54,20 @@ export function PacksList({
                 <Link className="btn btn--small btn--primary" href={`/packs/${pack.id}`}>
                   Edit
                 </Link>
-                <button type="button" className="btn btn--small" onClick={() => onDuplicate(pack.id)} disabled={busyId !== null}>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => onDuplicate(pack.id)}
+                  disabled={busyId !== null}
+                >
                   Duplicate
                 </button>
-                <button type="button" className="btn btn--small" onClick={() => setDeleting(pack)} disabled={busyId !== null}>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => setDeleting(pack)}
+                  disabled={busyId !== null}
+                >
                   Delete
                 </button>
               </PackCard>
@@ -63,7 +81,12 @@ export function PacksList({
         <ul className="packs-grid">
           {builtIn.map((pack) => (
             <PackCard key={pack.id} pack={pack} busy={busyId === pack.id}>
-              <button type="button" className="btn btn--small" onClick={() => onDuplicate(pack.id)} disabled={busyId !== null}>
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={() => onDuplicate(pack.id)}
+                disabled={busyId !== null}
+              >
                 Copy to my packs
               </button>
             </PackCard>
@@ -87,18 +110,33 @@ export function PacksList({
   );
 }
 
-function PackCard({ pack, busy, children }: { pack: PackSummary; busy: boolean; children: React.ReactNode }) {
+function PackCard({
+  pack,
+  busy,
+  children,
+}: {
+  pack: PackSummary;
+  busy: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <li className="panel pack-card" aria-busy={busy || undefined}>
       <div className="pack-card__meta">
-        <span className={`stamp stamp--flat ${pack.source === "mine" ? "stamp--blue" : "stamp--dashed"}`}>{pack.source === "mine" ? "Mine" : "Built in"}</span>
+        <span
+          className={`stamp stamp--flat ${pack.source === "mine" ? "stamp--blue" : "stamp--dashed"}`}
+        >
+          {pack.source === "mine" ? "Mine" : "Built in"}
+        </span>
         <span className="muted num">
-          {plural(pack.categories, "category", "categories")} × {plural(pack.cluesPerCategory, "clue")}
+          {plural(pack.categories, "category", "categories")} ×{" "}
+          {plural(pack.cluesPerCategory, "clue")}
         </span>
       </div>
       <h3 className="pack-card__title name">{pack.title}</h3>
       {pack.description ? <p className="muted pack-card__desc">{pack.description}</p> : null}
-      {pack.updatedAt ? <p className="field__hint">Updated {dateFormat.format(new Date(pack.updatedAt))}</p> : null}
+      {pack.updatedAt ? (
+        <p className="field__hint">Updated {dateFormat.format(new Date(pack.updatedAt))}</p>
+      ) : null}
       <div className="row pack-card__actions">{children}</div>
     </li>
   );

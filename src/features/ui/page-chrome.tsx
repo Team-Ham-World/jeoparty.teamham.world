@@ -7,7 +7,15 @@ import { loginUrl } from "@/features/network/client/api";
 import { FixtureStamp, Lockup } from "./brand";
 
 /** Top bar for the paper pages (home, packs, gates). */
-export function PageHeader({ session, onSignOut, children }: { session?: SessionInfo | null; onSignOut?: () => void; children?: ReactNode }) {
+export function PageHeader({
+  session,
+  onSignOut,
+  children,
+}: {
+  session?: SessionInfo | null;
+  onSignOut?: () => void;
+  children?: ReactNode;
+}) {
   return (
     <header className="topbar">
       <Lockup href="/" />
@@ -45,7 +53,15 @@ export function LoadingNotice({ label = "Loading" }: { label?: string }) {
   );
 }
 
-export function ErrorNotice({ title, body, onRetry }: { title: string; body: string; onRetry?: () => void }) {
+export function ErrorNotice({
+  title,
+  body,
+  onRetry,
+}: {
+  title: string;
+  body: string;
+  onRetry?: () => void;
+}) {
   return (
     <main id="main-content" className="notice">
       <span className="stamp stamp--ink">Hmm</span>
@@ -66,7 +82,17 @@ export function ErrorNotice({ title, body, onRetry }: { title: string; body: str
 }
 
 /** "Sign in with HAM" card that brings you back to `returnTo` afterwards. */
-export function SignInNotice({ returnTo, authMode, title, body }: { returnTo: string; authMode: AuthMode; title: string; body: string }) {
+export function SignInNotice({
+  returnTo,
+  authMode,
+  title,
+  body,
+}: {
+  returnTo: string;
+  authMode: AuthMode;
+  title: string;
+  body: string;
+}) {
   return (
     <main id="main-content" className="notice">
       <span className="stamp stamp--red">Sign in</span>

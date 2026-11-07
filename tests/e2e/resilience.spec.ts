@@ -21,7 +21,9 @@ import {
   setTimers,
 } from "./helpers";
 
-test("lobby tools, pause, reconnects, host leaving, score correction, round 2 and sign out", async ({ browser }) => {
+test("lobby tools, pause, reconnects, host leaving, score correction, round 2 and sign out", async ({
+  browser,
+}) => {
   const host = await device(browser, "r-host", LAPTOP);
   const tv = await device(browser, "tv", LAPTOP);
   const alice = await device(browser, "r-alice");
@@ -38,13 +40,17 @@ test("lobby tools, pause, reconnects, host leaving, score correction, round 2 an
   // --- Remove a lobby player ----------------------------------------------
   await H.getByRole("button", { name: "Remove r-dani" }).click();
   await H.getByRole("dialog").getByRole("button", { name: "Remove" }).click();
-  await expect(dani.page.getByRole("heading", { name: "You were removed from this room" })).toBeVisible();
+  await expect(
+    dani.page.getByRole("heading", { name: "You were removed from this room" }),
+  ).toBeVisible();
   await expect(H.locator(".host-roster li")).toHaveCount(3);
   await expect(tv.page.locator(".tv-tags")).not.toContainText("r-dani");
 
   // --- Rotate the TV link: the old screen is revoked, the old key is dead --
   await H.getByRole("button", { name: "Make a new link" }).click();
-  await expect(tv.page.getByRole("heading", { name: "This screen was disconnected" })).toBeVisible();
+  await expect(
+    tv.page.getByRole("heading", { name: "This screen was disconnected" }),
+  ).toBeVisible();
   const newLink = await displayLink(H);
   expect(newLink).not.toBe(firstLink);
   const tv2 = await device(browser, "tv2", LAPTOP);
@@ -52,7 +58,9 @@ test("lobby tools, pause, reconnects, host leaving, score correction, round 2 an
   await expect(tv2.page.getByText("3 players in")).toBeVisible();
   const stale = await device(browser, "old-tv", LAPTOP);
   await stale.page.goto(firstLink);
-  await expect(stale.page.getByRole("heading", { name: "Ask the host for a new display link" })).toBeVisible();
+  await expect(
+    stale.page.getByRole("heading", { name: "Ask the host for a new display link" }),
+  ).toBeVisible();
   expect(new URL(stale.page.url()).hash).toBe(""); // The key never stays in the address bar.
 
   // --- Two short rounds: one category each, no wager clues -----------------

@@ -85,8 +85,7 @@ export function fakeEngine() {
         rejection: { code, message: code },
       });
       if (cmd.type === "addPlayer") {
-        if (s.phase === "lobby" && s.players.length >= 6)
-          return reject("gameFull");
+        if (s.phase === "lobby" && s.players.length >= 6) return reject("gameFull");
         if (s.phase === "lobby")
           s.players.push({
             id: cmd.playerId,
@@ -98,9 +97,7 @@ export function fakeEngine() {
       }
       if (cmd.type === "removeMember" || cmd.type === "removePlayer") {
         s.players = s.players.filter((p) => p.id !== cmd.playerId);
-        s.waitingPlayers = s.waitingPlayers.filter(
-          (p) => p.id !== cmd.playerId,
-        );
+        s.waitingPlayers = s.waitingPlayers.filter((p) => p.id !== cmd.playerId);
       }
       if (cmd.type === "renamePlayer")
         for (const p of [...s.players, ...s.waitingPlayers])
@@ -109,15 +106,13 @@ export function fakeEngine() {
         if (cmd.target.role === "host") s.hostConnected = cmd.connected;
         else {
           const target = cmd.target;
-          for (const p of s.players)
-            if (p.id === target.playerId) p.connected = cmd.connected;
+          for (const p of s.players) if (p.id === target.playerId) p.connected = cmd.connected;
         }
       }
       if (cmd.type === "setPack") s.pack = cmd.pack;
       if (cmd.type === "startGame") s.phase = "board";
       if (cmd.type === "timerExpired") s.deadline = null;
-      if (actor.kind === "player" && cmd.type === "startGame")
-        return reject("forbidden");
+      if (actor.kind === "player" && cmd.type === "startGame") return reject("forbidden");
       s.commands.push(cmd.type);
       return {
         ok: true,
@@ -161,10 +156,7 @@ export function fakeEngine() {
       board: null,
     }),
     restore: (raw) =>
-      typeof raw === "object" &&
-      raw !== null &&
-      "schema" in raw &&
-      raw.schema === "ham-quiz/game@1"
+      typeof raw === "object" && raw !== null && "schema" in raw && raw.schema === "ham-quiz/game@1"
         ? (raw as unknown as GameState)
         : null,
   };
@@ -228,9 +220,7 @@ export class Browser {
     return response;
   }
   async beginLogin(returnTo = "/") {
-    const res = await this.request(
-      `/api/auth/login?return_to=${encodeURIComponent(returnTo)}`,
-    );
+    const res = await this.request(`/api/auth/login?return_to=${encodeURIComponent(returnTo)}`);
     return new URL(res.headers.get("location")!).searchParams;
   }
   async decide(
@@ -255,19 +245,12 @@ export class Browser {
     return this.request(url.pathname + url.search);
   }
   async signIn(username: string) {
-    const result = await this.callback(
-      await this.decide(await this.beginLogin(), { username }),
-    );
+    const result = await this.callback(await this.decide(await this.beginLogin(), { username }));
     const info = await (await this.request("/api/session")).json();
     this.csrf = info.csrfToken;
     return result;
   }
-  mutate(
-    path: string,
-    body?: unknown,
-    method = "POST",
-    headers: Record<string, string> = {},
-  ) {
+  mutate(path: string, body?: unknown, method = "POST", headers: Record<string, string> = {}) {
     return this.request(path, {
       method,
       headers: {

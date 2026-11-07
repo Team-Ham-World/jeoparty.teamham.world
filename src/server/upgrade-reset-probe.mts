@@ -29,9 +29,7 @@ async function reset(origin: string, code: string, during?: Promise<void>) {
   const client = net.connect(config.port, "127.0.0.1");
   client.on("error", () => undefined);
   await once(client, "connect");
-  const closed = new Promise<void>((resolve) =>
-    client.once("close", () => resolve()),
-  );
+  const closed = new Promise<void>((resolve) => client.once("close", () => resolve()));
   await new Promise<void>((resolve) =>
     client.write(
       `GET /ws?room=${code}&role=host HTTP/1.1\r\nHost: localhost\r\nOrigin: ${origin}\r\nCookie: ${cookie}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n`,
@@ -47,9 +45,7 @@ try {
     await reset("https://wrong.invalid", "BCDFG");
     assert.equal((await request("/api/health")).status, 200);
   }
-  const login = new URL(
-    (await request("/api/auth/login")).headers.get("location")!,
-  );
+  const login = new URL((await request("/api/auth/login")).headers.get("location")!);
   login.searchParams.set("username", "probe-host");
   const decision = await request("/__ham/authorize/decide", {
     method: "POST",
@@ -60,10 +56,7 @@ try {
     body: login.searchParams,
   });
   const callback = new URL(decision.headers.get("location")!);
-  assert.equal(
-    (await request(callback.pathname + callback.search)).status,
-    302,
-  );
+  assert.equal((await request(callback.pathname + callback.search)).status, 302);
   const { csrfToken } = await (await request("/api/session")).json();
   const { code } = await (
     await request("/api/rooms", {

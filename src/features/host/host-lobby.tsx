@@ -1,7 +1,12 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { MAX_PLAYERS, type GameSettings, type HostView, type PlayerId } from "@/features/engine/contract";
+import {
+  MAX_PLAYERS,
+  type GameSettings,
+  type HostView,
+  type PlayerId,
+} from "@/features/engine/contract";
 import type { PackSummary } from "@/features/network/protocol";
 import { ConfirmDialog } from "@/features/ui/dialog";
 import { plural } from "@/features/ui/format";
@@ -72,9 +77,15 @@ export function HostLobby({
             <div className="host-invite__code">
               <span className="eyebrow">Room code</span>
               <strong className="room-code host-invite__letters">{view.roomCode}</strong>
-              <p className="muted">Players sign in with HAM, then scan the code or enter it on the home page.</p>
+              <p className="muted">
+                Players sign in with HAM, then scan the code or enter it on the home page.
+              </p>
             </div>
-            <QrCode value={joinUrl} label={`QR code to join room ${view.roomCode}`} className="host-invite__qr" />
+            <QrCode
+              value={joinUrl}
+              label={`QR code to join room ${view.roomCode}`}
+              className="host-invite__qr"
+            />
           </div>
           <CopyField value={joinUrl} label="Join link" />
         </section>
@@ -114,7 +125,8 @@ export function HostLobby({
           </ul>
         ) : (
           <p className="host-ready">
-            <span className="stamp stamp--good stamp--flat">Ready</span> {plural(view.players.length, "player")} in. Start when everyone can see the big screen.
+            <span className="stamp stamp--good stamp--flat">Ready</span>{" "}
+            {plural(view.players.length, "player")} in. Start when everyone can see the big screen.
           </p>
         )}
         <button
@@ -144,7 +156,15 @@ export function HostLobby({
   );
 }
 
-function PackChooser({ view, packs, actions }: { view: HostView; packs: PackSummary[]; actions: HostActions }) {
+function PackChooser({
+  view,
+  packs,
+  actions,
+}: {
+  view: HostView;
+  packs: PackSummary[];
+  actions: HostActions;
+}) {
   const id = useId();
   const [choice, setChoice] = useState(view.pack?.id ?? packs[0]?.id ?? "");
   const changed = choice !== "" && choice !== view.pack?.id;
@@ -162,7 +182,13 @@ function PackChooser({ view, packs, actions }: { view: HostView; packs: PackSumm
         <label className="field__label" htmlFor={id}>
           Question pack
         </label>
-        <select id={id} className="input" value={choice} onChange={(event) => setChoice(event.target.value)} disabled={!actions.can("setPack")}>
+        <select
+          id={id}
+          className="input"
+          value={choice}
+          onChange={(event) => setChoice(event.target.value)}
+          disabled={!actions.can("setPack")}
+        >
           {packs.length === 0 ? <option value="">No packs available</option> : null}
           {builtIn.length > 0 ? (
             <optgroup label="Built in">
@@ -194,7 +220,12 @@ function PackChooser({ view, packs, actions }: { view: HostView; packs: PackSumm
           Changing the pack resets the settings to its defaults.
         </span>
       </div>
-      <button type="submit" className="btn" disabled={!changed || !actions.can("setPack")} aria-busy={actions.pending === "choosePack" || undefined}>
+      <button
+        type="submit"
+        className="btn"
+        disabled={!changed || !actions.can("setPack")}
+        aria-busy={actions.pending === "choosePack" || undefined}
+      >
         Use this pack
       </button>
     </form>
@@ -254,7 +285,10 @@ function SettingsEditor({
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings));
   const [errors, setErrors] = useState<Partial<Record<keyof typeof SECONDS, string>>>({});
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(settings));
-  const maxCategories = Math.max(1, Math.min(6, packCategories ? Math.floor(packCategories / draft.rounds) : 6));
+  const maxCategories = Math.max(
+    1,
+    Math.min(6, packCategories ? Math.floor(packCategories / draft.rounds) : 6),
+  );
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -266,7 +300,8 @@ function SettingsEditor({
     for (const key of Object.keys(SECONDS) as (keyof typeof SECONDS)[]) {
       const n = Number(draft[key]);
       const { min, max } = SECONDS[key];
-      if (!Number.isInteger(n) || n < min || n > max) nextErrors[key] = `Use ${min}–${max} seconds.`;
+      if (!Number.isInteger(n) || n < min || n > max)
+        nextErrors[key] = `Use ${min}–${max} seconds.`;
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -290,7 +325,12 @@ function SettingsEditor({
         <legend className="field__label">Rounds</legend>
         <div className="segmented" role="group" aria-label="Rounds">
           {([1, 2] as const).map((n) => (
-            <button key={n} type="button" aria-pressed={draft.rounds === n} onClick={() => set("rounds", n)}>
+            <button
+              key={n}
+              type="button"
+              aria-pressed={draft.rounds === n}
+              onClick={() => set("rounds", n)}
+            >
               {n === 1 ? "1 round" : "2 rounds"}
             </button>
           ))}
@@ -309,7 +349,10 @@ function SettingsEditor({
             disabled={disabled}
             onChange={(event) => set("categoriesPerRound", Number(event.target.value))}
           >
-            {Array.from({ length: Math.max(maxCategories, draft.categoriesPerRound) }, (_, i) => i + 1).map((n) => (
+            {Array.from(
+              { length: Math.max(maxCategories, draft.categoriesPerRound) },
+              (_, i) => i + 1,
+            ).map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
@@ -320,7 +363,13 @@ function SettingsEditor({
           <label className="field__label" htmlFor={`${id}-w1`}>
             Wager clues, round 1
           </label>
-          <select id={`${id}-w1`} className="input" value={draft.wager1} disabled={disabled} onChange={(event) => set("wager1", Number(event.target.value))}>
+          <select
+            id={`${id}-w1`}
+            className="input"
+            value={draft.wager1}
+            disabled={disabled}
+            onChange={(event) => set("wager1", Number(event.target.value))}
+          >
             {[0, 1, 2, 3].map((n) => (
               <option key={n} value={n}>
                 {n}
@@ -350,11 +399,21 @@ function SettingsEditor({
 
       <div className="row">
         <label className="check">
-          <input type="checkbox" checked={draft.finalRound} disabled={disabled} onChange={(event) => set("finalRound", event.target.checked)} />
+          <input
+            type="checkbox"
+            checked={draft.finalRound}
+            disabled={disabled}
+            onChange={(event) => set("finalRound", event.target.checked)}
+          />
           Final round
         </label>
         <label className="check">
-          <input type="checkbox" checked={draft.timersEnabled} disabled={disabled} onChange={(event) => set("timersEnabled", event.target.checked)} />
+          <input
+            type="checkbox"
+            checked={draft.timersEnabled}
+            disabled={disabled}
+            onChange={(event) => set("timersEnabled", event.target.checked)}
+          />
           Timers
         </label>
       </div>
@@ -376,7 +435,10 @@ function SettingsEditor({
                 aria-describedby={`${id}-${key}-hint`}
                 onChange={(event) => set(key, event.target.value.replace(/[^0-9]/g, ""))}
               />
-              <span id={`${id}-${key}-hint`} className={errors[key] ? "field__error" : "field__hint"}>
+              <span
+                id={`${id}-${key}-hint`}
+                className={errors[key] ? "field__error" : "field__hint"}
+              >
                 {errors[key] ?? `${SECONDS[key].min}–${SECONDS[key].max} seconds`}
               </span>
             </div>
@@ -385,11 +447,20 @@ function SettingsEditor({
       ) : null}
 
       <div className="row">
-        <button type="submit" className="btn" disabled={disabled || !dirty} aria-busy={busy || undefined}>
+        <button
+          type="submit"
+          className="btn"
+          disabled={disabled || !dirty}
+          aria-busy={busy || undefined}
+        >
           Save settings
         </button>
         {dirty ? (
-          <button type="button" className="btn btn--quiet" onClick={() => setDraft(toDraft(settings))}>
+          <button
+            type="button"
+            className="btn btn--quiet"
+            onClick={() => setDraft(toDraft(settings))}
+          >
             Undo changes
           </button>
         ) : (

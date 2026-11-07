@@ -65,5 +65,4 @@ export interface ValidationError {
 }
 
 export type ValidationResult =
-  | { ok: true; data: QuestionPack }
-  | { ok: false; errors: ValidationError[] };
+  { ok: true; data: QuestionPack } | { ok: false; errors: ValidationError[] };

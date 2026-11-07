@@ -36,7 +36,13 @@ describe("display claim", () => {
     window.history.replaceState(null, "", "/display/BCDFG#key=stale-key");
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ error: "forbidden", message: "That display link has expired." }), { status: 403 })),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ error: "forbidden", message: "That display link has expired." }),
+            { status: 403 },
+          ),
+      ),
     );
     render(<DisplayRoute code="BCDFG" />);
     expect(await screen.findByText("Ask the host for a new display link")).toBeInTheDocument();

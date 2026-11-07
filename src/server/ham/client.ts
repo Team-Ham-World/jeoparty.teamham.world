@@ -54,15 +54,11 @@ export function createHamClient(
   fetchImpl: FetchLike,
   now: () => number = Date.now,
 ): HamClient {
-  const basic = Buffer.from(
-    `${settings.clientId}:${settings.clientSecret}`,
-    "utf8",
-  ).toString("base64");
+  const basic = Buffer.from(`${settings.clientId}:${settings.clientSecret}`, "utf8").toString(
+    "base64",
+  );
 
-  async function post(
-    path: string,
-    fields: Record<string, string>,
-  ): Promise<Response | null> {
+  async function post(path: string, fields: Record<string, string>): Promise<Response | null> {
     const request = new Request(`${settings.issuer}${path}`, {
       method: "POST",
       headers: {
@@ -76,9 +72,7 @@ export function createHamClient(
     });
     try {
       const response = await fetchImpl(request);
-      if (
-        Number(response.headers.get("content-length") ?? "0") > MAX_BODY_BYTES
-      ) {
+      if (Number(response.headers.get("content-length") ?? "0") > MAX_BODY_BYTES) {
         await response.body?.cancel();
         return null;
       }
@@ -177,9 +171,7 @@ export function createHamClient(
       }
       if (v.exp * 1000 <= now()) return { kind: "inactive" };
       const username =
-        typeof v.username === "string" && v.username.length <= 64
-          ? v.username
-          : null;
+        typeof v.username === "string" && v.username.length <= 64 ? v.username : null;
       return { kind: "active", sub: v.sub, username, expSeconds: v.exp };
     },
 

@@ -9,7 +9,11 @@ const noop = () => () => {};
 
 /** Previews render only in the browser, so random ids and clocks never mismatch the server HTML. */
 function useMounted(): boolean {
-  return useSyncExternalStore(noop, () => true, () => false);
+  return useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
 }
 
 const SIZES: Record<PreviewEntry["viewport"], string> = {
@@ -30,7 +34,10 @@ export function PreviewIndex() {
       </header>
       <main id="main-content" className="page preview-index">
         <h1 className="marker">Screen gallery</h1>
-        <p className="muted">Every screen and state, rendered from typed fixture views with a mock connection. Commands are logged to the console.</p>
+        <p className="muted">
+          Every screen and state, rendered from typed fixture views with a mock connection. Commands
+          are logged to the console.
+        </p>
         {groups.map((group) => (
           <section key={group} aria-labelledby={`g-${group}`} className="stack stack--tight">
             <h2 id={`g-${group}`}>{group}</h2>

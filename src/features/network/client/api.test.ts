@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CSRF_HEADER } from "../protocol";
-import { ApiError, createDisplayLink, createRoom, deletePack, getSession, joinRoom, logout, updatePack } from "./api";
+import {
+  ApiError,
+  createDisplayLink,
+  createRoom,
+  deletePack,
+  getSession,
+  joinRoom,
+  logout,
+  updatePack,
+} from "./api";
 
 type Call = [string, RequestInit];
 
@@ -42,7 +51,9 @@ describe("api helpers", () => {
   });
 
   it("does not send a CSRF header on GET", async () => {
-    const calls = stubFetch(() => new Response(JSON.stringify({ signedIn: false, authMode: "fixture" }), { status: 200 }));
+    const calls = stubFetch(
+      () => new Response(JSON.stringify({ signedIn: false, authMode: "fixture" }), { status: 200 }),
+    );
     await expect(getSession()).resolves.toEqual({ signedIn: false, authMode: "fixture" });
     expect(headersOf(calls()[0][1])[CSRF_HEADER]).toBeUndefined();
   });
@@ -50,18 +61,30 @@ describe("api helpers", () => {
   it("throws a typed ApiError with validation errors", async () => {
     stubFetch(
       () =>
-        new Response(JSON.stringify({ error: "invalidPack", message: "Fix the pack.", validationErrors: [{ path: "title", message: "Expected a non-empty string." }] }), {
-          status: 400,
-        }),
+        new Response(
+          JSON.stringify({
+            error: "invalidPack",
+            message: "Fix the pack.",
+            validationErrors: [{ path: "title", message: "Expected a non-empty string." }],
+          }),
+          {
+            status: 400,
+          },
+        ),
     );
     const error = await updatePack("t", "p1", {}).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 400, code: "invalidPack", message: "Fix the pack." });
-    expect((error as ApiError).validationErrors).toEqual([{ path: "title", message: "Expected a non-empty string." }]);
+    expect((error as ApiError).validationErrors).toEqual([
+      { path: "title", message: "Expected a non-empty string." },
+    ]);
   });
 
   it("turns network failures into a readable ApiError", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))),
+    );
     await expect(getSession()).rejects.toMatchObject({ code: "network", status: 0 });
   });
 });

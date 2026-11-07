@@ -59,7 +59,12 @@ const CATEGORY_TITLES = [
 
 type CellPlan = "a" | "c" | "x" | "w"; // available, completed, active, wager (available)
 
-function makeBoard(roundIndex: number, roundTitle: string, plan: CellPlan[][], step = 200): BoardView<HostBoardCellView> {
+function makeBoard(
+  roundIndex: number,
+  roundTitle: string,
+  plan: CellPlan[][],
+  step = 200,
+): BoardView<HostBoardCellView> {
   return {
     roundIndex,
     roundTitle,
@@ -94,8 +99,12 @@ const MID_PLAN: CellPlan[][] = [
   ["a", "c", "a", "a", "a"],
 ];
 
-const ACTIVE_PLAN: CellPlan[][] = MID_PLAN.map((column, c) => column.map((mark, r) => (c === 3 && r === 2 ? "x" : mark)));
-const WAGER_ACTIVE_PLAN: CellPlan[][] = MID_PLAN.map((column, c) => column.map((mark, r) => (c === 1 && r === 2 ? "x" : mark)));
+const ACTIVE_PLAN: CellPlan[][] = MID_PLAN.map((column, c) =>
+  column.map((mark, r) => (c === 3 && r === 2 ? "x" : mark)),
+);
+const WAGER_ACTIVE_PLAN: CellPlan[][] = MID_PLAN.map((column, c) =>
+  column.map((mark, r) => (c === 1 && r === 2 ? "x" : mark)),
+);
 
 export const BOARD_FRESH = makeBoard(0, "Round 1", FRESH_PLAN);
 export const BOARD_MID = makeBoard(0, "Round 1", MID_PLAN);
@@ -125,11 +134,34 @@ function clue(stage: ClueView["stage"], extra: Partial<ClueView> = {}): ClueView
   };
 }
 
-const ATTEMPT_PENDING: AttemptView = { id: "att-2", playerId: "p-medchu", result: "pending", timedOut: false, delta: null };
-const ATTEMPT_WRONG: AttemptView = { id: "att-1", playerId: "p-scarlet", result: "incorrect", timedOut: false, delta: -600 };
-const ATTEMPT_RIGHT: AttemptView = { id: "att-2", playerId: "p-medchu", result: "correct", timedOut: false, delta: 600 };
+const ATTEMPT_PENDING: AttemptView = {
+  id: "att-2",
+  playerId: "p-medchu",
+  result: "pending",
+  timedOut: false,
+  delta: null,
+};
+const ATTEMPT_WRONG: AttemptView = {
+  id: "att-1",
+  playerId: "p-scarlet",
+  result: "incorrect",
+  timedOut: false,
+  delta: -600,
+};
+const ATTEMPT_RIGHT: AttemptView = {
+  id: "att-2",
+  playerId: "p-medchu",
+  result: "correct",
+  timedOut: false,
+  delta: 600,
+};
 
-function timer(kind: TimerView["kind"], durationMs: number, remaining: number, paused = false): TimerView {
+function timer(
+  kind: TimerView["kind"],
+  durationMs: number,
+  remaining: number,
+  paused = false,
+): TimerView {
   return {
     id: `timer-${kind}`,
     kind,
@@ -164,10 +196,38 @@ export const SETTINGS: GameSettings = {
 };
 
 const SCORE_LOG: ScoreLogEntry[] = [
-  { revision: 41, at: FIXTURE_NOW - 60_000, playerId: "p-ivvy", delta: 400, kind: "clue", reason: "Internet Lore · 400" },
-  { revision: 44, at: FIXTURE_NOW - 45_000, playerId: "p-scarlet", delta: -600, kind: "clue", reason: "Map Quest · 600" },
-  { revision: 47, at: FIXTURE_NOW - 30_000, playerId: "p-max", delta: 1000, kind: "wager", reason: "Kitchen Science · wager" },
-  { revision: 52, at: FIXTURE_NOW - 12_000, playerId: "p-medchu", delta: 200, kind: "adjustment", reason: "Accepted 'Lynx' without the article" },
+  {
+    revision: 41,
+    at: FIXTURE_NOW - 60_000,
+    playerId: "p-ivvy",
+    delta: 400,
+    kind: "clue",
+    reason: "Internet Lore · 400",
+  },
+  {
+    revision: 44,
+    at: FIXTURE_NOW - 45_000,
+    playerId: "p-scarlet",
+    delta: -600,
+    kind: "clue",
+    reason: "Map Quest · 600",
+  },
+  {
+    revision: 47,
+    at: FIXTURE_NOW - 30_000,
+    playerId: "p-max",
+    delta: 1000,
+    kind: "wager",
+    reason: "Kitchen Science · wager",
+  },
+  {
+    revision: 52,
+    at: FIXTURE_NOW - 12_000,
+    playerId: "p-medchu",
+    delta: 200,
+    kind: "adjustment",
+    reason: "Accepted 'Lynx' without the article",
+  },
 ];
 
 // ---------------------------------------------------------------- specs
@@ -219,7 +279,11 @@ function publicBoard(board: BoardView<HostBoardCellView> | null | undefined): Bo
     ...board,
     categories: board.categories.map((category) => ({
       ...category,
-      cells: category.cells.map((cell) => ({ clueId: cell.clueId, value: cell.value, state: cell.state })),
+      cells: category.cells.map((cell) => ({
+        clueId: cell.clueId,
+        value: cell.value,
+        state: cell.state,
+      })),
     })),
   };
 }
@@ -259,7 +323,12 @@ export function displayOf(spec: Spec): DisplayView {
   };
 }
 
-export function hostOf(spec: Spec, extra: Partial<Pick<HostView, "allowedCommands" | "startBlockers" | "wagerBounds" | "settings" | "scoreLog">> = {}): HostView {
+export function hostOf(
+  spec: Spec,
+  extra: Partial<
+    Pick<HostView, "allowedCommands" | "startBlockers" | "wagerBounds" | "settings" | "scoreLog">
+  > = {},
+): HostView {
   return {
     ...common(spec),
     audience: "host",
@@ -274,12 +343,21 @@ export function hostOf(spec: Spec, extra: Partial<Pick<HostView, "allowedCommand
   };
 }
 
-const NO_CAN: PlayerView["can"] = { buzz: false, wager: null, finalWager: null, finalAnswer: false };
+const NO_CAN: PlayerView["can"] = {
+  buzz: false,
+  wager: null,
+  finalWager: null,
+  finalAnswer: false,
+};
 
 export function playerOf(
   spec: Spec,
   meId: PlayerId,
-  extra: { can?: Partial<PlayerView["can"]>; myFinal?: PlayerView["myFinal"]; waiting?: boolean } = {},
+  extra: {
+    can?: Partial<PlayerView["can"]>;
+    myFinal?: PlayerView["myFinal"];
+    waiting?: boolean;
+  } = {},
 ): PlayerView {
   const players = spec.players ?? PLAYERS;
   const waiting = (spec.waitingPlayers ?? []).find((w) => w.id === meId);
@@ -305,7 +383,12 @@ const LOBBY_PLAYERS: PublicPlayer[] = PLAYERS.map((p) => ({ ...p, score: 0 }));
 export const SPECS = {
   lobby: { phase: "lobby", players: LOBBY_PLAYERS },
   lobbyAlone: { phase: "lobby", players: LOBBY_PLAYERS.slice(0, 1), pack: null },
-  roundIntro: { phase: "roundIntro", board: BOARD_FRESH, controllerId: "p-medchu", players: LOBBY_PLAYERS },
+  roundIntro: {
+    phase: "roundIntro",
+    board: BOARD_FRESH,
+    controllerId: "p-medchu",
+    players: LOBBY_PLAYERS,
+  },
   board: { phase: "board", board: BOARD_MID, controllerId: "p-ivvy", waitingPlayers: WAITING },
   reading: { phase: "clue", board: BOARD_ACTIVE, controllerId: "p-ivvy", clue: clue("reading") },
   open: {
@@ -320,7 +403,11 @@ export const SPECS = {
     phase: "clue",
     board: BOARD_ACTIVE,
     controllerId: "p-ivvy",
-    clue: clue("answering", { answeringPlayerId: "p-medchu", attempts: [ATTEMPT_WRONG, ATTEMPT_PENDING], lockedOutPlayerIds: ["p-scarlet"] }),
+    clue: clue("answering", {
+      answeringPlayerId: "p-medchu",
+      attempts: [ATTEMPT_WRONG, ATTEMPT_PENDING],
+      lockedOutPlayerIds: ["p-scarlet"],
+    }),
     timer: timer("answer", 10_000, 6_200),
     lastEvent: { kind: "buzzAccepted", clueId: "clue-0-3-2", playerId: "p-medchu" },
   },
@@ -329,21 +416,39 @@ export const SPECS = {
     board: BOARD_ACTIVE,
     controllerId: "p-ivvy",
     clue: clue("closed", { attempts: [ATTEMPT_WRONG], lockedOutPlayerIds: ["p-scarlet"] }),
-    lastEvent: { kind: "judged", clueId: "clue-0-3-2", playerId: "p-scarlet", correct: false, delta: -600 },
+    lastEvent: {
+      kind: "judged",
+      clueId: "clue-0-3-2",
+      playerId: "p-scarlet",
+      correct: false,
+      delta: -600,
+    },
   },
   judgedCorrect: {
     phase: "clue",
     board: BOARD_ACTIVE,
     controllerId: "p-medchu",
-    clue: clue("closed", { attempts: [ATTEMPT_WRONG, ATTEMPT_RIGHT], lockedOutPlayerIds: ["p-scarlet"] }),
+    clue: clue("closed", {
+      attempts: [ATTEMPT_WRONG, ATTEMPT_RIGHT],
+      lockedOutPlayerIds: ["p-scarlet"],
+    }),
     players: PLAYERS.map((p) => (p.id === "p-medchu" ? { ...p, score: 1400 } : p)),
-    lastEvent: { kind: "judged", clueId: "clue-0-3-2", playerId: "p-medchu", correct: true, delta: 600 },
+    lastEvent: {
+      kind: "judged",
+      clueId: "clue-0-3-2",
+      playerId: "p-medchu",
+      correct: true,
+      delta: 600,
+    },
   },
   revealed: {
     phase: "clue",
     board: BOARD_ACTIVE,
     controllerId: "p-medchu",
-    clue: clue("revealed", { attempts: [ATTEMPT_WRONG, ATTEMPT_RIGHT], lockedOutPlayerIds: ["p-scarlet"] }),
+    clue: clue("revealed", {
+      attempts: [ATTEMPT_WRONG, ATTEMPT_RIGHT],
+      lockedOutPlayerIds: ["p-scarlet"],
+    }),
     players: PLAYERS.map((p) => (p.id === "p-medchu" ? { ...p, score: 1400 } : p)),
     lastEvent: { kind: "revealed", clueId: "clue-0-3-2" },
   },
@@ -355,7 +460,8 @@ export const SPECS = {
       clueId: "clue-0-1-2",
       categoryTitle: "Kitchen Science",
       kind: "wager",
-      prompt: "Bakers add this acidic powder, often paired with baking soda, so batter rises in two stages.",
+      prompt:
+        "Bakers add this acidic powder, often paired with baking soda, so batter rises in two stages.",
       answer: "What is cream of tartar?",
     }),
     lastEvent: { kind: "clueSelected", clueId: "clue-0-1-2", wager: true },
@@ -369,10 +475,13 @@ export const SPECS = {
       categoryTitle: "Kitchen Science",
       kind: "wager",
       wager: 1000,
-      prompt: "Bakers add this acidic powder, often paired with baking soda, so batter rises in two stages.",
+      prompt:
+        "Bakers add this acidic powder, often paired with baking soda, so batter rises in two stages.",
       answer: "What is cream of tartar?",
       answeringPlayerId: "p-ivvy",
-      attempts: [{ id: "att-w", playerId: "p-ivvy", result: "pending", timedOut: false, delta: null }],
+      attempts: [
+        { id: "att-w", playerId: "p-ivvy", result: "pending", timedOut: false, delta: null },
+      ],
     }),
     timer: timer("answer", 10_000, 8_100),
     lastEvent: { kind: "wagerSubmitted", clueId: "clue-0-1-2", playerId: "p-ivvy", amount: 1000 },
@@ -387,7 +496,9 @@ export const SPECS = {
       prompt: LONG_PROMPT,
       answer: "Who is Ada Wrench, the founder who never sleeps?",
       answeringPlayerId: "p-max",
-      attempts: [{ id: "att-l", playerId: "p-max", result: "pending", timedOut: true, delta: null }],
+      attempts: [
+        { id: "att-l", playerId: "p-max", result: "pending", timedOut: true, delta: null },
+      ],
     }),
     timer: timer("answer", 10_000, 0),
   },
@@ -400,7 +511,12 @@ export const SPECS = {
   finalAnswering: {
     phase: "final",
     round: null,
-    final: { ...FINAL_BASE, stage: "answering", wagerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"], answerSubmittedIds: ["p-ivvy"] },
+    final: {
+      ...FINAL_BASE,
+      stage: "answering",
+      wagerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"],
+      answerSubmittedIds: ["p-ivvy"],
+    },
     timer: timer("finalAnswer", 45_000, 31_000),
     lastEvent: { kind: "finalClueShown" },
   },
@@ -413,9 +529,30 @@ export const SPECS = {
       wagerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"],
       answerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"],
       responses: [
-        { playerId: "p-medchu", status: "judged", answer: "Deep Blue", wager: 800, correct: true, delta: 800 },
-        { playerId: "p-ivvy", status: "revealed", answer: "What is HAL 9000?", wager: 1200, correct: null, delta: null },
-        { playerId: "p-max", status: "hidden", answer: "deep blue!!", wager: 1600, correct: null, delta: null },
+        {
+          playerId: "p-medchu",
+          status: "judged",
+          answer: "Deep Blue",
+          wager: 800,
+          correct: true,
+          delta: 800,
+        },
+        {
+          playerId: "p-ivvy",
+          status: "revealed",
+          answer: "What is HAL 9000?",
+          wager: 1200,
+          correct: null,
+          delta: null,
+        },
+        {
+          playerId: "p-max",
+          status: "hidden",
+          answer: "deep blue!!",
+          wager: 1600,
+          correct: null,
+          delta: null,
+        },
       ],
       nextResponderId: "p-ivvy",
     },
@@ -431,9 +568,30 @@ export const SPECS = {
       wagerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"],
       answerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"],
       responses: [
-        { playerId: "p-medchu", status: "judged", answer: "Deep Blue", wager: 800, correct: true, delta: 800 },
-        { playerId: "p-ivvy", status: "judged", answer: "What is HAL 9000?", wager: 1200, correct: false, delta: -1200 },
-        { playerId: "p-max", status: "judged", answer: "deep blue!!", wager: 0, correct: true, delta: 0 },
+        {
+          playerId: "p-medchu",
+          status: "judged",
+          answer: "Deep Blue",
+          wager: 800,
+          correct: true,
+          delta: 800,
+        },
+        {
+          playerId: "p-ivvy",
+          status: "judged",
+          answer: "What is HAL 9000?",
+          wager: 1200,
+          correct: false,
+          delta: -1200,
+        },
+        {
+          playerId: "p-max",
+          status: "judged",
+          answer: "deep blue!!",
+          wager: 0,
+          correct: true,
+          delta: 0,
+        },
       ],
     },
     players: [
@@ -518,7 +676,8 @@ export function hostFixture(id: SpecId): HostView {
   const spec: Spec = SPECS[id];
   return hostOf(spec, {
     allowedCommands: HOST_ALLOWED[id],
-    startBlockers: id === "lobbyAlone" ? ["Choose a question pack.", "At least 2 players need to join."] : [],
+    startBlockers:
+      id === "lobbyAlone" ? ["Choose a question pack.", "At least 2 players need to join."] : [],
     wagerBounds: id === "wager" ? { min: 5, max: 1200 } : null,
     scoreLog: spec.phase === "lobby" ? [] : SCORE_LOG,
   });

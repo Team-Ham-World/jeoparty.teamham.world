@@ -50,7 +50,9 @@ export function FinalAnswerForm({
       {submitted !== null ? (
         <p className="final-status" role="status">
           <span className="stamp stamp--good stamp--flat">Submitted</span>
-          <span>{dirty ? "You have unsaved changes." : "You can still change it until answers lock."}</span>
+          <span>
+            {dirty ? "You have unsaved changes." : "You can still change it until answers lock."}
+          </span>
         </p>
       ) : null}
       <button

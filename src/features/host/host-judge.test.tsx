@@ -6,7 +6,10 @@ import { PACKS, hostFixture } from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
 import { HostScreen } from "./host-screen";
 
-function renderHost(id: Parameters<typeof hostFixture>[0], status: "live" | "reconnecting" = "live") {
+function renderHost(
+  id: Parameters<typeof hostFixture>[0],
+  status: "live" | "reconnecting" = "live",
+) {
   const onSend = vi.fn<(cmd: ClientCommand) => void>();
   render(
     <HostScreen
@@ -27,7 +30,12 @@ describe("host judging", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /Correct \+600/ }));
     });
-    expect(onSend).toHaveBeenCalledWith({ type: "judge", clueId: "clue-0-3-2", attemptId: "att-2", correct: true });
+    expect(onSend).toHaveBeenCalledWith({
+      type: "judge",
+      clueId: "clue-0-3-2",
+      attemptId: "att-2",
+      correct: true,
+    });
   });
 
   it("sends incorrect for the same attempt, also from the X shortcut", async () => {
@@ -35,7 +43,12 @@ describe("host judging", () => {
     await act(async () => {
       fireEvent.keyDown(window, { key: "x" });
     });
-    expect(onSend).toHaveBeenCalledWith({ type: "judge", clueId: "clue-0-3-2", attemptId: "att-2", correct: false });
+    expect(onSend).toHaveBeenCalledWith({
+      type: "judge",
+      clueId: "clue-0-3-2",
+      attemptId: "att-2",
+      correct: false,
+    });
   });
 
   it("disables judging while stale", () => {
@@ -61,6 +74,8 @@ describe("host judging", () => {
 
   it("marks wager cells on the host board only", () => {
     renderHost("board");
-    expect(screen.getByRole("button", { name: "Kitchen Science for 600, wager clue (Hot HAM)" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Kitchen Science for 600, wager clue (Hot HAM)" }),
+    ).toBeEnabled();
   });
 });

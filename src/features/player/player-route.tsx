@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ApiError, errorMessage, getRoom, joinRoom, leaveRoom } from "@/features/network/client/api";
+import {
+  ApiError,
+  errorMessage,
+  getRoom,
+  joinRoom,
+  leaveRoom,
+} from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
 import { ROOM_CODE_PATTERN, type RoomSummary } from "@/features/network/protocol";
 import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
@@ -15,10 +21,22 @@ export function PlayerRoute({ code }: { code: string }) {
   const session = useSession();
 
   if (!ROOM_CODE_PATTERN.test(code)) {
-    return <ErrorNotice title={`“${code}” isn't a room code`} body="Room codes are 5 letters with no vowels, like BCDFG. Check the code on the big screen." />;
+    return (
+      <ErrorNotice
+        title={`“${code}” isn't a room code`}
+        body="Room codes are 5 letters with no vowels, like BCDFG. Check the code on the big screen."
+      />
+    );
   }
   if (session.status === "loading") return <LoadingNotice label="Checking your sign-in" />;
-  if (session.status === "error") return <ErrorNotice title="Can't reach the quiz server" body={session.message} onRetry={session.reload} />;
+  if (session.status === "error")
+    return (
+      <ErrorNotice
+        title="Can't reach the quiz server"
+        body={session.message}
+        onRetry={session.reload}
+      />
+    );
   if (!session.session.signedIn) {
     return (
       <SignInNotice
@@ -33,7 +51,11 @@ export function PlayerRoute({ code }: { code: string }) {
 }
 
 function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
-  const [room, setRoom] = useState<{ status: "loading" } | { status: "ready"; summary: RoomSummary } | { status: "error"; error: unknown }>({ status: "loading" });
+  const [room, setRoom] = useState<
+    | { status: "loading" }
+    | { status: "ready"; summary: RoomSummary }
+    | { status: "error"; error: unknown }
+  >({ status: "loading" });
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -53,20 +75,34 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
   if (room.status === "loading") return <LoadingNotice label={`Finding room ${code}`} />;
   if (room.status === "error") {
     if (room.error instanceof ApiError && room.error.code === "notFound") {
-      return <ErrorNotice title={`No room ${code}`} body="That room doesn't exist or has closed. Check the code with your host." />;
+      return (
+        <ErrorNotice
+          title={`No room ${code}`}
+          body="That room doesn't exist or has closed. Check the code with your host."
+        />
+      );
     }
-    return <ErrorNotice title="Can't load this room" body={errorMessage(room.error)} onRetry={() => setAttempt((n) => n + 1)} />;
+    return (
+      <ErrorNotice
+        title="Can't load this room"
+        body={errorMessage(room.error)}
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
+    );
   }
 
   const { summary } = room;
-  if (joined || summary.myRole === "player" || summary.myRole === "waiting") return <PlayerLive code={code} csrf={csrf} />;
+  if (joined || summary.myRole === "player" || summary.myRole === "waiting")
+    return <PlayerLive code={code} csrf={csrf} />;
 
   if (summary.myRole === "host") {
     return (
       <main id="main-content" className="notice">
         <span className="stamp stamp--blue">You&apos;re the host</span>
         <h1>You&apos;re hosting room {code}</h1>
-        <p className="muted">Hosts run the game and don&apos;t play. Open the control room instead.</p>
+        <p className="muted">
+          Hosts run the game and don&apos;t play. Open the control room instead.
+        </p>
         <Link className="btn btn--primary btn--big" href={`/host/${code}`}>
           Open the control room
         </Link>
@@ -81,7 +117,11 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
       await joinRoom(csrf, code);
       setJoined(true);
     } catch (error) {
-      setJoinError(error instanceof ApiError && error.code === "roomFull" ? "This game is full. Ask the host to make room or start a new game." : errorMessage(error));
+      setJoinError(
+        error instanceof ApiError && error.code === "roomFull"
+          ? "This game is full. Ask the host to make room or start a new game."
+          : errorMessage(error),
+      );
     } finally {
       setJoining(false);
     }
@@ -94,7 +134,9 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
       <main id="main-content" className="page page--narrow">
         <section className="panel taped join-card" aria-labelledby="join-title">
           <span className="stamp stamp--red">Room {code}</span>
-          <h1 id="join-title">{playing ? "A game is in progress" : `Join ${summary.hostName}'s game`}</h1>
+          <h1 id="join-title">
+            {playing ? "A game is in progress" : `Join ${summary.hostName}'s game`}
+          </h1>
           <dl className="join-facts">
             <div>
               <dt>Host</dt>
@@ -108,7 +150,13 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
             </div>
             <div>
               <dt>Status</dt>
-              <dd>{summary.status === "lobby" ? "In the lobby" : summary.status === "playing" ? "Playing" : "Finished"}</dd>
+              <dd>
+                {summary.status === "lobby"
+                  ? "In the lobby"
+                  : summary.status === "playing"
+                    ? "Playing"
+                    : "Finished"}
+              </dd>
             </div>
           </dl>
           <p className="muted">
@@ -121,7 +169,13 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
               {joinError}
             </p>
           ) : null}
-          <button type="button" className="btn btn--primary btn--big" onClick={join} disabled={joining} aria-busy={joining || undefined}>
+          <button
+            type="button"
+            className="btn btn--primary btn--big"
+            onClick={join}
+            disabled={joining}
+            aria-busy={joining || undefined}
+          >
             {joining ? "Joining…" : playing ? "Join the next game" : "Join game"}
           </button>
         </section>

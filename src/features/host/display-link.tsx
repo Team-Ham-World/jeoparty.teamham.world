@@ -9,7 +9,11 @@ import { QrCode } from "@/features/ui/qr-code";
  * in the link's #fragment; making a new link disconnects older displays.
  */
 export function DisplayLinkPanel({ onCreate }: { onCreate: () => Promise<string> }) {
-  const [state, setState] = useState<{ status: "idle" | "loading" | "ready" | "error"; url?: string; message?: string }>({ status: "idle" });
+  const [state, setState] = useState<{
+    status: "idle" | "loading" | "ready" | "error";
+    url?: string;
+    message?: string;
+  }>({ status: "idle" });
 
   async function create() {
     setState({ status: "loading" });
@@ -17,16 +21,26 @@ export function DisplayLinkPanel({ onCreate }: { onCreate: () => Promise<string>
       const url = await onCreate();
       setState({ status: "ready", url });
     } catch (error) {
-      setState({ status: "error", message: error instanceof Error ? error.message : "Couldn't make a display link." });
+      setState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Couldn't make a display link.",
+      });
     }
   }
 
   return (
     <div className="stack">
-      <p className="muted">Open the board on a TV or projector. The link works without signing in, so only share it with the screen.</p>
+      <p className="muted">
+        Open the board on a TV or projector. The link works without signing in, so only share it
+        with the screen.
+      </p>
       {state.status === "ready" && state.url ? (
         <div className="host-display-link">
-          <QrCode value={state.url} label="QR code for the display link" className="host-display-link__qr" />
+          <QrCode
+            value={state.url}
+            label="QR code for the display link"
+            className="host-display-link__qr"
+          />
           <div className="stack stack--tight">
             <CopyField value={state.url} label="Display link" />
             <div className="row">
@@ -42,7 +56,13 @@ export function DisplayLinkPanel({ onCreate }: { onCreate: () => Promise<string>
         </div>
       ) : (
         <div className="row">
-          <button type="button" className="btn btn--primary" onClick={create} aria-busy={state.status === "loading" || undefined} disabled={state.status === "loading"}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={create}
+            aria-busy={state.status === "loading" || undefined}
+            disabled={state.status === "loading"}
+          >
             {state.status === "loading" ? "Making link…" : "Get display link"}
           </button>
         </div>

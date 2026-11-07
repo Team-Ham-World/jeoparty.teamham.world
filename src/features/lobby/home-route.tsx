@@ -12,7 +12,10 @@ export function HomeRoute() {
   const router = useRouter();
   const session = useSession();
   const signedIn = session.status === "ready" && session.session.signedIn;
-  const [packs, setPacks] = useState<{ list: PackSummary[] | null; error: string | null }>({ list: null, error: null });
+  const [packs, setPacks] = useState<{ list: PackSummary[] | null; error: string | null }>({
+    list: null,
+    error: null,
+  });
 
   useEffect(() => {
     if (!signedIn) return;
@@ -27,7 +30,14 @@ export function HomeRoute() {
   }, [signedIn]);
 
   if (session.status === "loading") return <LoadingNotice />;
-  if (session.status === "error") return <ErrorNotice title="Can't reach the quiz server" body={session.message} onRetry={session.reload} />;
+  if (session.status === "error")
+    return (
+      <ErrorNotice
+        title="Can't reach the quiz server"
+        body={session.message}
+        onRetry={session.reload}
+      />
+    );
 
   const info = session.session;
   const csrf = info.signedIn ? info.csrfToken : "";

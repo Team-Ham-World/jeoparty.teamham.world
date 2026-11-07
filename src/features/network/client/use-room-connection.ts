@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type {
-  CommandOutcome,
-  ConnectionStatus,
-  UseRoomConnection,
-} from "../connection";
+import type { CommandOutcome, ConnectionStatus, UseRoomConnection } from "../connection";
 import {
   PROTOCOL_VERSION,
   type AnyView,
@@ -49,13 +45,12 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
     closeReason: null,
     clockOffsetMs: 0,
   });
-  const sendRef = useRef<(command: ClientCommand) => Promise<CommandOutcome>>(
-    () =>
-      Promise.resolve({
-        ok: false,
-        error: "offline",
-        message: "Connection is offline.",
-      }),
+  const sendRef = useRef<(command: ClientCommand) => Promise<CommandOutcome>>(() =>
+    Promise.resolve({
+      ok: false,
+      error: "offline",
+      message: "Connection is offline.",
+    }),
   );
   useEffect(() => {
     let disposed = false,
@@ -98,8 +93,7 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       setState((previous) => ({ ...previous, status: "reconnecting" }));
       clearTimeout(reconnect);
       const delay =
-        Math.min(10_000, 500 * 2 ** Math.min(retries++, 5)) *
-        (0.75 + Math.random() * 0.5);
+        Math.min(10_000, 500 * 2 ** Math.min(retries++, 5)) * (0.75 + Math.random() * 0.5);
       reconnect = setTimeout(connect, delay);
     }
     /** Abandon the current socket without waiting for the browser to notice it died. */
@@ -189,11 +183,7 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
             ...previous,
             clockOffsetMs: message.serverNow - Date.now(),
           }));
-        } else if (
-          message.t === "view" &&
-          hello &&
-          message.view.audience === role
-        ) {
+        } else if (message.t === "view" && hello && message.view.audience === role) {
           if (
             !Number.isSafeInteger(message.view.revision) ||
             message.view.revision < latestRevision
@@ -208,9 +198,7 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
             status: "live",
             view: message.view,
           }));
-          if (first)
-            for (const entry of pending.values())
-              ws.send(JSON.stringify(entry.message));
+          if (first) for (const entry of pending.values()) ws.send(JSON.stringify(entry.message));
         } else if (message.t === "ack") {
           const entry = pending.get(message.id);
           if (entry) {

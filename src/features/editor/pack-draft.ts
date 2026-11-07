@@ -3,7 +3,14 @@
  * remove items, and keep `dimensions` in sync. Every helper returns a new
  * pack and never mutates its input.
  */
-import type { Category, Clue, DifficultyTier, QuestionPack, ScoringRound, ValidationError } from "@/features/content";
+import type {
+  Category,
+  Clue,
+  DifficultyTier,
+  QuestionPack,
+  ScoringRound,
+  ValidationError,
+} from "@/features/content";
 import { PACK_SCHEMA_VERSION, finalClueOf, withFinalClue } from "./pack-fields";
 
 export const TIERS: DifficultyTier[] = [1, 2, 3, 4, 5];
@@ -28,14 +35,26 @@ export function blankCategory(cluesPerCategory = 5): Category {
     title: "",
     clues: Array.from({ length: cluesPerCategory }, (_, i) => blankClue(TIERS[Math.min(i, 4)])),
   };
-  return withFinalClue(base as Category, { id: newId(), tier: "final", type: "text", prompt: "", answer: "" });
+  return withFinalClue(base as Category, {
+    id: newId(),
+    tier: "final",
+    type: "text",
+    prompt: "",
+    answer: "",
+  });
 }
 
 export function blankRound(title: string, multiplier = 1): ScoringRound {
   return {
     id: newId(),
     title,
-    pointsByTier: { 1: 200 * multiplier, 2: 400 * multiplier, 3: 600 * multiplier, 4: 800 * multiplier, 5: 1000 * multiplier },
+    pointsByTier: {
+      1: 200 * multiplier,
+      2: 400 * multiplier,
+      3: 600 * multiplier,
+      4: 800 * multiplier,
+      5: 1000 * multiplier,
+    },
   };
 }
 
@@ -91,19 +110,34 @@ export function replaceAt<T>(list: readonly T[], index: number, item: T): T[] {
   return list.map((existing, i) => (i === index ? item : existing));
 }
 
-export function updateCategory(pack: QuestionPack, index: number, update: (category: Category) => Category): QuestionPack {
+export function updateCategory(
+  pack: QuestionPack,
+  index: number,
+  update: (category: Category) => Category,
+): QuestionPack {
   return { ...pack, categories: replaceAt(pack.categories, index, update(pack.categories[index])) };
 }
 
-export function updateClue(pack: QuestionPack, categoryIndex: number, clueIndex: number, patch: Partial<Clue>): QuestionPack {
+export function updateClue(
+  pack: QuestionPack,
+  categoryIndex: number,
+  clueIndex: number,
+  patch: Partial<Clue>,
+): QuestionPack {
   return updateCategory(pack, categoryIndex, (category) => ({
     ...category,
     clues: replaceAt(category.clues, clueIndex, { ...category.clues[clueIndex], ...patch }),
   }));
 }
 
-export function updateFinal(pack: QuestionPack, categoryIndex: number, patch: { prompt?: string; answer?: string }): QuestionPack {
-  return updateCategory(pack, categoryIndex, (category) => withFinalClue(category, { ...finalClueOf(category), ...patch }));
+export function updateFinal(
+  pack: QuestionPack,
+  categoryIndex: number,
+  patch: { prompt?: string; answer?: string },
+): QuestionPack {
+  return updateCategory(pack, categoryIndex, (category) =>
+    withFinalClue(category, { ...finalClueOf(category), ...patch }),
+  );
 }
 
 /**
@@ -115,15 +149,19 @@ export function friendlyMessage(message: string): string {
   if (message === "Expected a non-empty string.") return "Can't be empty.";
   if (message === "Expected a positive safe integer.") return "Use a whole number above 0.";
   if (message === "Expected an integer tier between 1 and 5.") return "Pick a tier from 1 to 5.";
-  const clues = /^Expected (\d+) clues from dimensions\.cluesPerCategory, but found (\d+)\.$/.exec(message);
-  if (clues) return `Every category needs the same number of clues as the first one (${clues[1]}); this one has ${clues[2]}.`;
+  const clues = /^Expected (\d+) clues from dimensions\.cluesPerCategory, but found (\d+)\.$/.exec(
+    message,
+  );
+  if (clues)
+    return `Every category needs the same number of clues as the first one (${clues[1]}); this one has ${clues[2]}.`;
   return message;
 }
 
 /** Index validation errors by path for quick field lookup. */
 export function errorsByPath(errors: readonly ValidationError[]): Map<string, string> {
   const map = new Map<string, string>();
-  for (const error of errors) if (!map.has(error.path)) map.set(error.path, friendlyMessage(error.message));
+  for (const error of errors)
+    if (!map.has(error.path)) map.set(error.path, friendlyMessage(error.message));
   return map;
 }
 
@@ -144,13 +182,15 @@ export function describePath(path: string, pack: QuestionPack, finalField: strin
     const rest = cat[2];
     const clue = /^\.clues\[(\d+)\]\.?(\w*)/.exec(rest);
     if (clue) return `${name} · clue ${Number(clue[1]) + 1}${clue[2] ? ` ${clue[2]}` : ""}`;
-    if (rest.startsWith(`.${finalField}`)) return `${name} · final clue ${rest.split(".").pop() ?? ""}`;
+    if (rest.startsWith(`.${finalField}`))
+      return `${name} · final clue ${rest.split(".").pop() ?? ""}`;
     if (rest === ".clues") return `${name} · clues`;
     if (rest === ".title") return `${name} · title`;
     return name;
   }
   const round = /^scoring\.rounds\[(\d+)\]\.?(.*)$/.exec(path);
-  if (round) return `Scoring round ${Number(round[1]) + 1}${round[2] ? ` · ${round[2].replace("pointsByTier.", "tier ")}` : ""}`;
+  if (round)
+    return `Scoring round ${Number(round[1]) + 1}${round[2] ? ` · ${round[2].replace("pointsByTier.", "tier ")}` : ""}`;
   if (path.startsWith("dimensions")) return "Board size";
   return path;
 }

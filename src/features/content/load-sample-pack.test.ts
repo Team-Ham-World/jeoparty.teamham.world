@@ -9,7 +9,10 @@ import { loadSamplePack } from "./load-sample-pack.server";
 // verify-server-boundary.mjs separately checks real Next enforcement without it.
 vi.mock("server-only", () => ({}));
 
-const sampleJson = await readFile(new URL("./samples/sample-pack-3x3.json", import.meta.url), "utf8");
+const sampleJson = await readFile(
+  new URL("./samples/sample-pack-3x3.json", import.meta.url),
+  "utf8",
+);
 let directory = "";
 
 beforeEach(async () => {

@@ -19,9 +19,7 @@ async function main() {
     upgradeFallback: nextApp.getUpgradeHandler(),
   });
   await app.listen();
-  console.log(
-    `HAM Quiz listening on ${config.publicOrigin} (${config.ham.mode} authentication)`,
-  );
+  console.log(`HAM Quiz listening on ${config.publicOrigin} (${config.ham.mode} authentication)`);
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
@@ -38,8 +36,6 @@ async function main() {
   });
 }
 void main().catch(() => {
-  console.error(
-    "HAM Quiz startup failed. Check configuration, packs and database compatibility.",
-  );
+  console.error("HAM Quiz startup failed. Check configuration, packs and database compatibility.");
   process.exit(1);
 });

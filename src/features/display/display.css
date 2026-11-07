@@ -11,7 +11,8 @@
     grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100dvh;
     overflow: hidden;
-    padding-inline: max(1.2em, env(safe-area-inset-left, 0px)) max(1.2em, env(safe-area-inset-right, 0px));
+    padding-inline: max(1.2em, env(safe-area-inset-left, 0px))
+      max(1.2em, env(safe-area-inset-right, 0px));
     font-size: min(1.5625vw, 2.78vh);
     color: var(--stage-text);
     background-color: var(--stage);
@@ -832,7 +833,6 @@
     background: var(--stage);
     border: 1.5px solid var(--stage-faint);
   }
-
 
   .tv-score--pulse {
     animation: pulse 500ms var(--ease);

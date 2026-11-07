@@ -70,7 +70,10 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     for (const key of ["author", "notes"] as const) {
       if (Object.hasOwn(value, key) && typeof value[key] !== "string") {
         error(fieldPath(path, key), "Expected a string.");
-      } else if (typeof value[key] === "string" && value[key].length > (key === "notes" ? 1000 : 120)) {
+      } else if (
+        typeof value[key] === "string" &&
+        value[key].length > (key === "notes" ? 1000 : 120)
+      ) {
         error(fieldPath(path, key), `Must be at most ${key === "notes" ? 1000 : 120} characters.`);
       }
     }
@@ -126,7 +129,10 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     }
     for (const key of ["points", "defaultPoints"] as const) {
       if (Object.hasOwn(value, key)) {
-        error(`${path}.${key}`, "Static clue points are not supported; use tier and scoring.rounds.");
+        error(
+          `${path}.${key}`,
+          "Static clue points are not supported; use tier and scoring.rounds.",
+        );
       }
     }
   }
@@ -153,7 +159,8 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     }
     if (positiveInteger(input.dimensions.cluesPerCategory, "dimensions.cluesPerCategory")) {
       clueCount = input.dimensions.cluesPerCategory;
-      if (clueCount > 5) error("dimensions.cluesPerCategory", "Must be at most 5 clues per category.");
+      if (clueCount > 5)
+        error("dimensions.cluesPerCategory", "Must be at most 5 clues per category.");
     }
   }
 
@@ -162,7 +169,8 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     metadata(scoring, "scoring");
     const validDefault = text(scoring.defaultRoundId, "scoring.defaultRoundId");
     if (array(scoring.rounds, "scoring.rounds")) {
-      if (scoring.rounds.length === 0) error("scoring.rounds", "Expected at least one scoring round.");
+      if (scoring.rounds.length === 0)
+        error("scoring.rounds", "Expected at least one scoring round.");
       if (scoring.rounds.length > 4) error("scoring.rounds", "Must be at most 4 scoring rounds.");
       scoring.rounds.forEach((round, index) => {
         const path = `scoring.rounds[${index}]`;
@@ -176,7 +184,10 @@ export function validateQuestionPack(input: unknown): ValidationResult {
           }
         }
       });
-      if (validDefault && !scoring.rounds.some((round) => isObject(round) && round.id === scoring.defaultRoundId)) {
+      if (
+        validDefault &&
+        !scoring.rounds.some((round) => isObject(round) && round.id === scoring.defaultRoundId)
+      ) {
         error("scoring.defaultRoundId", "Must reference an ID in scoring.rounds.");
       }
     }
@@ -184,7 +195,10 @@ export function validateQuestionPack(input: unknown): ValidationResult {
 
   if (array(input.categories, "categories")) {
     if (categoryCount !== undefined && input.categories.length !== categoryCount) {
-      error("dimensions.categories", `Declared ${categoryCount} categories, but found ${input.categories.length}.`);
+      error(
+        "dimensions.categories",
+        `Declared ${categoryCount} categories, but found ${input.categories.length}.`,
+      );
     }
     if (input.categories.length > 12) error("categories", "Must be at most 12 categories.");
     input.categories.forEach((category, index) => {
@@ -195,10 +209,16 @@ export function validateQuestionPack(input: unknown): ValidationResult {
       metadata(category, path);
       if (array(category.clues, `${path}.clues`)) {
         if (clueCount !== undefined && category.clues.length !== clueCount) {
-          error(`${path}.clues`, `Expected ${clueCount} clues from dimensions.cluesPerCategory, but found ${category.clues.length}.`);
+          error(
+            `${path}.clues`,
+            `Expected ${clueCount} clues from dimensions.cluesPerCategory, but found ${category.clues.length}.`,
+          );
         }
-        if (category.clues.length > 5) error(`${path}.clues`, "Must be at most 5 clues per category.");
-        category.clues.forEach((value, clueIndex) => clue(value, `${path}.clues[${clueIndex}]`, false));
+        if (category.clues.length > 5)
+          error(`${path}.clues`, "Must be at most 5 clues per category.");
+        category.clues.forEach((value, clueIndex) =>
+          clue(value, `${path}.clues[${clueIndex}]`, false),
+        );
       }
       clue(category.finalClue, `${path}.finalClue`, true);
     });

@@ -1,12 +1,6 @@
 import { isSafeReturnPath } from "./validation";
 import type { Config } from "./config.js";
-import {
-  decrypt,
-  encrypt,
-  pkceChallenge,
-  randomToken,
-  sha256Hex,
-} from "./crypto.js";
+import { decrypt, encrypt, pkceChallenge, randomToken, sha256Hex } from "./crypto.js";
 import type { SqlDatabase } from "./storage.js";
 import { HAM_CODE_PATTERN, type HamClient } from "./ham/client.js";
 import { parseCookies } from "./http.js";
@@ -56,27 +50,15 @@ export type VerifyResult =
   | { status: "unavailable" };
 
 export type CallbackError =
-  | "denied"
-  | "state"
-  | "issuer"
-  | "invalid"
-  | "expired"
-  | "unavailable"
-  | "duplicate";
+  "denied" | "state" | "issuer" | "invalid" | "expired" | "unavailable" | "duplicate";
 
 /** A stable, friendly label when HAM returns no username. */
-export function displayNameFor(
-  account: Pick<Account, "username" | "public_id">,
-): string {
+export function displayNameFor(account: Pick<Account, "username" | "public_id">): string {
   if (account.username) return account.username.slice(0, 32);
   return `Player ${account.public_id.slice(-4).toUpperCase()}`;
 }
 
-export function sessionCookie(
-  config: Config,
-  sessionId: string,
-  maxAgeMs: number,
-): string {
+export function sessionCookie(config: Config, sessionId: string, maxAgeMs: number): string {
   return `${config.publicOrigin.startsWith("https:") ? SESSION_COOKIE : "quiz_session"}=${sessionId}; Path=/; ${config.publicOrigin.startsWith("https:") ? "Secure; " : ""}HttpOnly; SameSite=Lax; Max-Age=${Math.max(0, Math.floor(maxAgeMs / 1000))}`;
 }
 
@@ -106,29 +88,22 @@ export class AuthService {
   /** Resolve the session cookie. Duplicate or malformed cookies resolve to no session. */
   sessionFromCookieHeader(header: string | undefined): SessionRow | null {
     const values = parseCookies(header).get(
-      this.config.publicOrigin.startsWith("https:")
-        ? SESSION_COOKIE
-        : "quiz_session",
+      this.config.publicOrigin.startsWith("https:") ? SESSION_COOKIE : "quiz_session",
     );
-    if (!values || values.length !== 1 || !SESSION_ID.test(values[0]!))
-      return null;
+    if (!values || values.length !== 1 || !SESSION_ID.test(values[0]!)) return null;
     const row = this.db.get<SessionRow>(
       "SELECT * FROM sessions WHERE session_hash = ?",
       sha256Hex(values[0]!),
     );
-    if (!row || row.revoked_at !== null || row.expires_at <= this.now())
-      return null;
+    if (!row || row.revoked_at !== null || row.expires_at <= this.now()) return null;
     return row;
   }
 
   revokedReasonFromCookieHeader(header: string | undefined): string | null {
     const values = parseCookies(header).get(
-      this.config.publicOrigin.startsWith("https:")
-        ? SESSION_COOKIE
-        : "quiz_session",
+      this.config.publicOrigin.startsWith("https:") ? SESSION_COOKIE : "quiz_session",
     );
-    if (!values || values.length !== 1 || !SESSION_ID.test(values[0]!))
-      return null;
+    if (!values || values.length !== 1 || !SESSION_ID.test(values[0]!)) return null;
     const row = this.db.get<SessionRow>(
       "SELECT * FROM sessions WHERE session_hash = ?",
       sha256Hex(values[0]!),
@@ -168,9 +143,7 @@ export class AuthService {
       hash,
       randomToken(24),
       accountId,
-      token
-        ? encrypt(this.config.encryptionKey, token.value, `token:${hash}`)
-        : null,
+      token ? encrypt(this.config.encryptionKey, token.value, `token:${hash}`) : null,
       token?.exp ?? null,
       token ? now : null,
       now,
@@ -178,10 +151,7 @@ export class AuthService {
     );
     return {
       id,
-      row: this.db.get<SessionRow>(
-        "SELECT * FROM sessions WHERE session_hash = ?",
-        hash,
-      )!,
+      row: this.db.get<SessionRow>("SELECT * FROM sessions WHERE session_hash = ?", hash)!,
     };
   }
 
@@ -206,19 +176,13 @@ export class AuthService {
     const stateHash = sha256Hex(state);
     const target = isSafeReturnPath(returnTo) ? returnTo : "/";
     this.db.transaction(() => {
-      this.db.run(
-        "DELETE FROM oauth_attempts WHERE created_at < ?",
-        this.now() - ATTEMPT_TTL_MS,
-      );
+      this.db.run("DELETE FROM oauth_attempts WHERE created_at < ?", this.now() - ATTEMPT_TTL_MS);
       const attempts = this.db.all<{ state_hash: string }>(
         "SELECT state_hash FROM oauth_attempts WHERE session_hash = ? ORDER BY created_at DESC",
         session.session_hash,
       );
       for (const old of attempts.slice(MAX_ATTEMPTS_PER_SESSION - 1)) {
-        this.db.run(
-          "DELETE FROM oauth_attempts WHERE state_hash = ?",
-          old.state_hash,
-        );
+        this.db.run("DELETE FROM oauth_attempts WHERE state_hash = ?", old.state_hash);
       }
       this.db.run(
         "INSERT INTO oauth_attempts (state_hash, session_hash, verifier_enc, return_to, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -251,8 +215,7 @@ export class AuthService {
   > {
     // A recognized state may identify the destination even in the wrong browser.
     // It never authenticates that browser or consumes the real browser's attempt.
-    const state =
-      query.getAll("state").length === 1 ? query.get("state") : null;
+    const state = query.getAll("state").length === 1 ? query.get("state") : null;
     const destination =
       state && /^[A-Za-z0-9_-]{43}$/.test(state)
         ? this.db.get<{ return_to: string }>(
@@ -266,11 +229,9 @@ export class AuthService {
           session.session_hash,
         )
       : null;
-    const intended =
-      destination?.return_to ?? browserDestination?.return_to ?? "/";
+    const intended = destination?.return_to ?? browserDestination?.return_to ?? "/";
     const fallback =
-      isSafeReturnPath(intended) &&
-      /^\/r\/[A-Za-z0-9]{5}\/?(?:[?#]|$)/.test(intended)
+      isSafeReturnPath(intended) && /^\/r\/[A-Za-z0-9]{5}\/?(?:[?#]|$)/.test(intended)
         ? intended
         : "/";
     const fail = (error: CallbackError, returnTo = fallback) => ({
@@ -282,8 +243,7 @@ export class AuthService {
     for (const key of new Set(query.keys())) {
       if (query.getAll(key).length > 1) return fail("duplicate");
     }
-    if (!session || !state || !/^[A-Za-z0-9_-]{43}$/.test(state))
-      return fail("state");
+    if (!session || !state || !/^[A-Za-z0-9_-]{43}$/.test(state)) return fail("state");
 
     const stateHash = sha256Hex(state);
     const attempt = this.db.transaction(() => {
@@ -301,21 +261,13 @@ export class AuthService {
       return row;
     });
     if (!attempt) return fail("state");
-    const returnTo = isSafeReturnPath(attempt.return_to)
-      ? attempt.return_to
-      : "/";
-    if (attempt.created_at + ATTEMPT_TTL_MS < this.now())
-      return fail("expired", returnTo);
-    if (query.get("iss") !== this.config.ham.issuer)
-      return fail("issuer", returnTo);
+    const returnTo = isSafeReturnPath(attempt.return_to) ? attempt.return_to : "/";
+    if (attempt.created_at + ATTEMPT_TTL_MS < this.now()) return fail("expired", returnTo);
+    if (query.get("iss") !== this.config.ham.issuer) return fail("issuer", returnTo);
     if (query.has("error")) return fail("denied", returnTo);
     const code = query.get("code");
     if (!code || !HAM_CODE_PATTERN.test(code)) return fail("invalid", returnTo);
-    const verifier = decrypt(
-      this.config.encryptionKey,
-      attempt.verifier_enc,
-      `pkce:${stateHash}`,
-    );
+    const verifier = decrypt(this.config.encryptionKey, attempt.verifier_enc, `pkce:${stateHash}`);
     if (!verifier) return fail("invalid", returnTo);
 
     const exchanged = await this.ham.exchangeCode(code, verifier);
@@ -326,10 +278,7 @@ export class AuthService {
     try {
       const info = await this.ham.introspect(exchanged.token);
       if (info.kind !== "active")
-        return fail(
-          info.kind === "inactive" ? "expired" : "unavailable",
-          returnTo,
-        );
+        return fail(info.kind === "inactive" ? "expired" : "unavailable", returnTo);
       if (info.sub !== exchanged.sub) return fail("invalid", returnTo);
 
       const now = this.now();
@@ -342,11 +291,7 @@ export class AuthService {
         "SELECT * FROM sessions WHERE session_hash = ?",
         session.session_hash,
       );
-      if (
-        !stillBound ||
-        stillBound.revoked_at !== null ||
-        stillBound.expires_at <= now
-      )
+      if (!stillBound || stillBound.revoked_at !== null || stillBound.expires_at <= now)
         return fail("state", returnTo);
       const { id, superseded } = this.db.transaction(() => {
         const ham = this.config.ham!;
@@ -370,10 +315,7 @@ export class AuthService {
             now,
             now,
           );
-          account = this.db.get<Account>(
-            "SELECT * FROM accounts WHERE account_id = ?",
-            accountId,
-          )!;
+          account = this.db.get<Account>("SELECT * FROM accounts WHERE account_id = ?", accountId)!;
         } else {
           this.db.run(
             "UPDATE accounts SET username = ?, updated_at = ? WHERE account_id = ?",
@@ -411,8 +353,7 @@ export class AuthService {
           superseded: others.map((o) => o.session_hash),
         };
       });
-      for (const hash of superseded)
-        this.hooks.onSessionEnded(hash, "superseded");
+      for (const hash of superseded) this.hooks.onSessionEnded(hash, "superseded");
       accepted = true;
       return {
         ok: true,
@@ -421,18 +362,13 @@ export class AuthService {
       };
     } finally {
       // A token issued to an interrupted/failed callback must not be left live.
-      if (!accepted)
-        await this.ham.revoke(exchanged.token).catch(() => undefined);
+      if (!accepted) await this.ham.revoke(exchanged.token).catch(() => undefined);
     }
   }
 
   private token(row: SessionRow): string | null {
     if (!row.token_enc) return null;
-    return decrypt(
-      this.config.encryptionKey,
-      row.token_enc,
-      `token:${row.session_hash}`,
-    );
+    return decrypt(this.config.encryptionKey, row.token_enc, `token:${row.session_hash}`);
   }
 
   /**
@@ -440,16 +376,11 @@ export class AuthService {
    * seconds (or token expiry). `fresh` forces introspection (every protected HTTP request,
    * socket connection and game start). Provider outages never extend authorization.
    */
-  verify(
-    sessionHash: string,
-    options: { fresh?: boolean } = {},
-  ): Promise<VerifyResult> {
+  verify(sessionHash: string, options: { fresh?: boolean } = {}): Promise<VerifyResult> {
     const key = `${sessionHash}:${options.fresh ? "f" : "c"}`;
     const running = this.inflight.get(key);
     if (running) return running;
-    const promise = this.verifyNow(sessionHash, options).finally(() =>
-      this.inflight.delete(key),
-    );
+    const promise = this.verifyNow(sessionHash, options).finally(() => this.inflight.delete(key));
     this.inflight.set(key, promise);
     return promise;
   }
@@ -481,11 +412,7 @@ export class AuthService {
       }
       return { status: "revoked" };
     }
-    if (
-      !options.fresh &&
-      row.verified_at !== null &&
-      now - row.verified_at < LEASE_MS
-    ) {
+    if (!options.fresh && row.verified_at !== null && now - row.verified_at < LEASE_MS) {
       return {
         status: "active",
         until: Math.min(row.verified_at + LEASE_MS, row.token_exp),
@@ -508,10 +435,7 @@ export class AuthService {
     )
       return { status: "revoked" };
     if (result.kind === "active") {
-      if (
-        checked >=
-        Math.min(now + LEASE_MS, row.token_exp, result.expSeconds * 1000)
-      )
+      if (checked >= Math.min(now + LEASE_MS, row.token_exp, result.expSeconds * 1000))
         return { status: "unavailable" };
       const account = this.db.get<Account>(
         "SELECT * FROM accounts WHERE account_id = ?",
@@ -582,10 +506,7 @@ export class AuthService {
       cutoff,
       cutoff,
     );
-    this.db.run(
-      "DELETE FROM oauth_attempts WHERE created_at < ?",
-      this.now() - ATTEMPT_TTL_MS,
-    );
+    this.db.run("DELETE FROM oauth_attempts WHERE created_at < ?", this.now() - ATTEMPT_TTL_MS);
     this.db.run(
       "UPDATE sessions SET token_enc = NULL WHERE revoked_at IS NOT NULL AND token_enc IS NOT NULL",
     );

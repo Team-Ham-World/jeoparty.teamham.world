@@ -4,8 +4,14 @@ import { parseQuestionPackJson, validateQuestionPack } from "./index";
 import type { QuestionPack, ValidationError } from "./types";
 
 // Read answer-bearing fixtures in Node tests, never through UI imports.
-const smallSampleJson = readFileSync(new URL("./samples/sample-pack-3x3.json", import.meta.url), "utf8");
-const expandedSampleJson = readFileSync(new URL("./samples/ham-starter-pack.json", import.meta.url), "utf8");
+const smallSampleJson = readFileSync(
+  new URL("./samples/sample-pack-3x3.json", import.meta.url),
+  "utf8",
+);
+const expandedSampleJson = readFileSync(
+  new URL("./samples/ham-starter-pack.json", import.meta.url),
+  "utf8",
+);
 
 function validatedSample(json: string): QuestionPack {
   const result = parseQuestionPackJson(json);
@@ -59,7 +65,8 @@ const invalidVariants: InvalidVariant[] = [
     },
     error: {
       path: "categories[1].clues[1].id",
-      message: 'Duplicate ID "666ac83b-1b5f-4307-a9b8-8927dc3a7611"; first defined at categories[0].finalClue.id.',
+      message:
+        'Duplicate ID "666ac83b-1b5f-4307-a9b8-8927dc3a7611"; first defined at categories[0].finalClue.id.',
     },
   },
   {
@@ -135,12 +142,18 @@ describe("sample pack inventory", () => {
     for (const category of pack.categories) {
       expect(category.clues.map((clue) => clue.tier)).toEqual([1, 2, 3]);
       expect(category.finalClue.tier).toBe("final");
-      expect(category.finalClue.notes).toBe("Final-round content; separate from the ordinary board.");
+      expect(category.finalClue.notes).toBe(
+        "Final-round content; separate from the ordinary board.",
+      );
     }
     expect(pack.scoring.rounds).toHaveLength(1);
     expect(pack.scoring.defaultRoundId).toBe(pack.scoring.rounds[0].id);
     expect(pack.scoring.rounds[0].pointsByTier).toEqual({
-      1: 200, 2: 400, 3: 600, 4: 800, 5: 1000,
+      1: 200,
+      2: 400,
+      3: 600,
+      4: 800,
+      5: 1000,
     });
   });
 

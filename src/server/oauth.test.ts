@@ -75,9 +75,7 @@ describe("HAM OAuth port from Pusoy", () => {
       b = new Browser(h);
     const url = await a.decide(await a.beginLogin());
     await b.beginLogin();
-    expect((await b.callback(url)).headers.get("location")).toContain(
-      "auth_error=state",
-    );
+    expect((await b.callback(url)).headers.get("location")).toContain("auth_error=state");
     expect((await a.callback(url)).headers.get("location")).toBe("/");
   });
   it.each(["issuer", "duplicate", "state", "expired", "denied"])(
@@ -86,18 +84,12 @@ describe("HAM OAuth port from Pusoy", () => {
       h = await harness();
       const b = new Browser(h),
         url = await b.decide(await b.beginLogin(), { deny: mode === "denied" });
-      if (mode === "issuer")
-        url.searchParams.set("iss", "https://evil.invalid");
-      if (mode === "duplicate")
-        url.searchParams.append("code", "thc_" + "a".repeat(43));
+      if (mode === "issuer") url.searchParams.set("iss", "https://evil.invalid");
+      if (mode === "duplicate") url.searchParams.append("code", "thc_" + "a".repeat(43));
       if (mode === "state") url.searchParams.set("state", "a".repeat(43));
       if (mode === "expired") h.advance(61_000);
-      expect((await b.callback(url)).headers.get("location")).toContain(
-        `auth_error=${mode}`,
-      );
-      expect((await (await b.request("/api/session")).json()).signedIn).toBe(
-        false,
-      );
+      expect((await b.callback(url)).headers.get("location")).toContain(`auth_error=${mode}`);
+      expect((await (await b.request("/api/session")).json()).signedIn).toBe(false);
     },
   );
   it("never exchanges a consumed callback and provider code replay revokes the issued token", async () => {
@@ -105,9 +97,7 @@ describe("HAM OAuth port from Pusoy", () => {
     const b = new Browser(h),
       url = await b.decide(await b.beginLogin());
     await b.callback(url);
-    expect((await b.callback(url)).headers.get("location")).toContain(
-      "auth_error=state",
-    );
+    expect((await b.callback(url)).headers.get("location")).toContain("auth_error=state");
     const replay = await h.app.fixture!.handle(
       new Request("http://fixture/__ham/api/auth/game/token", {
         method: "POST",
@@ -132,9 +122,9 @@ describe("HAM OAuth port from Pusoy", () => {
     const b = new Browser(h),
       p = await b.beginLogin();
     h.advance(600001);
-    expect(
-      (await b.callback(await b.decide(p))).headers.get("location"),
-    ).toContain("auth_error=expired");
+    expect((await b.callback(await b.decide(p))).headers.get("location")).toContain(
+      "auth_error=expired",
+    );
   });
   it("freshly rejects inactive sessions without waiting for the socket lease", async () => {
     h = await harness();
@@ -154,9 +144,7 @@ describe("HAM OAuth port from Pusoy", () => {
     const b = new Browser(h);
     await b.signIn("alice");
     h.advance(1001);
-    expect((await (await b.request("/api/session")).json()).signedIn).toBe(
-      false,
-    );
+    expect((await (await b.request("/api/session")).json()).signedIn).toBe(false);
     expect((await b.mutate("/api/rooms", {})).status).not.toBe(201);
   });
   it("fails closed during provider outage without extending the lease, and create forces fresh introspection", async () => {
@@ -187,9 +175,7 @@ describe("HAM OAuth port from Pusoy", () => {
     await b.signIn("alice");
     const second = await (await b.request("/api/session")).json();
     expect(second.user.id).toBe(first.user.id);
-    expect((await (await a.request("/api/session")).json()).signedIn).toBe(
-      false,
-    );
+    expect((await (await a.request("/api/session")).json()).signedIn).toBe(false);
   });
   it("requires CSRF and Origin for logout, then revokes locally and upstream", async () => {
     h = await harness();
@@ -210,13 +196,10 @@ describe("HAM OAuth port from Pusoy", () => {
       ).status,
     ).toBe(403);
     expect((await b.mutate("/api/auth/logout")).status).toBe(204);
-    expect((await (await b.request("/api/session")).json()).signedIn).toBe(
-      false,
-    );
+    expect((await (await b.request("/api/session")).json()).signedIn).toBe(false);
     expect(
-      h.app.db.get<{ n: number }>(
-        "SELECT count(*) n FROM hamfx_tokens WHERE revoked_at IS NULL",
-      )!.n,
+      h.app.db.get<{ n: number }>("SELECT count(*) n FROM hamfx_tokens WHERE revoked_at IS NULL")!
+        .n,
     ).toBe(0);
   });
   it.each([
@@ -263,9 +246,7 @@ describe("HAM OAuth port from Pusoy", () => {
     const b = new Browser(h);
     await b.signIn("alice");
     b.cookie += `; ${b.cookie}`;
-    expect((await (await b.request("/api/session")).json()).signedIn).toBe(
-      false,
-    );
+    expect((await (await b.request("/api/session")).json()).signedIn).toBe(false);
   });
   it.each(["iss", "aud", "client_id", "scope", "token_type", "sub"])(
     "rejects mismatched live introspection field %s",
@@ -283,9 +264,7 @@ describe("HAM OAuth port from Pusoy", () => {
         exp: Math.floor(Date.now() / 1000) + 60,
         [field]: field === "sub" ? "" : "wrong",
       };
-      const client = createHamClient(config.ham, async () =>
-        Response.json(response),
-      );
+      const client = createHamClient(config.ham, async () => Response.json(response));
       expect(await client.introspect("tha_" + "a".repeat(43))).toEqual({
         kind: "unavailable",
       });
@@ -298,9 +277,9 @@ describe("HAM OAuth port from Pusoy", () => {
       calls++;
       throw new Error("network");
     });
-    expect(
-      await client.exchangeCode("thc_" + "a".repeat(43), "b".repeat(43)),
-    ).toEqual({ kind: "unavailable" });
+    expect(await client.exchangeCode("thc_" + "a".repeat(43), "b".repeat(43))).toEqual({
+      kind: "unavailable",
+    });
     expect(calls).toBe(1);
   });
 });

@@ -151,7 +151,6 @@
     .host-lobby__setup {
       grid-column: span 12;
     }
-
   }
 
   @media (max-width: 720px) {
@@ -606,7 +605,12 @@
 
   .host-standings li.is-winner {
     font-weight: 700;
-    background: linear-gradient(transparent 14%, var(--highlight) 14%, var(--highlight) 86%, transparent 86%);
+    background: linear-gradient(
+      transparent 14%,
+      var(--highlight) 14%,
+      var(--highlight) 86%,
+      transparent 86%
+    );
   }
 
   /* ---------------------------------------------------------- side panel */
@@ -640,7 +644,9 @@
 
   .host-roster--scores li.is-answering {
     background: var(--good-tint);
-    box-shadow: -0.5rem 0 0 var(--good-tint), 0.5rem 0 0 var(--good-tint);
+    box-shadow:
+      -0.5rem 0 0 var(--good-tint),
+      0.5rem 0 0 var(--good-tint);
   }
 
   .host-adjust {

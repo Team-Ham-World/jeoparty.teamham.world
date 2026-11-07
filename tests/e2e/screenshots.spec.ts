@@ -28,7 +28,10 @@ import {
   type Person,
 } from "./helpers";
 
-test.skip(!process.env.E2E_SCREENSHOTS, "Run with `npm run screenshots` to refresh docs/screenshots.");
+test.skip(
+  !process.env.E2E_SCREENSHOTS,
+  "Run with `npm run screenshots` to refresh docs/screenshots.",
+);
 
 const OUT = process.env.E2E_SCREENSHOTS_DIR ?? path.join(process.cwd(), "docs", "screenshots");
 
@@ -37,7 +40,11 @@ async function snap(page: Page, name: string, { flash = false } = {}) {
   const { width, height } = page.viewportSize()!;
   await page.mouse.move(width - 1, height - 1); // Park the pointer in a corner: no hover state from the last click.
   await page.waitForTimeout(flash ? 150 : 350); // Let fonts settle.
-  await page.screenshot({ path: path.join(OUT, `${name}-${width}x${height}.png`), animations: flash ? "allow" : "disabled", caret: "hide" });
+  await page.screenshot({
+    path: path.join(OUT, `${name}-${width}x${height}.png`),
+    animations: flash ? "allow" : "disabled",
+    caret: "hide",
+  });
 }
 
 test("game screens", async ({ browser }) => {
@@ -55,7 +62,9 @@ test("game screens", async ({ browser }) => {
   await snap(cy.page, "home-signed-out");
 
   await signIn(H, host.name, "/");
-  await expect(H.getByLabel("Question pack").locator("option", { hasText: "Ham Snack" })).toBeAttached();
+  await expect(
+    H.getByLabel("Question pack").locator("option", { hasText: "Ham Snack" }),
+  ).toBeAttached();
   await snap(H, "home-signed-in");
   await H.goto("/");
   const code = await createGame(H, host.name, "Ham Snack");
@@ -70,7 +79,9 @@ test("game screens", async ({ browser }) => {
 
   await H.getByRole("button", { name: "Remove dee" }).click();
   await H.getByRole("dialog").getByRole("button", { name: "Remove" }).click();
-  await expect(dee.page.getByRole("heading", { name: "You were removed from this room" })).toBeVisible();
+  await expect(
+    dee.page.getByRole("heading", { name: "You were removed from this room" }),
+  ).toBeVisible();
   await snap(dee.page, "player-closed-removed");
 
   await H.evaluate(() => window.scrollTo(0, 0));
@@ -98,7 +109,10 @@ test("game screens", async ({ browser }) => {
   await snap(ana.page, "player-answering-you");
   await H.getByRole("button", { name: /^Correct/ }).click();
   await expect(tv.page.locator(".tv-judged")).toBeVisible();
-  await Promise.all([snap(tv.page, "display-judged", { flash: true }), snap(ana.page, "player-judged", { flash: true })]);
+  await Promise.all([
+    snap(tv.page, "display-judged", { flash: true }),
+    snap(ana.page, "player-judged", { flash: true }),
+  ]);
   await H.getByRole("button", { name: /^Reveal answer/ }).click();
   await expect(tv.page.locator(".tv-answer")).toBeVisible();
   await snap(tv.page, "display-revealed");
@@ -151,7 +165,11 @@ test("game screens", async ({ browser }) => {
     await player.page.getByRole("button", { name: "Lock in wager" }).click();
   }
   await H.getByRole("button", { name: "Show final clue" }).click();
-  const said = { ana: "What is the Milky Way?", ben: "Andromeda", cy: "What is the Milky Way galaxy?" } as const;
+  const said = {
+    ana: "What is the Milky Way?",
+    ben: "Andromeda",
+    cy: "What is the Milky Way galaxy?",
+  } as const;
   for (const player of [ana, ben, cy]) {
     await player.page.getByLabel("Your answer").fill(said[player.name as keyof typeof said]);
     await player.page.getByRole("button", { name: "Submit answer" }).click();
@@ -184,14 +202,21 @@ test("long names and long clues", async ({ browser }) => {
   const host = await device(browser, "s-long-host", PHONE);
   const tv = await device(browser, "s-long-tv", LAPTOP);
   const players = await Promise.all(
-    ["maximiliana.delacruz-santos_jr", "bartholomew.featherstonehaugh", "x"].map((name) => device(browser, name, SMALL_PHONE)),
+    ["maximiliana.delacruz-santos_jr", "bartholomew.featherstonehaugh", "x"].map((name) =>
+      device(browser, name, SMALL_PHONE),
+    ),
   );
   const H = host.page;
   await signIn(H, host.name, "/");
 
   // A pack with long titles and prompts, saved through the API like the editor does.
   const session = await (await H.request.get("/api/session")).json();
-  const long = JSON.parse(await readFile(path.join(process.cwd(), "src/features/content/samples/sample-pack-3x3.json"), "utf8")) as {
+  const long = JSON.parse(
+    await readFile(
+      path.join(process.cwd(), "src/features/content/samples/sample-pack-3x3.json"),
+      "utf8",
+    ),
+  ) as {
     title: string;
     categories: { title: string; clues: { prompt: string }[] }[];
   };
@@ -212,7 +237,9 @@ test("long names and long clues", async ({ browser }) => {
   for (const player of players) await joinAsPlayer(player, code);
   await H.getByRole("button", { name: "Start game" }).click();
   await H.getByRole("button", { name: "Show the board" }).click();
-  await H.getByRole("button", { name: /^Famous Inventions of the Nineteenth Century for 200/ }).click();
+  await H.getByRole("button", {
+    name: /^Famous Inventions of the Nineteenth Century for 200/,
+  }).click();
   await H.getByRole("button", { name: /^Open buzzers/ }).click();
   await players[0].page.getByRole("button", { name: "Buzz!" }).click();
   await expect(players[0].page.getByText("You're up!", { exact: true })).toBeVisible();
@@ -234,7 +261,9 @@ test("pack screens", async ({ browser }) => {
   await P.goto("/packs/new");
   await P.getByLabel("Title", { exact: true }).fill("Friday Night Brain Melt");
   await P.getByLabel("Category title").fill("Internet Lore");
-  await P.getByLabel("Clue 1", { exact: true }).fill("This 1990s dancing baby was one of the first viral videos.");
+  await P.getByLabel("Clue 1", { exact: true }).fill(
+    "This 1990s dancing baby was one of the first viral videos.",
+  );
   await P.getByRole("button", { name: "Save pack" }).first().click();
   await expect(P.locator(".ed-errors")).toBeVisible();
   await P.evaluate(() => window.scrollTo(0, 0));

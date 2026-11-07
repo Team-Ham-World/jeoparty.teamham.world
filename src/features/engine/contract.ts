@@ -101,7 +101,11 @@ export type SystemCommand =
   | { type: "addPlayer"; playerId: PlayerId; name: string } // Lobby → player; in game → waiting.
   | { type: "renamePlayer"; playerId: PlayerId; name: string }
   | { type: "removeMember"; playerId: PlayerId } // A player or waiting account left voluntarily.
-  | { type: "setPresence"; target: { role: "host" } | { role: "player"; playerId: PlayerId }; connected: boolean }
+  | {
+      type: "setPresence";
+      target: { role: "host" } | { role: "player"; playerId: PlayerId };
+      connected: boolean;
+    }
   | { type: "timerExpired"; timerId: TimerId }
   | { type: "restored" }; // After a backend restart: pause games in progress.
 
@@ -180,8 +184,7 @@ export type { GameState } from "./state";
 import type { GameState } from "./state";
 
 export type EngineResult =
-  | { ok: true; state: GameState; events: GameEvent[] }
-  | { ok: false; rejection: Rejection };
+  { ok: true; state: GameState; events: GameEvent[] } | { ok: false; rejection: Rejection };
 
 // ---------------------------------------------------------------------------
 // Views: what each audience may see. Private data is absent, not hidden.

@@ -64,20 +64,30 @@ function HostBody({
   const { view, status, stale } = connection;
   const { run, pending } = useCommand(connection);
   const fresh = useFreshEvent(view);
-  const [dialog, setDialog] = useState<null | "end" | "display" | { adjust: PlayerId | null }>(null);
+  const [dialog, setDialog] = useState<null | "end" | "display" | { adjust: PlayerId | null }>(
+    null,
+  );
 
   const allowed = view?.allowedCommands;
-  const can = useCallback((type: HostCommandType) => !stale && !!allowed?.includes(type), [stale, allowed]);
-  const actions = useMemo<HostActions>(() => ({ can, run: (cmd) => void run(cmd), pending }), [can, run, pending]);
+  const can = useCallback(
+    (type: HostCommandType) => !stale && !!allowed?.includes(type),
+    [stale, allowed],
+  );
+  const actions = useMemo<HostActions>(
+    () => ({ can, run: (cmd) => void run(cmd), pending }),
+    [can, run, pending],
+  );
 
-  if (status === "closed") return <ClosedNotice reason={connection.closeReason} role="host" returnTo={`/host/${code}`} />;
+  if (status === "closed")
+    return <ClosedNotice reason={connection.closeReason} role="host" returnTo={`/host/${code}`} />;
 
   if (!view) {
     return (
       <main id="main-content" className="notice">
         <span className="stamp stamp--dashed">Room {code}</span>
         <h1>
-          Opening the control room<span className="loading-dots" />
+          Opening the control room
+          <span className="loading-dots" />
         </h1>
       </main>
     );
@@ -112,12 +122,22 @@ function HostBody({
           ) : null}
           {/* While paused, the banner below carries the one Resume button. */}
           {!view.paused && inGame && view.phase !== "results" ? (
-            <button type="button" className="btn btn--small" disabled={!can("pause")} onClick={() => actions.run({ type: "pause" })}>
+            <button
+              type="button"
+              className="btn btn--small"
+              disabled={!can("pause")}
+              onClick={() => actions.run({ type: "pause" })}
+            >
               Pause
             </button>
           ) : null}
           {inGame && view.phase !== "results" ? (
-            <button type="button" className="btn btn--small" disabled={!can("endGame")} onClick={() => setDialog("end")}>
+            <button
+              type="button"
+              className="btn btn--small"
+              disabled={!can("endGame")}
+              onClick={() => setDialog("end")}
+            >
               End game
             </button>
           ) : null}
@@ -129,8 +149,17 @@ function HostBody({
         {view.paused ? (
           <div className="banner banner--warn" role="status">
             <span>{pauseMessage(view.paused.reason).title}</span>
-            <p>{view.paused.reason === "host" ? "Players see a pause screen. Timers are frozen." : "Resume when everyone is ready."}</p>
-            <button type="button" className="btn btn--small btn--primary" disabled={!can("resume")} onClick={() => actions.run({ type: "resume" })}>
+            <p>
+              {view.paused.reason === "host"
+                ? "Players see a pause screen. Timers are frozen."
+                : "Resume when everyone is ready."}
+            </p>
+            <button
+              type="button"
+              className="btn btn--small btn--primary"
+              disabled={!can("resume")}
+              onClick={() => actions.run({ type: "resume" })}
+            >
               Resume game
             </button>
           </div>
@@ -141,9 +170,17 @@ function HostBody({
         <main id="main-content" className="host-page">
           <div className="host-intro">
             <h1 className="marker">Set up the game</h1>
-            <p className="muted">You run the show: you read clues, judge answers and keep score. You don&apos;t play.</p>
+            <p className="muted">
+              You run the show: you read clues, judge answers and keep score. You don&apos;t play.
+            </p>
           </div>
-          <HostLobby view={view} packs={packs} joinUrl={joinUrl} actions={actions} onCreateDisplayLink={onCreateDisplayLink} />
+          <HostLobby
+            view={view}
+            packs={packs}
+            joinUrl={joinUrl}
+            actions={actions}
+            onCreateDisplayLink={onCreateDisplayLink}
+          />
         </main>
       ) : (
         <div className="host-grid">
@@ -151,7 +188,11 @@ function HostBody({
             <HostPhase view={view} actions={actions} clockOffsetMs={connection.clockOffsetMs} />
           </main>
           <aside className="host-side" aria-label="Scores">
-            <Scores view={view} canAdjust={can("adjustScore")} onAdjust={(playerId) => setDialog({ adjust: playerId })} />
+            <Scores
+              view={view}
+              canAdjust={can("adjustScore")}
+              onAdjust={(playerId) => setDialog({ adjust: playerId })}
+            />
             <ScoreLog view={view} />
           </aside>
         </div>
@@ -169,11 +210,25 @@ function HostBody({
           setDialog(null);
         }}
       />
-      <Dialog open={dialog === "display"} onClose={() => setDialog(null)} title="Big screen link" footer={<button type="button" className="btn" onClick={() => setDialog(null)}>Done</button>}>
+      <Dialog
+        open={dialog === "display"}
+        onClose={() => setDialog(null)}
+        title="Big screen link"
+        footer={
+          <button type="button" className="btn" onClick={() => setDialog(null)}>
+            Done
+          </button>
+        }
+      >
         <DisplayLinkPanel onCreate={onCreateDisplayLink} />
       </Dialog>
       {typeof dialog === "object" && dialog !== null ? (
-        <AdjustDialog view={view} initialPlayer={dialog.adjust} actions={actions} onClose={() => setDialog(null)} />
+        <AdjustDialog
+          view={view}
+          initialPlayer={dialog.adjust}
+          actions={actions}
+          onClose={() => setDialog(null)}
+        />
       ) : null}
 
       <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -183,7 +238,15 @@ function HostBody({
   );
 }
 
-function HostPhase({ view, actions, clockOffsetMs }: { view: HostView; actions: HostActions; clockOffsetMs: number }) {
+function HostPhase({
+  view,
+  actions,
+  clockOffsetMs,
+}: {
+  view: HostView;
+  actions: HostActions;
+  clockOffsetMs: number;
+}) {
   const controller = nameOf(view.players, view.controllerId);
   switch (view.phase) {
     case "lobby":
@@ -195,15 +258,27 @@ function HostPhase({ view, actions, clockOffsetMs }: { view: HostView; actions: 
             <span className="stamp stamp--red">Up next</span>
             <h1>{view.round?.title ?? "Next round"}</h1>
             <p className="host-lede">
-              <strong className="name">{controller}</strong> picks first. The big screen is showing the round title.
+              <strong className="name">{controller}</strong> picks first. The big screen is showing
+              the round title.
             </p>
             <div className="row">
-              <button type="button" className="btn btn--primary btn--big" disabled={!actions.can("continue")} onClick={() => actions.run({ type: "continue" })}>
+              <button
+                type="button"
+                className="btn btn--primary btn--big"
+                disabled={!actions.can("continue")}
+                onClick={() => actions.run({ type: "continue" })}
+              >
                 Show the board
               </button>
             </div>
           </section>
-          {view.board ? <BoardGrid board={view.board} variant="host" label={`${view.board.roundTitle} board preview`} /> : null}
+          {view.board ? (
+            <BoardGrid
+              board={view.board}
+              variant="host"
+              label={`${view.board.roundTitle} board preview`}
+            />
+          ) : null}
         </div>
       );
     case "board":
@@ -214,7 +289,8 @@ function HostPhase({ view, actions, clockOffsetMs }: { view: HostView; actions: 
               <strong className="name">{controller}</strong> picks. Click the clue they call out.
             </span>
             <span className="host-legend">
-              <span className="board__hot board__hot--inline">Hot</span> = wager clue (only you can see these)
+              <span className="board__hot board__hot--inline">Hot</span> = wager clue (only you can
+              see these)
             </span>
           </p>
           {view.board ? (
@@ -228,22 +304,45 @@ function HostPhase({ view, actions, clockOffsetMs }: { view: HostView; actions: 
         </div>
       );
     case "clue":
-      return view.clue ? <HostClue key={view.clue.clueId} view={view} clue={view.clue} actions={actions} clockOffsetMs={clockOffsetMs} /> : null;
+      return view.clue ? (
+        <HostClue
+          key={view.clue.clueId}
+          view={view}
+          clue={view.clue}
+          actions={actions}
+          clockOffsetMs={clockOffsetMs}
+        />
+      ) : null;
     case "final":
-      return view.final ? <HostFinal view={view} final={view.final} actions={actions} clockOffsetMs={clockOffsetMs} /> : null;
+      return view.final ? (
+        <HostFinal view={view} final={view.final} actions={actions} clockOffsetMs={clockOffsetMs} />
+      ) : null;
     case "results":
       return <HostResults view={view} actions={actions} />;
   }
 }
 
-function Scores({ view, canAdjust, onAdjust }: { view: HostView; canAdjust: boolean; onAdjust: (id: PlayerId | null) => void }) {
+function Scores({
+  view,
+  canAdjust,
+  onAdjust,
+}: {
+  view: HostView;
+  canAdjust: boolean;
+  onAdjust: (id: PlayerId | null) => void;
+}) {
   const answeringId = view.clue?.stage === "answering" ? view.clue.answeringPlayerId : null;
   const showPicks = view.phase === "roundIntro" || view.phase === "board" || view.phase === "clue";
   return (
     <section className="panel panel--flat host-scores" aria-labelledby="host-scores-title">
       <div className="panel__title">
         <h2 id="host-scores-title">Scores</h2>
-        <button type="button" className="btn btn--small" disabled={!canAdjust} onClick={() => onAdjust(null)}>
+        <button
+          type="button"
+          className="btn btn--small"
+          disabled={!canAdjust}
+          onClick={() => onAdjust(null)}
+        >
           Adjust a score
         </button>
       </div>
@@ -253,20 +352,35 @@ function Scores({ view, canAdjust, onAdjust }: { view: HostView; canAdjust: bool
             <span className="host-roster__name">
               <span className="name">{player.name}</span>
               <span className="host-roster__tags">
-                {showPicks && player.id === view.controllerId ? <span className="stamp stamp--blue stamp--flat">Picks</span> : null}
-                {player.id === answeringId ? <span className="stamp stamp--good stamp--flat">Answering</span> : null}
+                {showPicks && player.id === view.controllerId ? (
+                  <span className="stamp stamp--blue stamp--flat">Picks</span>
+                ) : null}
+                {player.id === answeringId ? (
+                  <span className="stamp stamp--good stamp--flat">Answering</span>
+                ) : null}
                 {!player.connected ? <span className="host-away">away</span> : null}
               </span>
             </span>
-            <span className={`score ${player.score < 0 ? "score--neg" : ""}`}>{formatScore(player.score)}</span>
-            <button type="button" className="btn btn--small host-adjust" disabled={!canAdjust} onClick={() => onAdjust(player.id)} aria-label={`Adjust ${player.name}'s score`} title="Adjust score">
+            <span className={`score ${player.score < 0 ? "score--neg" : ""}`}>
+              {formatScore(player.score)}
+            </span>
+            <button
+              type="button"
+              className="btn btn--small host-adjust"
+              disabled={!canAdjust}
+              onClick={() => onAdjust(player.id)}
+              aria-label={`Adjust ${player.name}'s score`}
+              title="Adjust score"
+            >
               ±
             </button>
           </li>
         ))}
       </ul>
       {view.waitingPlayers.length > 0 ? (
-        <p className="muted host-waiting">Next game: {view.waitingPlayers.map((w) => w.name).join(", ")}</p>
+        <p className="muted host-waiting">
+          Next game: {view.waitingPlayers.map((w) => w.name).join(", ")}
+        </p>
       ) : null}
     </section>
   );
@@ -285,9 +399,12 @@ function ScoreLog({ view }: { view: HostView }) {
         <ol>
           {entries.map((entry) => (
             <li key={`${entry.revision}-${entry.playerId}`}>
-              <span className={`num host-log__delta ${entry.delta < 0 ? "score--neg" : ""}`}>{formatDelta(entry.delta)}</span>
+              <span className={`num host-log__delta ${entry.delta < 0 ? "score--neg" : ""}`}>
+                {formatDelta(entry.delta)}
+              </span>
               <span className="name">
-                <strong>{nameOf(view.players, entry.playerId)}</strong> · {entry.kind === "adjustment" ? `Adjusted: ${entry.reason}` : entry.reason}
+                <strong>{nameOf(view.players, entry.playerId)}</strong> ·{" "}
+                {entry.kind === "adjustment" ? `Adjusted: ${entry.reason}` : entry.reason}
               </span>
             </li>
           ))}
@@ -319,7 +436,8 @@ function AdjustDialog({
     event.preventDefault();
     const n = Number(amount);
     const next: typeof errors = {};
-    if (!Number.isInteger(n) || n < 1 || n > MAX_ADJUSTMENT_DELTA) next.amount = `Enter a whole number from 1 to ${formatScore(MAX_ADJUSTMENT_DELTA)}.`;
+    if (!Number.isInteger(n) || n < 1 || n > MAX_ADJUSTMENT_DELTA)
+      next.amount = `Enter a whole number from 1 to ${formatScore(MAX_ADJUSTMENT_DELTA)}.`;
     if (!reason.trim()) next.reason = "Say why, so everyone can see it in the score log.";
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -339,7 +457,12 @@ function AdjustDialog({
           <label className="field__label" htmlFor={`${id}-player`}>
             Player
           </label>
-          <select id={`${id}-player`} className="input" value={playerId} onChange={(event) => setPlayerId(event.target.value)}>
+          <select
+            id={`${id}-player`}
+            className="input"
+            value={playerId}
+            onChange={(event) => setPlayerId(event.target.value)}
+          >
             {view.players.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({formatScore(p.score)})
@@ -400,7 +523,9 @@ function AdjustDialog({
             Cancel
           </button>
           <button type="submit" className="btn btn--primary" disabled={!actions.can("adjustScore")}>
-            {amount ? `${direction > 0 ? "Add" : "Subtract"} ${formatScore(Number(amount))}` : "Apply"}
+            {amount
+              ? `${direction > 0 ? "Add" : "Subtract"} ${formatScore(Number(amount))}`
+              : "Apply"}
           </button>
         </div>
       </form>

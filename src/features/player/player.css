@@ -147,7 +147,12 @@
   }
 
   .pl-list__me {
-    background: linear-gradient(transparent 12%, var(--highlight) 12%, var(--highlight) 88%, transparent 88%);
+    background: linear-gradient(
+      transparent 12%,
+      var(--highlight) 12%,
+      var(--highlight) 88%,
+      transparent 88%
+    );
   }
 
   .pl-list__away {

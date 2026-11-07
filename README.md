@@ -22,7 +22,8 @@ Use another port with `PORT=3001 PUBLIC_ORIGIN=http://127.0.0.1:3001 npm run dev
 | Command | What it does |
 |---|---|
 | `npm run dev` | Combined server (Next.js + API + WebSockets) on 127.0.0.1:3000 with fixture sign-in |
-| `npm run check` | Lint, typecheck, unit/integration tests, Next build, server bundle |
+| `npm run check` | Lint, formatting check, typecheck, unit/integration tests, Next build, server bundle |
+| `npm run format` | Format the code with Prettier |
 | `npm run test:smoke` | Starts the production build and plays one clue end to end (run after `check`) |
 | `npm run test:e2e` | Playwright: host, TV and players in separate browsers play complete games |
 | `npm test -- <path>` | Run one test file |

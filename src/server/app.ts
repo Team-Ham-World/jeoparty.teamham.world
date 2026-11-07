@@ -1,8 +1,4 @@
-import {
-  createServer,
-  type IncomingMessage,
-  type ServerResponse,
-} from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { Duplex } from "node:stream";
 import { randomInt, randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
@@ -17,12 +13,7 @@ import {
   type ConnectionRole,
   type ServerMessage,
 } from "@/features/network/protocol";
-import {
-  AuthService,
-  clearedSessionCookie,
-  type Identity,
-  type SessionRow,
-} from "./auth";
+import { AuthService, clearedSessionCookie, type Identity, type SessionRow } from "./auth";
 import type { Config } from "./config";
 import { Database } from "./db";
 import { randomToken, sha256Hex, timingSafeEqualText } from "./crypto";
@@ -40,12 +31,7 @@ import {
   toFetchRequest,
 } from "./http";
 import { Packs } from "./packs";
-import {
-  Room,
-  type Connection,
-  type RoomRow,
-  type RoomDeps,
-} from "./rooms/room";
+import { Room, type Connection, type RoomRow, type RoomDeps } from "./rooms/room";
 import { parseClientMessage } from "./validation";
 import { RateLimiter } from "./rate-limit";
 
@@ -58,24 +44,13 @@ const claimSchema = z
     key: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
   })
   .strict();
-const createSchema = z
-  .object({ packId: z.string().min(1).max(128).optional() })
-  .strict();
-const saveSchema = z
-  .object({ pack: z.unknown().refine((value) => value !== undefined) })
-  .strict();
+const createSchema = z.object({ packId: z.string().min(1).max(128).optional() }).strict();
+const saveSchema = z.object({ pack: z.unknown().refine((value) => value !== undefined) }).strict();
 interface Options {
   engine: EngineApi;
   now?: () => number;
-  fallback?: (
-    req: IncomingMessage,
-    res: ServerResponse,
-  ) => void | Promise<void>;
-  upgradeFallback?: (
-    req: IncomingMessage,
-    socket: Duplex,
-    head: Buffer,
-  ) => void | Promise<void>;
+  fallback?: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
+  upgradeFallback?: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>;
   timers?: boolean;
 }
 export async function createApp(config: Config, options: Options) {
@@ -91,15 +66,10 @@ export async function createApp(config: Config, options: Options) {
   const rooms = new Map<string, Room>();
   const memberRooms = new Map<string, Set<string>>();
   const sessionConnections = new Map<string, Set<Connection>>();
-  const fixture =
-    config.ham.mode === "fixture"
-      ? createHamFixture(db, config.ham, now)
-      : null;
+  const fixture = config.ham.mode === "fixture" ? createHamFixture(db, config.ham, now) : null;
   const ham = createHamClient(
     config.ham,
-    fixture
-      ? (request) => fixture.handle(request)
-      : (request) => fetch(request),
+    fixture ? (request) => fixture.handle(request) : (request) => fetch(request),
     now,
   );
   const auth = new AuthService(
@@ -130,8 +100,7 @@ export async function createApp(config: Config, options: Options) {
   ): Promise<"active" | "inactive" | "unavailable"> {
     const result = await auth.verify(hash, { fresh });
     if (result.status === "active") {
-      for (const c of sessionConnections.get(hash) ?? [])
-        c.authorizedUntil = result.until;
+      for (const c of sessionConnections.get(hash) ?? []) c.authorizedUntil = result.until;
       return "active";
     }
     return result.status === "unavailable" ? "unavailable" : "inactive";
@@ -191,11 +160,7 @@ export async function createApp(config: Config, options: Options) {
   const limiter = new RateLimiter(now);
   function limit(key: string, max: number, windowMs = 60_000) {
     if (!limiter.take("request", key, max, windowMs))
-      throw new HttpError(
-        429,
-        "rateLimited",
-        "Too many requests. Try again shortly.",
-      );
+      throw new HttpError(429, "rateLimited", "Too many requests. Try again shortly.");
   }
   function origin(req: IncomingMessage): void {
     if (req.headers.origin !== config.publicOrigin)
@@ -204,8 +169,7 @@ export async function createApp(config: Config, options: Options) {
   async function identity(req: IncomingMessage): Promise<Identity> {
     const session = auth.sessionFromCookieHeader(req.headers.cookie);
     const user = auth.identityFor(session);
-    if (!user || !session)
-      throw new HttpError(401, "unauthorized", "Sign in with HAM.");
+    if (!user || !session) throw new HttpError(401, "unauthorized", "Sign in with HAM.");
     const result = await verify(session.session_hash, true);
     if (result !== "active")
       throw new HttpError(
@@ -218,11 +182,7 @@ export async function createApp(config: Config, options: Options) {
     // HAM username is display data. Synchronize it through the engine, never patch its state.
     for (const code of memberRooms.get(current.account.public_id) ?? []) {
       const room = rooms.get(code)!;
-      const view = options.engine.playerView(
-        room.state,
-        current.account.public_id,
-        now(),
-      );
+      const view = options.engine.playerView(room.state, current.account.public_id, now());
       if (view && view.me.name !== current.displayName)
         await room.system({
           type: "renamePlayer",
@@ -257,8 +217,7 @@ export async function createApp(config: Config, options: Options) {
   }
   const parse = <T>(schema: z.ZodType<T>, raw: unknown): T => {
     const value = schema.safeParse(raw);
-    if (!value.success)
-      throw new HttpError(400, "badRequest", "Invalid request body.");
+    if (!value.success) throw new HttpError(400, "badRequest", "Invalid request body.");
     return value.data;
   };
   async function handle(req: IncomingMessage, res: ServerResponse) {
@@ -304,10 +263,7 @@ export async function createApp(config: Config, options: Options) {
       throw new HttpError(405, "badRequest", "Method not allowed.");
 
     const rawBody = ["POST", "PUT", "DELETE"].includes(method ?? "")
-      ? await readJson(
-          req,
-          /^\/api\/packs(?:\/|$)/.test(route) ? 1024 * 1024 : 4096,
-        )
+      ? await readJson(req, /^\/api\/packs(?:\/|$)/.test(route) ? 1024 * 1024 : 4096)
       : undefined;
 
     if (route === "/api/health" && method === "GET") {
@@ -337,11 +293,7 @@ export async function createApp(config: Config, options: Options) {
         auth.sessionFromCookieHeader(req.headers.cookie),
         url.searchParams.get("return_to") ?? "/",
       );
-      redirect(
-        res,
-        result.location,
-        result.setCookie ? { "set-cookie": result.setCookie } : {},
-      );
+      redirect(res, result.location, result.setCookie ? { "set-cookie": result.setCookie } : {});
       return;
     }
     if (route === "/api/auth/callback" && method === "GET") {
@@ -350,8 +302,7 @@ export async function createApp(config: Config, options: Options) {
         url.searchParams,
         auth.sessionFromCookieHeader(req.headers.cookie),
       );
-      if (result.ok)
-        redirect(res, result.returnTo, { "set-cookie": result.setCookie });
+      if (result.ok) redirect(res, result.returnTo, { "set-cookie": result.setCookie });
       else if (result.error === "unavailable")
         sendJson(res, 503, {
           error: "authUnavailable",
@@ -366,10 +317,7 @@ export async function createApp(config: Config, options: Options) {
       if (
         !session ||
         typeof req.headers[CSRF_HEADER] !== "string" ||
-        !timingSafeEqualText(
-          String(req.headers[CSRF_HEADER]),
-          session.csrf_token,
-        )
+        !timingSafeEqualText(String(req.headers[CSRF_HEADER]), session.csrf_token)
       )
         throw new HttpError(403, "csrf", "Invalid CSRF token.");
       await identity(req);
@@ -383,10 +331,7 @@ export async function createApp(config: Config, options: Options) {
       const request = parse(claimSchema, rawBody),
         room = getRoom(request.code);
       const cookie = await room.run(() => {
-        const row = db.get<RoomRow>(
-          "SELECT * FROM rooms WHERE code = ?",
-          room.code,
-        );
+        const row = db.get<RoomRow>("SELECT * FROM rooms WHERE code = ?", room.code);
         if (
           !row?.display_key_hash ||
           !timingSafeEqualText(sha256Hex(request.key), row.display_key_hash)
@@ -415,11 +360,7 @@ export async function createApp(config: Config, options: Options) {
           "rateLimited",
           "The server has reached its limit of 500 open rooms. Try again later.",
         );
-      if (
-        [...rooms.values()].filter(
-          (room) => room.hostId === user.account.account_id,
-        ).length >= 3
-      )
+      if ([...rooms.values()].filter((room) => room.hostId === user.account.account_id).length >= 3)
         throw new HttpError(
           409,
           "conflict",
@@ -446,28 +387,18 @@ export async function createApp(config: Config, options: Options) {
         },
         now(),
       );
-      if (!result.ok)
-        throw new HttpError(400, "badRequest", result.rejection.message);
+      if (!result.ok) throw new HttpError(400, "badRequest", result.rejection.message);
       state = result.state;
-      const room = new Room(
-        code,
-        user.account.account_id,
-        state,
-        [],
-        now(),
-        deps,
-      );
+      const room = new Room(code, user.account.account_id, state, [], now(), deps);
       room.saveInitial();
       rooms.set(code, room);
       sendJson(res, 201, { code });
       return;
     }
-    const roomMatch =
-      /^\/api\/rooms\/([^/]+)(?:\/(join|leave|display-link))?$/.exec(route);
+    const roomMatch = /^\/api\/rooms\/([^/]+)(?:\/(join|leave|display-link))?$/.exec(route);
     if (roomMatch) {
       const [, code, action] = roomMatch;
-      const user =
-        method === "POST" ? await mutation(req) : await identity(req);
+      const user = method === "POST" ? await mutation(req) : await identity(req);
       const room = getRoom(code);
       if (method === "GET" && !action) {
         sendJson(res, 200, room.summary(user));
@@ -504,9 +435,7 @@ export async function createApp(config: Config, options: Options) {
       }
       throw new HttpError(405, "badRequest", "Method not allowed.");
     }
-    const packMatch = /^\/api\/packs(?:\/([^/]+)(?:\/(duplicate))?)?$/.exec(
-      route,
-    );
+    const packMatch = /^\/api\/packs(?:\/([^/]+)(?:\/(duplicate))?)?$/.exec(route);
     if (packMatch) {
       const [, id, duplicate] = packMatch;
       const user = method === "GET" ? await identity(req) : await mutation(req);
@@ -523,10 +452,7 @@ export async function createApp(config: Config, options: Options) {
         sendJson(res, 201, packs.duplicate(id, owner));
         return;
       }
-      if (
-        (!id && method === "POST") ||
-        (id && !duplicate && method === "PUT")
-      ) {
+      if ((!id && method === "POST") || (id && !duplicate && method === "PUT")) {
         const request = parse(saveSchema, rawBody);
         sendJson(res, id ? 200 : 201, packs.save(request.pack, owner, id));
         return;
@@ -541,8 +467,7 @@ export async function createApp(config: Config, options: Options) {
     throw new HttpError(404, "notFound", "Not found.");
   }
   const server = createServer((req, res) => {
-    for (const [name, value] of Object.entries(securityHeaders(config)))
-      res.setHeader(name, value);
+    for (const [name, value] of Object.entries(securityHeaders(config))) res.setHeader(name, value);
     track(
       handle(req, res).catch((error: unknown) => {
         if (res.headersSent) {
@@ -567,9 +492,7 @@ export async function createApp(config: Config, options: Options) {
   const alive = new WeakMap<WebSocket, boolean>();
   function refuse(socket: Duplex, status: number) {
     if (socket.writable)
-      socket.end(
-        `HTTP/1.1 ${status} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
-      );
+      socket.end(`HTTP/1.1 ${status} Rejected\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
     socket.destroy();
   }
   server.on("upgrade", (req, socket, head) => {
@@ -582,8 +505,7 @@ export async function createApp(config: Config, options: Options) {
         }
         const url = new URL(req.url ?? "/", config.publicOrigin);
         if (url.pathname !== "/ws") {
-          if (options.upgradeFallback)
-            await options.upgradeFallback(req, socket, head);
+          if (options.upgradeFallback) await options.upgradeFallback(req, socket, head);
           else refuse(socket, 404);
           return;
         }
@@ -591,19 +513,13 @@ export async function createApp(config: Config, options: Options) {
         limit(`ws:${clientIp(req, config.trustProxy)}`, 60);
         if (
           [...url.searchParams.keys()].some(
-            (key) =>
-              url.searchParams.getAll(key).length !== 1 ||
-              !["room", "role"].includes(key),
+            (key) => url.searchParams.getAll(key).length !== 1 || !["room", "role"].includes(key),
           )
         )
           throw new HttpError(400, "badRequest", "Invalid query.");
         const code = url.searchParams.get("room") ?? "",
           requested = url.searchParams.get("role");
-        if (
-          requested !== "host" &&
-          requested !== "player" &&
-          requested !== "display"
-        )
+        if (requested !== "host" && requested !== "player" && requested !== "display")
           throw new HttpError(403, "forbidden", "Invalid role.");
         const role: ConnectionRole = requested,
           room = getRoom(code);
@@ -612,9 +528,7 @@ export async function createApp(config: Config, options: Options) {
           grantHash: string | undefined,
           authorizedUntil = now() + ROOM_IDLE_MS;
         if (role === "display") {
-          const values = parseCookies(req.headers.cookie).get(
-            grantName(config, code),
-          );
+          const values = parseCookies(req.headers.cookie).get(grantName(config, code));
           if (values?.length !== 1 || !/^[A-Za-z0-9_-]{43}$/.test(values[0]))
             throw new HttpError(401, "unauthorized", "Display grant required.");
           grantHash = sha256Hex(values[0]);
@@ -634,17 +548,9 @@ export async function createApp(config: Config, options: Options) {
           if (
             role === "player" &&
             (user.account.account_id === room.hostId ||
-              !options.engine.playerView(
-                room.state,
-                user.account.public_id,
-                now(),
-              ))
+              !options.engine.playerView(room.state, user.account.public_id, now()))
           )
-            throw new HttpError(
-              403,
-              "forbidden",
-              "Join the room as a player first.",
-            );
+            throw new HttpError(403, "forbidden", "Join the room as a player first.");
           publicId = user.account.public_id;
           sessionHash = user.sessionHash;
           const result = await auth.verify(sessionHash);
@@ -664,12 +570,8 @@ export async function createApp(config: Config, options: Options) {
             )
           )
             throw new HttpError(401, "unauthorized", "Session expired.");
-          if (rooms.get(code) !== room)
-            throw new HttpError(404, "notFound", "Room closed.");
-          if (
-            role === "player" &&
-            !options.engine.playerView(room.state, publicId, now())
-          )
+          if (rooms.get(code) !== room) throw new HttpError(404, "notFound", "Room closed.");
+          if (role === "player" && !options.engine.playerView(room.state, publicId, now()))
             throw new HttpError(403, "forbidden", "Membership ended.");
           if (
             grantHash &&
@@ -689,8 +591,7 @@ export async function createApp(config: Config, options: Options) {
               authorizedUntil,
               send(message: ServerMessage) {
                 if (ws.readyState !== WebSocket.OPEN) return;
-                if (message.t !== "closing" && c.authorizedUntil <= now())
-                  return;
+                if (message.t !== "closing" && c.authorizedUntil <= now()) return;
                 if (ws.bufferedAmount > 512 * 1024) {
                   ws.terminate();
                   return;
@@ -704,8 +605,7 @@ export async function createApp(config: Config, options: Options) {
             };
             if (sessionHash) {
               let connections = sessionConnections.get(sessionHash);
-              if (!connections)
-                sessionConnections.set(sessionHash, (connections = new Set()));
+              if (!connections) sessionConnections.set(sessionHash, (connections = new Set()));
               connections.add(c);
             }
             alive.set(ws, true);
@@ -742,11 +642,9 @@ export async function createApp(config: Config, options: Options) {
                   ws.close(1008);
                   return;
                 }
-                if (message.t === "cmd")
-                  await room.command(c, message.id, message.cmd);
+                if (message.t === "cmd") await room.command(c, message.id, message.cmd);
                 else if (c.authorizedUntil > now()) {
-                  if (message.t === "ping")
-                    c.send({ t: "pong", at: message.at, serverNow: now() });
+                  if (message.t === "ping") c.send({ t: "pong", at: message.at, serverNow: now() });
                   else room.sendView(c);
                 }
               })().catch(() => ws.close(1011));
@@ -762,9 +660,7 @@ export async function createApp(config: Config, options: Options) {
             ws.on("error", () => ws.terminate());
           });
         });
-      })().catch((error) =>
-        refuse(socket, error instanceof HttpError ? error.status : 500),
-      ),
+      })().catch((error) => refuse(socket, error instanceof HttpError ? error.status : 500)),
     );
   });
   let sweepWork: Promise<void> | undefined;
@@ -794,29 +690,20 @@ export async function createApp(config: Config, options: Options) {
       }
       for (const c of room.connections) {
         if (c.role === "display") {
-          if (c.authorizedUntil <= now())
-            room.closeWhere((other) => other === c, "displayRevoked");
-        } else if (c.sessionHash && c.authorizedUntil - now() < 5000)
-          hashes.add(c.sessionHash);
+          if (c.authorizedUntil <= now()) room.closeWhere((other) => other === c, "displayRevoked");
+        } else if (c.sessionHash && c.authorizedUntil - now() < 5000) hashes.add(c.sessionHash);
       }
     }
     await Promise.all(
       [...hashes].map(async (hash) => {
         const result = await verify(hash, true);
         if (result === "active") {
-          const session = db.get<SessionRow>(
-            "SELECT * FROM sessions WHERE session_hash = ?",
-            hash,
-          );
+          const session = db.get<SessionRow>("SELECT * FROM sessions WHERE session_hash = ?", hash);
           const user = auth.identityFor(session ?? null);
           if (user)
             for (const code of memberRooms.get(user.account.public_id) ?? []) {
               const room = rooms.get(code)!;
-              const view = options.engine.playerView(
-                room.state,
-                user.account.public_id,
-                now(),
-              );
+              const view = options.engine.playerView(room.state, user.account.public_id, now());
               if (view && view.me.name !== user.displayName)
                 await room.system({
                   type: "renamePlayer",
@@ -870,9 +757,7 @@ export async function createApp(config: Config, options: Options) {
         server.once("error", reject);
         server.listen(config.port, config.host, () => {
           const address = server.address();
-          resolve(
-            typeof address === "object" && address ? address.port : config.port,
-          );
+          resolve(typeof address === "object" && address ? address.port : config.port);
         });
       }),
     async close() {
@@ -891,9 +776,7 @@ export async function createApp(config: Config, options: Options) {
       });
       await Promise.all([...pendingRequests, sweepWork]);
       await Promise.all([...rooms.values()].map((room) => room.shutdown()));
-      await Promise.all(
-        [...rooms.values()].map((room) => room.run(() => undefined)),
-      );
+      await Promise.all([...rooms.values()].map((room) => room.run(() => undefined)));
       wss.close();
       db.close();
     },

@@ -17,7 +17,8 @@ import "@/features/editor/editor.css";
 
 export const metadata: Metadata = {
   title: { default: "HAM Quiz", template: "%s · HAM Quiz" },
-  description: "A quiz-show party game for HAM: the host runs it, the TV shows the board, and everyone buzzes in from their phone.",
+  description:
+    "A quiz-show party game for HAM: the host runs it, the TV shows the board, and everyone buzzes in from their phone.",
 };
 
 export const viewport: Viewport = {

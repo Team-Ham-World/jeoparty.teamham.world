@@ -24,7 +24,11 @@ describe("pack drafts", () => {
 
   it("keeps dimensions in sync with the content", () => {
     const pack = filledPack();
-    const saved = packForSave({ ...pack, categories: [...pack.categories, pack.categories[0]], dimensions: { categories: 9, cluesPerCategory: 9 } });
+    const saved = packForSave({
+      ...pack,
+      categories: [...pack.categories, pack.categories[0]],
+      dimensions: { categories: 9, cluesPerCategory: 9 },
+    });
     expect(saved.dimensions).toEqual({ categories: 2, cluesPerCategory: 5 });
   });
 
