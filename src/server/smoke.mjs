@@ -132,7 +132,7 @@ try {
   assert.deepEqual(await (await host.request("/api/health")).json(), { ok: true });
   assert.deepEqual(await (await host.request("/api/session")).json(), { signedIn: false, authMode: "fixture" });
   await host.signIn("smoke-host");
-  for (const route of ["/", "/display", "/play"]) {
+  for (const route of ["/", "/packs", "/r/BCDFG", "/host/BCDFG", "/display/BCDFG"]) {
     const page = await host.request(route);
     assert.equal(page.status, 200);
     assert.ok(page.headers.get("content-type").includes("text/html"));
