@@ -1,82 +1,77 @@
-# JeoParty
+# HAM Quiz
 
-A browser-based Jeopardy-style game for Team Ham: a host runs the game, a shared screen shows the board, and players buzz in from their phones.
+A party quiz-show game for HAM. A host runs the game from a laptop, a TV or projector shows the board, and 2–6 players buzz in from their phones. Host and players sign in with TeamHam.world; the TV opens from a link the host generates.
 
-This is a six-person learning project. The aim is to build a working game **and** learn to guide, check, and explain AI-assisted code.
+**Status:** the full game is implemented and tested locally: two rounds, wager clues ("Hot HAM!"), a final round, server timers, pause and reconnect recovery, games that survive a backend restart, and a pack editor. It has not been deployed. Live HAM sign-in needs the `quiz` client registered first; see [HAM registration](docs/HAM_REGISTRATION.md).
 
-**Current status:** the shared scaffold is implemented and its local checks pass. It includes a welcome page, six member areas, a CI definition, and Ivvy's local `/display` presentation preview—not a playable or integrated game. The preview does not complete I1 or any milestone. Milestone 0 remains open: the backend proof, game contracts, team scope confirmation, and teammate setup handoff are still needed.
+## Quickstart
 
-## Read these in order
-
-| Document | Answers |
-|---|---|
-| [Project](docs/PROJECT.md) | What are we building first? What rules and technical boundaries must we share? |
-| [Team](docs/TEAM.md) | Who owns each part, and where do responsibilities meet? |
-| [Roadmap](docs/ROADMAP.md) | What comes next, what depends on it, and how do we know it works? |
-| [Workflow](docs/WORKFLOW.md) | How do we use AI, test changes, and review each other's work? |
-| [Member guides](docs/pointers/README.md) | Which spec and starting task should I give my agent? |
-
-[AGENTS.md](AGENTS.md) is the short entry point for coding agents. If your tool does not load it automatically, include it in your prompt.
-
-## Quickstart (beginner)
-
-Install **Node 24 LTS** with **npm 11**. If you use nvm, run `nvm install` and `nvm use` in this folder first; `.nvmrc` selects Node 24. Then:
+Install **Node 24** and **npm 11** (`.nvmrc` selects Node 24), then:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Then open http://127.0.0.1:3000, or visit http://127.0.0.1:3000/display for Ivvy's local presentation preview. The preview shows the board, clue phases, public example scores and results, and offline/stale examples. The dev/start scripts bind `127.0.0.1`. To use another port:
+Open http://127.0.0.1:3000. Locally, "Sign in with HAM" uses a **development fixture** (a stand-in for TeamHam.world, clearly stamped "not live HAM"), so no credentials or `.env` are needed. To play a game on one machine, use separate browser profiles or private windows for the host and each player, pick a different fixture name in each, and open the TV link from the host's lobby in another window.
 
-```sh
-npm run dev -- --port 3001
-```
-
-No credentials or `.env` file are needed: there is no Supabase integration, database, transport, or deployed app yet. Stop the server with **Ctrl+C**. After pulling dependency changes, run `npm ci` again; use npm only so everyone shares the same lockfile.
+Use another port with `PORT=3001 PUBLIC_ORIGIN=http://127.0.0.1:3001 npm run dev`. Stop with Ctrl+C.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `npm ci` | Clean install from the lockfile |
-| `npm run dev` | Start Next + API + WebSocket server on 127.0.0.1:3000 with local fixture auth |
-| `npm run check` | Run everything: lint + typecheck (`next typegen` & `tsc`) + `npm test` + build |
-| `npm run test:watch` | Re-run tests on file changes |
-| `npm test -- src/lib/team.test.ts` | Run one focused test file |
-| `npm run build` then `npm start` | Build Next + server, then serve with validated backend env ([deployment](docs/DEPLOYMENT.md)) |
+| `npm run dev` | Combined server (Next.js + API + WebSockets) on 127.0.0.1:3000 with fixture sign-in |
+| `npm run check` | Lint, typecheck, unit/integration tests, Next build, server bundle |
+| `npm run test:smoke` | Starts the production build and plays one clue end to end (run after `check`) |
+| `npm run test:e2e` | Playwright: host, TV and players in separate browsers play complete games |
+| `npm test -- <path>` | Run one test file |
+| `npm run build` then `npm start` | Production build, then serve it |
 
-Checks are defined in `.github/workflows/checks.yml` (runs `npm run check` on PRs and pushes to `main`); it has not been run remotely yet. Test files live beside the code as `*.test.ts`/`*.test.tsx`. Vitest runs in node by default; browser tests put `// @vitest-environment jsdom` at the top. Examples: `src/lib/team.test.ts` and `src/test/scaffold.test.tsx`.
+CI (`.github/workflows/checks.yml`) runs `npm run check` and the smoke test.
 
-ESLint 9 is pinned because the current Next.js React lint plugin fails with ESLint 10. npm may show its deprecation warning; keep the working pin until the plugin supports the newer version.
+## How it works
+
+```text
+Host / player phone ──▶ /ws (cookie identity, Origin, role checks)
+                          │
+                          ▼
+                 room actor: one command at a time
+                          │ engine.apply(state, actor, command, now)
+                          ▼
+                 save to SQLite ──▶ ack ──▶ a separate view per recipient
+                                            (host / each player / TV)
+```
+
+- **One rule implementation.** `src/features/engine` is pure TypeScript: state + command → new state, plus a view for each audience. Screens never decide scores, buzz winners or transitions.
+- **Authoritative server.** `src/server` is one Node 24 process that serves Next.js and owns `/api/*` and `/ws`. Each room processes commands strictly in order, saves before acknowledging, replays the original result for a retried command id, and runs the timers.
+- **Private views.** Answers, wager-clue locations and other players' final wagers/answers are absent from player and TV payloads until they are public. Tests check the actual frames sent.
+- **HAM sign-in.** Confidential authorization-code flow with PKCE and introspection, ported from Pusoy Dos. See [security decisions](docs/SECURITY.md) for the introspection policy.
 
 ## Folder map
 
-All routes are thin wrappers under `src/app`: `/` (starter home), `/display` (Ivvy), `/play` (Scarlet), `/host` (Medchu), `/editor` (Fante), plus informational `/workbench/engine` (Happy) and `/workbench/network` (John).
-
 ```text
-src/app/            routes (thin wrappers), layout.tsx, globals.css
-src/components/     starter-home.tsx, starter-panel.tsx (shared UI, Ivvy coordinates)
-src/features/board/    local presentation preview, example data, tests + README.md (Ivvy)
-src/features/player/   player-starter.tsx (Scarlet)
-src/features/host/     host-starter.tsx (Medchu)
-src/features/content/  content-starter.tsx + README.md (Fante; no validator/editor yet)
-src/features/engine/   README.md only (Happy; rules absent)
-src/features/network/  README.md only (John; no backend)
-src/lib/team.ts     shared onboarding metadata, NOT game contracts
-src/test/           shared test setup
+src/app/                 routes: / (home), /r/[code] (player), /host/[code], /display/[code], /packs, /preview (dev only)
+src/features/engine/     rules, views, restore; contract.ts is the shared interface
+src/features/content/    question-pack format v3, validator, built-in packs in samples/
+src/features/network/    protocol.ts (wire types), connection.ts, client/ (WebSocket hook + API helpers)
+src/features/ui/         design system (HAM "Cut & Paste"), shared components
+src/features/{board,player,host,display,lobby,editor,preview}/   screens
+src/server/              HTTP + WebSocket server, HAM OAuth, rooms, SQLite storage, tests
+tests/e2e/               Playwright end-to-end tests
+deploy/, Dockerfile, docker-compose.yml   single-instance deployment behind Caddy
 ```
 
-`@/*` maps to `src/*`. `/display` uses public demo data, not live game state. Other member routes remain scaffolds with no game controls or private content. See the [board README](src/features/board/README.md) for proposed public-only inputs and handoffs.
+## Docs
 
-## Start together
+| Document | Answers |
+|---|---|
+| [Rules](docs/RULES.md) | Exactly how a game plays: rounds, buzzing, wagers, final round, pause and recovery |
+| [Project](docs/PROJECT.md) | What the product is, decisions made, and the technical boundaries |
+| [Roadmap](docs/ROADMAP.md) | What is done, what remains before launch, and the backlog |
+| [Deployment](docs/DEPLOYMENT.md) | Environment, Docker/Caddy, limits, backups |
+| [HAM registration](docs/HAM_REGISTRATION.md) | Owner steps to register the `quiz` OAuth client |
+| [Security decisions](docs/SECURITY.md) | The approved introspection policy |
+| [Workflow](docs/WORKFLOW.md) | How to make and verify changes with AI help |
 
-1. Review the proposed first-release scope and open decisions in the project guide (still a proposal, not team-approved).
-2. Confirm the named ownership boundaries in the team guide.
-3. Run the scaffold above, then pick one small task each from the current milestone—not six separate subsystem builds.
-
-## About these docs
-
-These guides replace the four long source-of-truth questionnaires. The originals remain in Git history. Named responsibilities are retained; the narrower release plan is a **proposal for team confirmation**, not a claim of six-person approval. Old checked sign-offs are not carried forward as evidence of approval or completed work.
-
-Each topic has one home: product rules in Project, ownership in Team, delivery order in Roadmap, and working practices in Workflow. Keep detailed interfaces beside the code once they exist.
+[AGENTS.md](AGENTS.md) is the entry point for coding agents.
