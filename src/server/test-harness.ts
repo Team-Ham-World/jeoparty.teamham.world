@@ -170,17 +170,20 @@ export function fakeEngine() {
   };
   return { api, applied, read, write };
 }
-export async function harness(databasePath = ":memory:") {
+export async function harness(
+  databasePath = ":memory:",
+  options: { engine?: EngineApi; port?: number; now?: () => number } = {},
+) {
   let time = Date.now();
   const engine = fakeEngine();
   const app = await createApp(
     loadConfig({
       APP_ENV: "test",
       DATABASE_PATH: databasePath,
-      PORT: "0",
-      PUBLIC_ORIGIN: "http://127.0.0.1:3101",
+      PORT: String(options.port ?? 0),
+      PUBLIC_ORIGIN: `http://127.0.0.1:${options.port ?? 3101}`,
     }),
-    { engine: engine.api, now: () => time, timers: false },
+    { engine: options.engine ?? engine.api, now: options.now ?? (() => time), timers: false },
   );
   const port = await app.listen();
   const base = `http://127.0.0.1:${port}`;
