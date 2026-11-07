@@ -1,0 +1,7 @@
+quiz.teamham.world {
+  encode zstd gzip
+  # Keep access logs disabled: OAuth callback query strings contain one-time codes.
+  reverse_proxy quiz-app:8080 {
+    header_down +Cache-Control "no-transform"
+  }
+}

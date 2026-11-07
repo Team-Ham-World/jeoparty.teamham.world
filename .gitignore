@@ -9,3 +9,6 @@ next-env.d.ts
 .vercel/
 *.log
 .DS_Store
+
+.data/
+dist/
