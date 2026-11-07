@@ -88,6 +88,11 @@ export function HostClue({ view, clue, actions, clockOffsetMs }: { view: HostVie
   const reveal = () => actions.run({ type: "reveal", clueId: clue.clueId });
   const back = () => actions.run({ type: "returnToBoard", clueId: clue.clueId });
 
+  const last = clue.attempts[clue.attempts.length - 1] ?? null;
+  const solved = last?.result === "correct";
+  const skipped = clue.kind === "wager" && clue.stage === "closed" && clue.attempts.length === 0;
+  // Show (re)open only while the rules allow it; `can` adds the stale check for enabling.
+  const showOpen = clue.kind === "standard" && (clue.stage === "reading" || (clue.stage === "closed" && view.allowedCommands.includes("openBuzzers")));
   const canOpen = can("openBuzzers") && (clue.stage === "reading" || clue.stage === "closed");
   const canJudge = can("judge") && clue.stage === "answering" && attempt !== null;
   const canEnd = can("endAttempts") && (clue.stage === "reading" || clue.stage === "open" || clue.stage === "wager");
@@ -112,7 +117,7 @@ export function HostClue({ view, clue, actions, clockOffsetMs }: { view: HostVie
         <div className="row">
           {clue.kind === "wager" ? <span className="stamp stamp--hot stamp--flat">Wager clue</span> : null}
           <span className="stamp stamp--ink stamp--flat" role="status">
-            {STAGE_LABEL[clue.stage]}
+            {skipped ? "Skipped" : STAGE_LABEL[clue.stage]}
           </span>
         </div>
       </header>
@@ -164,7 +169,10 @@ export function HostClue({ view, clue, actions, clockOffsetMs }: { view: HostVie
       <div className="host-clue__actions">
         {clue.stage === "wager" ? (
           <div className="host-wager">
-            <h3>Enter {controller}&apos;s wager</h3>
+            <h3>
+              Waiting for <span className="name">{controller}</span>&apos;s wager
+            </h3>
+            <p className="muted">They lock it in on their phone. If they say it out loud instead, enter it for them here.</p>
             {view.wagerBounds ? (
               <WagerForm
                 min={view.wagerBounds.min}
@@ -172,12 +180,10 @@ export function HostClue({ view, clue, actions, clockOffsetMs }: { view: HostVie
                 disabled={!can("submitWager")}
                 busy={actions.pending === "submitWager"}
                 label={`${controller}'s wager`}
-                submitLabel="Lock in wager"
+                submitLabel={`Lock in for ${controller}`}
                 onSubmit={(amount) => actions.run({ type: "submitWager", clueId: clue.clueId, amount })}
               />
-            ) : (
-              <p className="muted">Waiting for {controller} to wager on their phone.</p>
-            )}
+            ) : null}
             <button type="button" className="btn btn--quiet" disabled={!canEnd} onClick={end}>
               Skip this clue (no score change)
             </button>
@@ -199,11 +205,27 @@ export function HostClue({ view, clue, actions, clockOffsetMs }: { view: HostVie
         ) : (
           <>
             {clue.stage === "open" ? <p className="host-callout">Buzzers are open. Waiting for a buzz…</p> : null}
-            {clue.stage === "closed" && clue.kind === "standard" ? (
-              <p className="host-callout">{canOpen ? "Reopen for players who haven't tried, or reveal the answer." : "Nobody else can buzz. Reveal the answer."}</p>
+            {clue.stage === "closed" ? (
+              <p className="host-callout">
+                {solved && last ? (
+                  <>
+                    <strong className="name">{nameOf(view.players, last.playerId)}</strong> got it. Reveal the answer, then head back to the board.
+                  </>
+                ) : skipped ? (
+                  "Wager clue skipped with no score change. Reveal the answer to move on."
+                ) : clue.kind === "wager" && last ? (
+                  <>
+                    <strong className="name">{nameOf(view.players, last.playerId)}</strong> missed it. Reveal the answer to move on.
+                  </>
+                ) : showOpen ? (
+                  "Reopen for players who haven't tried, or reveal the answer."
+                ) : (
+                  "Everyone has had a go. Reveal the answer."
+                )}
+              </p>
             ) : null}
             <div className="row">
-              {clue.kind === "standard" && clue.stage !== "open" ? (
+              {showOpen ? (
                 <ActionButton
                   label={clue.stage === "closed" ? "Reopen buzzers" : "Open buzzers"}
                   hint="O"
@@ -213,7 +235,7 @@ export function HostClue({ view, clue, actions, clockOffsetMs }: { view: HostVie
                   onClick={open}
                 />
               ) : null}
-              <ActionButton label="Reveal answer" hint="R" tone={clue.stage === "closed" && !canOpen ? "btn--primary" : ""} enabled={canReveal} busy={actions.pending === "reveal"} onClick={reveal} />
+              <ActionButton label="Reveal answer" hint="R" tone={clue.stage === "closed" && !showOpen ? "btn--primary" : ""} enabled={canReveal} busy={actions.pending === "reveal"} onClick={reveal} />
               {clue.stage !== "closed" ? <ActionButton label="End attempts" hint="E" enabled={canEnd} busy={actions.pending === "endAttempts"} onClick={end} /> : null}
             </div>
           </>

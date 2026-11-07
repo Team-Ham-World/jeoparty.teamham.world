@@ -27,78 +27,80 @@ export function HostLobby({
   const canStart = actions.can("startGame");
 
   return (
-    <div className="host-lobby">
-      <section className="panel host-lobby__players" aria-labelledby="lobby-players">
-        <div className="panel__title">
-          <h2 id="lobby-players">Players</h2>
-          <span className="eyebrow num">
-            {view.players.length} of {MAX_PLAYERS}
-          </span>
-        </div>
-        {view.players.length === 0 ? (
-          <p className="muted">Nobody yet. Share the room code and they&apos;ll pop in here.</p>
-        ) : (
-          <ul className="host-roster">
-            {view.players.map((player) => (
-              <li key={player.id}>
-                <span className="name">{player.name}</span>
-                {!player.connected ? <span className="host-away">away</span> : null}
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  disabled={!actions.can("removePlayer")}
-                  onClick={() => setRemoving({ id: player.id, name: player.name })}
-                  aria-label={`Remove ${player.name}`}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {view.waitingPlayers.length > 0 ? (
-          <p className="muted" style={{ marginTop: "0.75rem" }}>
-            Waiting for a seat: {view.waitingPlayers.map((w) => w.name).join(", ")}
-          </p>
-        ) : null}
-      </section>
-
-      <section className="panel host-lobby__invite" aria-labelledby="lobby-invite">
-        <div className="panel__title">
-          <h2 id="lobby-invite">Invite players</h2>
-        </div>
-        <div className="host-invite">
-          <div className="host-invite__code">
-            <span className="eyebrow">Room code</span>
-            <strong className="room-code host-invite__letters">{view.roomCode}</strong>
-            <p className="muted">Players sign in with HAM, then scan the code or enter it on the home page.</p>
+    <>
+      <div className="host-lobby">
+        <section className="panel host-lobby__players" aria-labelledby="lobby-players">
+          <div className="panel__title">
+            <h2 id="lobby-players">Players</h2>
+            <span className="eyebrow num">
+              {view.players.length} of {MAX_PLAYERS}
+            </span>
           </div>
-          <QrCode value={joinUrl} label={`QR code to join room ${view.roomCode}`} className="host-invite__qr" />
-        </div>
-        <CopyField value={joinUrl} label="Join link" />
-      </section>
+          {view.players.length === 0 ? (
+            <p className="muted">Nobody yet. Share the room code and they&apos;ll pop in here.</p>
+          ) : (
+            <ul className="host-roster">
+              {view.players.map((player) => (
+                <li key={player.id}>
+                  <span className="name">{player.name}</span>
+                  {!player.connected ? <span className="host-away">away</span> : null}
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    disabled={!actions.can("removePlayer")}
+                    onClick={() => setRemoving({ id: player.id, name: player.name })}
+                    aria-label={`Remove ${player.name}`}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {view.waitingPlayers.length > 0 ? (
+            <p className="muted" style={{ marginTop: "0.75rem" }}>
+              Waiting for a seat: {view.waitingPlayers.map((w) => w.name).join(", ")}
+            </p>
+          ) : null}
+        </section>
 
-      <section className="panel host-lobby__display" aria-labelledby="lobby-display">
-        <div className="panel__title">
-          <h2 id="lobby-display">Big screen</h2>
-        </div>
-        <DisplayLinkPanel onCreate={onCreateDisplayLink} />
-      </section>
+        <section className="panel host-lobby__invite" aria-labelledby="lobby-invite">
+          <div className="panel__title">
+            <h2 id="lobby-invite">Invite players</h2>
+          </div>
+          <div className="host-invite">
+            <div className="host-invite__code">
+              <span className="eyebrow">Room code</span>
+              <strong className="room-code host-invite__letters">{view.roomCode}</strong>
+              <p className="muted">Players sign in with HAM, then scan the code or enter it on the home page.</p>
+            </div>
+            <QrCode value={joinUrl} label={`QR code to join room ${view.roomCode}`} className="host-invite__qr" />
+          </div>
+          <CopyField value={joinUrl} label="Join link" />
+        </section>
 
-      <section className="panel host-lobby__setup" aria-labelledby="lobby-setup">
-        <div className="panel__title">
-          <h2 id="lobby-setup">Pack &amp; settings</h2>
-        </div>
-        <PackChooser view={view} packs={packs} actions={actions} />
-        <SettingsEditor
-          key={JSON.stringify(view.settings) + (view.pack?.id ?? "")}
-          settings={view.settings}
-          packCategories={packs.find((p) => p.id === view.pack?.id)?.categories ?? null}
-          disabled={!actions.can("updateSettings")}
-          busy={actions.pending === "updateSettings"}
-          onSave={(patch) => actions.run({ type: "updateSettings", patch })}
-        />
-      </section>
+        <section className="panel host-lobby__display" aria-labelledby="lobby-display">
+          <div className="panel__title">
+            <h2 id="lobby-display">Big screen</h2>
+          </div>
+          <DisplayLinkPanel onCreate={onCreateDisplayLink} />
+        </section>
+
+        <section className="panel host-lobby__setup" aria-labelledby="lobby-setup">
+          <div className="panel__title">
+            <h2 id="lobby-setup">Pack &amp; settings</h2>
+          </div>
+          <PackChooser view={view} packs={packs} actions={actions} />
+          <SettingsEditor
+            key={JSON.stringify(view.settings) + (view.pack?.id ?? "")}
+            settings={view.settings}
+            packCategories={packs.find((p) => p.id === view.pack?.id)?.categories ?? null}
+            disabled={!actions.can("updateSettings")}
+            busy={actions.pending === "updateSettings"}
+            onSave={(patch) => actions.run({ type: "updateSettings", patch })}
+          />
+        </section>
+      </div>
 
       <section className="host-start" aria-labelledby="lobby-start">
         <h2 id="lobby-start" className="sr-only">
@@ -138,7 +140,7 @@ export function HostLobby({
           setRemoving(null);
         }}
       />
-    </div>
+    </>
   );
 }
 

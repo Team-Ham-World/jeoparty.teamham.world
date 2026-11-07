@@ -237,7 +237,11 @@ function DisplayClue({ view, clue, clockOffsetMs }: { view: DisplayView; clue: C
           {clue.categoryTitle}
         </h1>
         <span className="tv-clue__value num">
-          {clue.kind === "wager" ? <span className="stamp stamp--hot stamp--flat">Wager {clue.wager !== null ? formatScore(clue.wager) : ""}</span> : formatScore(clue.value)}
+          {clue.kind === "wager" ? (
+            <span className="stamp stamp--hot stamp--flat">{clue.wager !== null ? `Wager ${formatScore(clue.wager)}` : "Wager clue"}</span>
+          ) : (
+            formatScore(clue.value)
+          )}
         </span>
       </header>
       <p className={`tv-prompt ${promptSize(clue.prompt ?? "")}`}>{clue.prompt}</p>
@@ -267,12 +271,14 @@ function DisplayClue({ view, clue, clockOffsetMs }: { view: DisplayView; clue: C
             </p>
             {view.timer ? <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} className="tv-countdown" /> : null}
           </>
+        ) : clue.stage === "closed" && clue.kind === "wager" && !lastAttempt ? (
+          <p className="tv-cue tv-cue--wait">Skipped · no score change</p>
         ) : clue.stage === "closed" ? (
           <p className="tv-cue tv-cue--wait">
-            Buzzers closed
+            {clue.kind === "wager" ? null : "Buzzers closed"}
             {lastAttempt && lastAttempt.result !== "pending" ? (
               <>
-                {" · "}
+                {clue.kind === "wager" ? null : " · "}
                 <span className="name">{nameOf(view.players, lastAttempt.playerId)}</span> {lastAttempt.result === "correct" ? "got it" : "missed"}
               </>
             ) : null}
@@ -284,7 +290,7 @@ function DisplayClue({ view, clue, clockOffsetMs }: { view: DisplayView; clue: C
               {lastAttempt.delta !== null ? formatDelta(lastAttempt.delta) : ""}
             </p>
           ) : (
-            <p className="tv-cue tv-cue--wait">Nobody got this one</p>
+            <p className="tv-cue tv-cue--wait">{clue.kind === "wager" && !lastAttempt ? "Skipped · no score change" : "Nobody got this one"}</p>
           )
         ) : null}
       </footer>
@@ -405,7 +411,9 @@ function DisplayResults({ view }: { view: DisplayView }) {
 
 function ScoreStrip({ view, pulseId, pulseKey }: { view: DisplayView; pulseId: string | null; pulseKey: number }) {
   const answering = view.clue?.stage === "answering" ? view.clue.answeringPlayerId : null;
-  const locked = view.clue && view.clue.stage !== "revealed" ? view.clue.lockedOutPlayerIds : [];
+  // "Locked out" only matters while someone could still buzz: not once the clue is solved or revealed.
+  const solved = view.clue?.attempts.some((attempt) => attempt.result === "correct") ?? false;
+  const locked = view.clue && view.clue.stage !== "revealed" && !solved ? view.clue.lockedOutPlayerIds : [];
   return (
     <footer className="tv-scores" aria-label="Scores">
       <ul style={{ "--n": view.players.length } as React.CSSProperties}>

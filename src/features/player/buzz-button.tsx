@@ -4,7 +4,9 @@ import { useState, type PointerEvent, type MouseEvent } from "react";
 import type { ClueView, PlayerView } from "@/features/engine/contract";
 import type { CommandOutcome } from "@/features/network/connection";
 import type { ClientCommand } from "@/features/network/protocol";
+import { nameOf } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
+import type { RunOptions } from "@/features/ui/use-command";
 
 /** What the big button says and why, from the view alone. */
 export function buzzCopy(view: PlayerView, clue: ClueView, stale: boolean): { label: string; help: string } {
@@ -18,7 +20,7 @@ export function buzzCopy(view: PlayerView, clue: ClueView, stale: boolean): { la
     case "open":
       return { label: "Wait", help: "You can't buzz on this clue." };
     case "answering":
-      return { label: "Hold", help: "Someone else is answering." };
+      return { label: "Hold", help: `${nameOf(view.players, clue.answeringPlayerId)} got there first.` };
     case "closed":
       return { label: "Closed", help: "No more buzzes on this clue." };
     default:
@@ -40,7 +42,7 @@ export function BuzzButton({
   view: PlayerView;
   clue: ClueView;
   stale: boolean;
-  run: (cmd: ClientCommand) => Promise<CommandOutcome | null>;
+  run: (cmd: ClientCommand, options?: RunOptions) => Promise<CommandOutcome | null>;
 }) {
   const [sentFor, setSentFor] = useState<string | null>(null);
   const enabled = view.can.buzz && !stale;
@@ -51,7 +53,8 @@ export function BuzzButton({
     if (!enabled || sent) return;
     setSentFor(clue.clueId);
     vibrate(35);
-    void run({ type: "buzz", clueId: clue.clueId }).then((outcome) => {
+    // Losing the race is normal: the button already says who got there first, so no error toast.
+    void run({ type: "buzz", clueId: clue.clueId }, { quiet: ["buzzersClosed", "alreadyAttempted"] }).then((outcome) => {
       if (outcome && !outcome.ok) setSentFor(null);
     });
   }

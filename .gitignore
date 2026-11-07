@@ -12,3 +12,7 @@ next-env.d.ts
 
 .data/
 dist/
+
+# Playwright end-to-end output
+/test-results/
+/playwright-report/

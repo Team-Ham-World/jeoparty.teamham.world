@@ -106,10 +106,24 @@ export function updateFinal(pack: QuestionPack, categoryIndex: number, patch: { 
   return updateCategory(pack, categoryIndex, (category) => withFinalClue(category, { ...finalClueOf(category), ...patch }));
 }
 
+/**
+ * The shared validator speaks in schema terms ("Expected a non-empty
+ * string."). Translate the common ones into what a pack author would say;
+ * anything else passes through unchanged.
+ */
+export function friendlyMessage(message: string): string {
+  if (message === "Expected a non-empty string.") return "Can't be empty.";
+  if (message === "Expected a positive safe integer.") return "Use a whole number above 0.";
+  if (message === "Expected an integer tier between 1 and 5.") return "Pick a tier from 1 to 5.";
+  const clues = /^Expected (\d+) clues from dimensions\.cluesPerCategory, but found (\d+)\.$/.exec(message);
+  if (clues) return `Every category needs the same number of clues as the first one (${clues[1]}); this one has ${clues[2]}.`;
+  return message;
+}
+
 /** Index validation errors by path for quick field lookup. */
 export function errorsByPath(errors: readonly ValidationError[]): Map<string, string> {
   const map = new Map<string, string>();
-  for (const error of errors) if (!map.has(error.path)) map.set(error.path, error.message);
+  for (const error of errors) if (!map.has(error.path)) map.set(error.path, friendlyMessage(error.message));
   return map;
 }
 

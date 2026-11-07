@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { ClueView, FinalView, PlayerView, PublicPlayer } from "@/features/engine/contract";
+import { MAX_PLAYERS, type ClueView, type FinalView, type PlayerView, type PublicPlayer } from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
 import { BoardGrid } from "@/features/board/board-grid";
 import { HotHam, Lockup } from "@/features/ui/brand";
@@ -213,7 +213,9 @@ function PlayerLobby({ view }: { view: PlayerView }) {
       <section className="panel panel--flat" aria-labelledby="lobby-players">
         <h2 id="lobby-players" className="panel__title">
           <span>Players</span>
-          <span className="eyebrow num">{plural(view.players.length, "player")} of 6</span>
+          <span className="eyebrow num">
+            {view.players.length} of {MAX_PLAYERS}
+          </span>
         </h2>
         <PlayerList players={view.players} meId={view.me.id} />
       </section>
@@ -227,18 +229,20 @@ function PlayerLobby({ view }: { view: PlayerView }) {
 }
 
 function WaitingForNextGame({ view }: { view: PlayerView }) {
+  const over = view.phase === "results";
   return (
     <div className="stack">
       <div className="stack stack--tight">
         <span className="stamp stamp--dashed">On the bench</span>
         <h1 className="pl-big">You&apos;re in for the next game</h1>
         <p className="muted">
-          A game is already running. When the host chooses <strong>Play again</strong>, you&apos;ll join automatically if a seat is free.
+          {over ? "This game just finished." : "A game is already running."} When the host chooses <strong>Play again</strong>, you&apos;ll join
+          automatically if a seat is free.
         </p>
       </div>
       <section className="panel panel--flat" aria-labelledby="bench-scores">
         <h2 id="bench-scores" className="panel__title">
-          Current game
+          {over ? "Final scores" : "Current game"}
         </h2>
         <Scoreboard players={view.players} />
       </section>
@@ -384,6 +388,8 @@ function PlayerClue({
         <p className="pl-waiting">
           <strong className="name">{nameOf(view.players, clue.answeringPlayerId)}</strong> is answering.
         </p>
+      ) : clue.kind === "wager" && !lastAttempt && (clue.stage === "closed" || clue.stage === "revealed") ? (
+        <p className="pl-waiting">The host skipped this wager clue. No score change.</p>
       ) : clue.stage === "revealed" || (clue.stage === "closed" && lastAttempt) ? (
         lastAttempt ? (
           <p className={`pl-result pl-result--${lastAttempt.result}`}>
@@ -443,7 +449,8 @@ function PlayerFinal({
       <div className="stack">
         {header}
         <p className="muted">
-          You&apos;ll see the clue after wagers lock. {plural(final.wagerSubmittedIds.length, "player")} of {final.eligiblePlayerIds.length} have wagered.
+          You&apos;ll see the clue after wagers lock. {final.wagerSubmittedIds.length} of {plural(final.eligiblePlayerIds.length, "player")}{" "}
+          {final.wagerSubmittedIds.length === 1 ? "has" : "have"} wagered.
         </p>
         {submitted !== null ? (
           <p className="final-status" role="status">

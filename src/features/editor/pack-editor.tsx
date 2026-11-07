@@ -14,6 +14,7 @@ import {
   describePath,
   errorsByPath,
   fieldId,
+  friendlyMessage,
   move,
   packForSave,
   removeAt,
@@ -88,7 +89,12 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
     const result = parseQuestionPackJson(await file.text());
     if (!result.ok) {
       setErrors([]);
-      toast(`Couldn't import ${file.name}: ${result.errors[0]?.message ?? "invalid pack"}${result.errors.length > 1 ? ` (+${result.errors.length - 1} more)` : ""}`);
+      const first = result.errors[0];
+      // Paths point into the file, not this draft, so describe them without this pack's titles.
+      const where = first ? describePath(first.path, { ...pack, categories: [] }, FINAL_CLUE_FIELD) : null;
+      const what = first ? `${where}: ${friendlyMessage(first.message)}` : "it isn't a HAM Quiz pack";
+      const more = result.errors.length > 1 ? ` (and ${plural(result.errors.length - 1, "more problem")})` : "";
+      toast(`Couldn't import ${file.name}. ${what}${more} Nothing was changed.`);
       return;
     }
     // Keep this pack's id so saving updates it instead of creating a twin.
@@ -165,7 +171,7 @@ export function PackEditor({ initial, isNew, onSave, onNavigate, initialErrors =
                 >
                   {describePath(e.path, pack, FINAL_CLUE_FIELD)}
                 </a>
-                : {e.message}
+                : {friendlyMessage(e.message)}
               </li>
             ))}
             {errors.length > 12 ? <li>…and {errors.length - 12} more.</li> : null}
