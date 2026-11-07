@@ -40,11 +40,11 @@ No credentials or `.env` file are needed: there is no Supabase integration, data
 | Command | What it does |
 |---|---|
 | `npm ci` | Clean install from the lockfile |
-| `npm run dev` | Start the dev server on 127.0.0.1:3000 |
+| `npm run dev` | Start Next + API + WebSocket server on 127.0.0.1:3000 with local fixture auth |
 | `npm run check` | Run everything: lint + typecheck (`next typegen` & `tsc`) + `npm test` + build |
 | `npm run test:watch` | Re-run tests on file changes |
 | `npm test -- src/lib/team.test.ts` | Run one focused test file |
-| `npm run build` then `npm start` | Production build, then serve it |
+| `npm run build` then `npm start` | Build Next + server, then serve with validated backend env ([deployment](docs/DEPLOYMENT.md)) |
 
 Checks are defined in `.github/workflows/checks.yml` (runs `npm run check` on PRs and pushes to `main`); it has not been run remotely yet. Test files live beside the code as `*.test.ts`/`*.test.tsx`. Vitest runs in node by default; browser tests put `// @vitest-environment jsdom` at the top. Examples: `src/lib/team.test.ts` and `src/test/scaffold.test.tsx`.
 
