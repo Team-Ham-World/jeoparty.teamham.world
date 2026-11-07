@@ -435,10 +435,19 @@ export class Room {
     this.closeWhere(() => true, "roomClosed");
     this.deps.onClosed(this.code);
   }
-  shutdown(): void {
-    this.closed = true;
-    clearTimeout(this.timer);
-    this.closeWhere(() => true, "serverShutdown");
+  shutdown(): Promise<void> {
+    return this.run(() => {
+      if (this.closed) return;
+      // Freeze at shutdown time, rather than recovering the timer from the last command's clock.
+      const result = this.apply(
+        { kind: "system" },
+        { type: "setPresence", target: { role: "host" }, connected: false },
+      );
+      if (result.ok) this.commit(result.state);
+      this.closed = true;
+      clearTimeout(this.timer);
+      this.closeWhere(() => true, "serverShutdown");
+    });
   }
   static restore(row: RoomRow, deps: RoomDeps): Room | null {
     const state = deps.engine.restore(JSON.parse(row.state_json));

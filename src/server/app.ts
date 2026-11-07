@@ -806,7 +806,7 @@ export async function createApp(config: Config, options: Options) {
       if (stopped) return;
       stopped = true;
       intervals.forEach(clearInterval);
-      for (const room of rooms.values()) room.shutdown();
+      await Promise.all([...rooms.values()].map((room) => room.shutdown()));
       for (const ws of wss.clients)
         if (ws.readyState === WebSocket.OPEN) {
           ws.close(WS_CLOSE.intentional);
@@ -817,7 +817,7 @@ export async function createApp(config: Config, options: Options) {
         server.closeAllConnections();
       });
       await Promise.all([...pendingRequests, sweepWork]);
-      for (const room of rooms.values()) room.shutdown();
+      await Promise.all([...rooms.values()].map((room) => room.shutdown()));
       await Promise.all(
         [...rooms.values()].map((room) => room.run(() => undefined)),
       );
