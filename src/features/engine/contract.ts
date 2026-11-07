@@ -176,11 +176,8 @@ export type GameEvent =
  * it as opaque apart from these header fields. The engine may replace this
  * declaration with its concrete interface, provided the header fields remain.
  */
-export interface GameState {
-  readonly schema: "ham-quiz/game@1";
-  readonly revision: number;
-  readonly roomCode: string;
-}
+export type { GameState } from "./state";
+import type { GameState } from "./state";
 
 export type EngineResult =
   | { ok: true; state: GameState; events: GameEvent[] }
@@ -268,9 +265,9 @@ export interface ClueView {
 export interface FinalResponseView {
   playerId: PlayerId;
   status: "hidden" | "revealed" | "judged";
-  /** Public once revealed. The host always sees it after answers lock. */
+  /** Public once revealed. The host sees submissions as they arrive. */
   answer: string | null;
-  /** Public once judged. The host always sees it after wagers lock. */
+  /** Public once judged. The host sees submissions as they arrive. */
   wager: number | null;
   correct: boolean | null;
   delta: number | null;
@@ -284,7 +281,7 @@ export interface FinalView {
   eligiblePlayerIds: PlayerId[];
   wagerSubmittedIds: PlayerId[];
   answerSubmittedIds: PlayerId[];
-  /** In reveal order (empty until `judging`). */
+  /** Public responses are in reveal order, empty until `judging`. The host sees submissions throughout. */
   responses: FinalResponseView[];
   nextResponderId: PlayerId | null;
   /** Public at `done`. The host always sees it. */

@@ -26,7 +26,7 @@ A room code alone never grants host powers. Identity is the HAM account (server-
 |---|---|---|
 | `categoriesPerRound` | min(6, pack categories) | 1–6 and ≤ pack categories ÷ rounds |
 | `rounds` | 2 if the pack has ≥ 2 × categoriesPerRound categories, else 1 | 1–2 |
-| `wagerClues` | `[1, 2]` | each 0–3, ≤ cells in that round |
+| `wagerClues` | `[1, 2]`, clamped to available cells | each 0–3, ≤ cells in that round |
 | `finalRound` | `true` | — |
 | `timers.enabled` | `true` | — |
 | `timers.buzzWindowMs` | 10 000 | 3 000–60 000 |
@@ -71,7 +71,7 @@ Stages: `wager → answering → closed → revealed`.
 
 ## Final round
 
-Starts after the last ordinary round when `finalRound` is on. **Eligible:** players with a score > 0 at that moment. If nobody is eligible, skip to results.
+Starts after the last ordinary round when `finalRound` is on. **Eligible:** players with a score > 0 at that moment. If nobody is eligible, skip to results. Eligibility, wager limits, and reveal order use scores captured at the start of the final round; later score corrections do not change them.
 
 1. `wagers`: the category is public, the prompt hidden. Each eligible player submits an integer wager 0–score, changeable until locked. No timer. Everyone sees *who* has submitted, never amounts.
 2. **Show final clue** (host) locks wagers (missing → 0) → `answering`. The prompt is public and the final answer timer starts when timers are enabled. Players type answers (≤ 200 characters, editable until locked).
@@ -85,9 +85,9 @@ Standings sort by score. Every player with the top score wins (shared win), even
 
 ## Pause, presence and recovery
 
-- Host **pause/resume** any time after start. While paused, timers freeze with their remaining time, and every command except resume, score correction, and end game is rejected (`paused`).
+- Host **pause/resume** any time after start. While paused, timers freeze with their remaining time, and every gameplay command except resume, score correction, and end game is rejected (`paused`). Server-only presence, membership, rename, and recovery commands still run; timer expiry is rejected while paused.
 - If the host's last connection drops during a game, the game auto-pauses (`hostOffline`). Resuming is always the host's explicit action.
-- Player disconnects are shown but do not change the game; the host decides whether to wait, judge, or end attempts.
+- Player disconnects are shown but do not change the game; the host decides whether to wait, judge, or end attempts. Voluntary departure removes lobby and waiting members immediately. During play, retain the player's scores and attempts through results, mark them disconnected, and free their seat on play again. Reconnecting before then cancels the departure.
 - After a backend restart, games in progress are restored **paused** (`restored`), with scores, clue progress, and remaining timer time intact. Acknowledged actions are saved before they are acknowledged or broadcast.
 - Clients ignore views with older revisions, show *offline/stale* while disconnected, and disable game actions until a fresh view arrives.
 

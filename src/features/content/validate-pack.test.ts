@@ -4,7 +4,7 @@ import { parseQuestionPackJson, validateQuestionPack } from "./index";
 import type { QuestionPack, ValidationError } from "./types";
 
 // Node-only test fixture: never import the answer-bearing pack in a UI module.
-const sampleJson = readFileSync(new URL("../../../docs/sample-pack.json", import.meta.url), "utf8");
+const sampleJson = readFileSync(new URL("./samples/ham-starter-pack.json", import.meta.url), "utf8");
 
 function sample(): QuestionPack {
   const result = parseQuestionPackJson(sampleJson);
@@ -30,7 +30,7 @@ describe("validateQuestionPack", () => {
     expect(pack).toEqual(before);
     expect(pack.categories).toHaveLength(12);
     expect(pack.categories.flatMap((category) => category.clues)).toHaveLength(60);
-    expect(pack.categories.map((category) => category.finalJeoparty)).toHaveLength(12);
+    expect(pack.categories.map((category) => category.finalClue)).toHaveLength(12);
   });
 
   it("accepts a smaller custom pack with omitted text types and optional metadata", () => {
@@ -40,7 +40,7 @@ describe("validateQuestionPack", () => {
     for (const category of pack.categories) {
       category.clues = category.clues.slice(0, 3);
       for (const clue of category.clues) delete clue.type;
-      delete category.finalJeoparty.type;
+      delete category.finalClue.type;
     }
     pack.author = "A custom author";
     pack.tags = ["playtest"];
@@ -96,9 +96,9 @@ describe("validateQuestionPack", () => {
     pack.scoring.rounds[0].id = pack.id;
     pack.scoring.defaultRoundId = pack.id;
     pack.categories[0].id = pack.id;
-    pack.categories[0].finalJeoparty.id = pack.id;
+    pack.categories[0].finalClue.id = pack.id;
     const errors = errorsFor(pack);
-    for (const path of ["scoring.rounds[0].id", "categories[0].id", "categories[0].finalJeoparty.id"]) {
+    for (const path of ["scoring.rounds[0].id", "categories[0].id", "categories[0].finalClue.id"]) {
       expect(errors).toContainEqual({
         path,
         message: `Duplicate ID "${pack.id}"; first defined at id.`,
@@ -157,12 +157,12 @@ describe("validateQuestionPack", () => {
 
   it("rejects invalid final clues", () => {
     const pack = sample();
-    const final: Record<string, unknown> = pack.categories[0].finalJeoparty;
+    const final: Record<string, unknown> = pack.categories[0].finalClue;
     final.tier = 5;
     final.answer = " ";
     expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "categories[0].finalJeoparty.tier", message: 'Expected the tier "final".' },
-      { path: "categories[0].finalJeoparty.answer", message: "Expected a non-empty string." },
+      { path: "categories[0].finalClue.tier", message: 'Expected the tier "final".' },
+      { path: "categories[0].finalClue.answer", message: "Expected a non-empty string." },
     ]));
   });
 
@@ -170,10 +170,10 @@ describe("validateQuestionPack", () => {
     const pack = sample();
     const firstCategory: Record<string, unknown> = pack.categories[0];
     const secondCategory: Record<string, unknown> = pack.categories[1];
-    delete firstCategory.finalJeoparty;
+    delete firstCategory.finalClue;
     secondCategory.clues = null;
     expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "categories[0].finalJeoparty", message: "Expected an object." },
+      { path: "categories[0].finalClue", message: "Expected an object." },
       { path: "categories[1].clues", message: "Expected an array." },
     ]));
   });
@@ -205,7 +205,7 @@ describe("validateQuestionPack", () => {
     clue.type = "daily_double";
     clue.points = 200;
     expect(errorsFor(pack)).toEqual(expect.arrayContaining([
-      { path: "schemaVersion", message: 'Expected schema version "2.0.0".' },
+      { path: "schemaVersion", message: 'Expected schema version "3.0.0".' },
       { path: "categories[0].clues[0].type", message: 'Only text clues are supported in F0; omit type or use "text".' },
       { path: "categories[0].clues[0].points", message: "Static clue points are not supported; use tier and scoring.rounds." },
     ]));

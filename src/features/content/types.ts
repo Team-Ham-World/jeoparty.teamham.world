@@ -9,7 +9,7 @@ export interface ContentMetadata {
   [key: string]: unknown;
 }
 
-/** F0 supports text only. Other clue types require a later format extension. */
+/** Text only. Other clue types require a format extension. */
 export interface Clue extends ContentMetadata {
   id: string;
   tier: DifficultyTier;
@@ -30,7 +30,7 @@ export interface Category extends ContentMetadata {
   id: string;
   title: string;
   clues: Clue[];
-  finalJeoparty: FinalClue;
+  finalClue: FinalClue;
 }
 
 export interface ScoringRound extends ContentMetadata {
@@ -45,7 +45,7 @@ export interface ScoringConfig extends ContentMetadata {
 }
 
 export interface QuestionPack extends ContentMetadata {
-  schemaVersion: "2.0.0";
+  schemaVersion: "3.0.0";
   id: string;
   title: string;
   description?: string;

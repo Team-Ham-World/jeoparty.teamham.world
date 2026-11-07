@@ -130,8 +130,8 @@ export function validateQuestionPack(input: unknown): ValidationResult {
   id(input.id, "id");
   text(input.title, "title");
   metadata(input, "");
-  if (input.schemaVersion !== "2.0.0") {
-    error("schemaVersion", 'Expected schema version "2.0.0".');
+  if (input.schemaVersion !== "3.0.0") {
+    error("schemaVersion", 'Expected schema version "3.0.0".');
   }
   if (Object.hasOwn(input, "description")) text(input.description, "description");
   if (Object.hasOwn(input, "custom") && typeof input.custom !== "boolean") {
@@ -189,7 +189,7 @@ export function validateQuestionPack(input: unknown): ValidationResult {
         }
         category.clues.forEach((value, clueIndex) => clue(value, `${path}.clues[${clueIndex}]`, false));
       }
-      clue(category.finalJeoparty, `${path}.finalJeoparty`, true);
+      clue(category.finalClue, `${path}.finalClue`, true);
     });
   }
 

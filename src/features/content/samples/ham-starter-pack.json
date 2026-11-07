@@ -1,23 +1,23 @@
 {
-  "schemaVersion": "2.0.0",
+  "schemaVersion": "3.0.0",
   "id": "team-ham-expanded-pack-v1",
-  "title": "Team Ham Expanded Trivia Pack",
-  "description": "A diverse 12-category sample pack with 60 standard clues and one Final Jeoparty clue per category. Expanded content only; this does not change the proposed first-release board size or implement final-round gameplay.",
+  "title": "HAM Starter Pack",
+  "description": "Twelve categories, sixty clues, two scoring rounds, and final-round challenges.",
   "custom": true,
   "metadata": {
-    "notes": "Pack and clue metadata may include author (string), notes (string), tags (array of strings), and media (array of attachment objects with url, mimeType, and optional alt text). Clue type defaults to text; reserved types are text, daily_double, and media. Consumers should ignore unknown optional metadata fields, but explicitly reject unsupported schema versions or clue types rather than silently changing gameplay. These extension conventions describe the sample format; they do not implement parser, media, or Daily Double support."
+    "notes": "Text clues only. Optional metadata is preserved; unsupported schema versions and clue types are rejected."
   },
   "dimensions": {
     "categories": 12,
     "cluesPerCategory": 5
   },
   "scoring": {
-    "defaultRoundId": "round-jeoparty",
+    "defaultRoundId": "round-1",
     "notes": "A standard clue's tier is its intrinsic difficulty. Look up its points in the selected round's pointsByTier table; do not derive points from clue IDs or array positions. Existing IDs are stable opaque identifiers even where they contain legacy point values. Final clues use tier final and are not scored by these standard-round tables.",
     "rounds": [
       {
-        "id": "round-jeoparty",
-        "title": "JeoParty",
+        "id": "round-1",
+        "title": "Round 1",
         "pointsByTier": {
           "1": 100,
           "2": 200,
@@ -27,8 +27,8 @@
         }
       },
       {
-        "id": "round-double-jeoparty",
-        "title": "Double JeoParty",
+        "id": "round-2",
+        "title": "Round 2",
         "pointsByTier": {
           "1": 200,
           "2": 400,
@@ -80,7 +80,7 @@
           "answer": "What is Cross-Origin Resource Sharing?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-web",
         "tier": "final",
         "type": "text",
@@ -128,7 +128,7 @@
           "answer": "Who is Fante?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-team",
         "tier": "final",
         "type": "text",
@@ -176,7 +176,7 @@
           "answer": "What is Lesotho?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-geography",
         "tier": "final",
         "type": "text",
@@ -220,11 +220,11 @@
           "id": "clue-history-1000",
           "tier": 5,
           "type": "text",
-          "prompt": "The 1648 treaties signed at Münster and Osnabrück, ending the Thirty Years' War, are collectively known by this name.",
+          "prompt": "The 1648 treaties signed at M\u00fcnster and Osnabr\u00fcck, ending the Thirty Years' War, are collectively known by this name.",
           "answer": "What is the Peace of Westphalia?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-history",
         "tier": "final",
         "type": "text",
@@ -240,7 +240,7 @@
           "id": "clue-science-200",
           "tier": 1,
           "type": "text",
-          "prompt": "H₂O is the chemical formula for this substance, which can occur naturally as ice, liquid, and vapor.",
+          "prompt": "H\u2082O is the chemical formula for this substance, which can occur naturally as ice, liquid, and vapor.",
           "answer": "What is water?"
         },
         {
@@ -272,7 +272,7 @@
           "answer": "What are tardigrades?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-science",
         "tier": "final",
         "type": "text",
@@ -320,7 +320,7 @@
           "answer": "What is Parasite?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-cinema",
         "tier": "final",
         "type": "text",
@@ -368,7 +368,7 @@
           "answer": "Who is Zagreus?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-games",
         "tier": "final",
         "type": "text",
@@ -416,7 +416,7 @@
           "answer": "What is the Maillard reaction?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-food",
         "tier": "final",
         "type": "text",
@@ -464,11 +464,11 @@
           "answer": "What is Voyager 1?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-space",
         "tier": "final",
         "type": "text",
-        "prompt": "In 2014, the Philae lander touched down on comet 67P/Churyumov–Gerasimenko after traveling aboard this European Space Agency spacecraft, named for an artifact used to decipher Egyptian writing.",
+        "prompt": "In 2014, the Philae lander touched down on comet 67P/Churyumov\u2013Gerasimenko after traveling aboard this European Space Agency spacecraft, named for an artifact used to decipher Egyptian writing.",
         "answer": "What is Rosetta?"
       }
     },
@@ -508,11 +508,11 @@
           "id": "clue-literature-1000",
           "tier": 5,
           "type": "text",
-          "prompt": "The fictional town of Macondo and the Buendía family anchor this Gabriel García Márquez novel.",
+          "prompt": "The fictional town of Macondo and the Buend\u00eda family anchor this Gabriel Garc\u00eda M\u00e1rquez novel.",
           "answer": "What is One Hundred Years of Solitude?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-literature",
         "tier": "final",
         "type": "text",
@@ -560,7 +560,7 @@
           "answer": "What is a theremin?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-music",
         "tier": "final",
         "type": "text",
@@ -583,7 +583,7 @@
           "id": "clue-myth-400",
           "tier": 2,
           "type": "text",
-          "prompt": "In Norse mythology, this thunder god carries the hammer Mjölnir.",
+          "prompt": "In Norse mythology, this thunder god carries the hammer Mj\u00f6lnir.",
           "answer": "Who is Thor?"
         },
         {
@@ -608,7 +608,7 @@
           "answer": "Who is Anansi?"
         }
       ],
-      "finalJeoparty": {
+      "finalClue": {
         "id": "final-myth",
         "tier": "final",
         "type": "text",

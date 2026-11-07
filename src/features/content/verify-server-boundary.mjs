@@ -8,7 +8,7 @@ const contentPath = "src/features/content";
 const samplePath = `${contentPath}/samples/sample-pack-3x3.json`;
 const nextCli = join(repositoryRoot, "node_modules/next/dist/bin/next");
 const nextPackage = JSON.parse(await readFile(join(repositoryRoot, "node_modules/next/package.json"), "utf8"));
-const fixture = await mkdtemp("/tmp/opencode/jeoparty-content-boundary-");
+const fixture = await mkdtemp("/tmp/opencode/ham-quiz-content-boundary-");
 
 function buildFixture() {
   const result = spawnSync(process.execPath, [nextCli, "build"], {
