@@ -183,6 +183,11 @@
     vertical-align: middle;
   }
 
+  .ed-table th:first-child,
+  .ed-table td:first-child {
+    min-width: 9rem;
+  }
+
   .ed-center {
     text-align: center;
   }
@@ -218,8 +223,10 @@
     gap: 1rem;
   }
 
+  /* Centred on the title input, not on the label + input block: (44 px input − 22 px chip) / 2. */
   .ed-cat__num {
-    align-self: center;
+    align-self: end;
+    margin-bottom: 0.6875rem;
     padding: 0.2rem 0.6rem;
     font-size: var(--fs-sm);
     color: var(--surface);
@@ -227,8 +234,10 @@
     white-space: nowrap;
   }
 
+  /* As tall as the title input, so the buttons centre on its line at any button height. */
   .ed-cat__tools {
     gap: 0.4rem;
+    min-height: 44px;
   }
 
   @media (max-width: 640px) {
@@ -238,6 +247,7 @@
 
     .ed-cat__num {
       justify-self: start;
+      margin-bottom: 0;
     }
   }
 
