@@ -48,7 +48,8 @@ export function HomeScreen({
           <h1 id="home-title" className="home-hero__title">
             Pick a clue.
             <br />
-            <span className="marker">Beat your friends</span> to the buzzer.
+            <span className="marker">Beat your friends</span>{" "}
+            <span className="nowrap">to the buzzer.</span>
           </h1>
           <p className="home-hero__lede">
             One of you hosts from a laptop, the board goes up on the TV, and everyone else buzzes in
