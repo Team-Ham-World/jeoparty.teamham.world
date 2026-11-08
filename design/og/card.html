@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>HAM Quiz social card</title>
+    <style>
+      @font-face {
+        font-family: Bricolage;
+        src: url("{{displayFont}}") format("woff2");
+        font-weight: 200 800;
+      }
+      @font-face {
+        font-family: Atkinson;
+        src: url("{{bodyFont}}") format("woff2");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: Atkinson;
+        src: url("{{boldFont}}") format("woff2");
+        font-weight: 700;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        background: #f6f1e5;
+        color: #1c1a17;
+        font-family: Atkinson, sans-serif;
+      }
+      .art {
+        position: absolute;
+        inset: 0;
+        width: 1200px;
+        height: 630px;
+      }
+      main {
+        position: absolute;
+        inset: 0;
+      }
+      .lockup {
+        display: inline-flex;
+        align-items: center;
+        gap: 28px;
+        white-space: nowrap;
+      }
+      .lockup svg {
+        width: 151px;
+        height: auto;
+      }
+      .lockup span {
+        font-family: Bricolage, sans-serif;
+        font-size: 63px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+      .brand {
+        position: absolute;
+        top: 65px;
+        left: 72px;
+      }
+      h1 {
+        position: absolute;
+        margin: 0;
+        left: 72px;
+        top: 201px;
+        font-family: Bricolage, sans-serif;
+        font-size: 76px;
+        font-weight: 800;
+        line-height: 1.04;
+        letter-spacing: -0.035em;
+      }
+      h1 .line {
+        display: block;
+      }
+      .marked {
+        position: relative;
+      }
+      .marked::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 5px;
+        bottom: -7px;
+        height: 7px;
+        background: #d93625;
+        transform: rotate(-1deg);
+        clip-path: polygon(0 18%, 97% 0, 100% 55%, 3% 100%);
+      }
+      .note {
+        position: absolute;
+        left: 72px;
+        top: 524px;
+        padding: 7px 13px;
+        background: #fce38a;
+        font-size: 26px;
+        font-weight: 700;
+        transform: rotate(-1deg);
+      }
+      .stamp {
+        position: absolute;
+        top: 72px;
+        left: 76px;
+        border: 3px double #d93625;
+        outline: 2px solid #d93625;
+        outline-offset: 4px;
+        padding: 10px 17px;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        transform: rotate(-3deg);
+        background: #fce38a;
+      }
+      .invite h1 {
+        top: 183px;
+        font-size: 80px;
+      }
+      .invite .join-brand {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-top: 6px;
+      }
+      .invite .lockup {
+        gap: 40px;
+      }
+      .invite .lockup svg {
+        width: 202px;
+      }
+      .invite .lockup span {
+        font-size: 88px;
+      }
+      .instructions {
+        position: absolute;
+        top: 419px;
+        left: 76px;
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.28;
+      }
+      .instructions svg {
+        width: 67px;
+        height: 30px;
+        vertical-align: -5px;
+        margin: 0 3px;
+      }
+      .address {
+        position: absolute;
+        left: 76px;
+        bottom: 57px;
+        font-size: 23px;
+        font-weight: 700;
+        letter-spacing: 0.025em;
+      }
+    </style>
+  </head>
+  <body class="{{kind}}">
+    <img class="art" src="{{art}}" alt="" />
+    <main>{{content}}</main>
+  </body>
+</html>
