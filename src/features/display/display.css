@@ -807,11 +807,38 @@
     line-height: 1.05;
     text-align: center;
     text-wrap: balance;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
   }
 
   .tv-podium__name--long {
     font-size: 2.1em;
+  }
+
+  .tv-podium__name--xlong {
+    font-size: 1.6em;
+  }
+
+  /* A shared win among three or more: smaller slips, three to a row. */
+  .tv-podium--crowd {
+    gap: 1em 1.2em;
+    max-width: 62em;
+  }
+
+  .tv-podium--crowd .tv-podium__slip {
+    width: 18em;
+    padding: 0.5em 1em 0.6em;
+  }
+
+  .tv-podium--crowd .tv-podium__name {
+    font-size: 1.6em;
+  }
+
+  .tv-podium--crowd .tv-podium__name--xlong {
+    font-size: 1.35em;
+  }
+
+  .tv-podium--crowd .tv-podium__score {
+    font-size: 1.6em;
   }
 
   .tv-podium__score {

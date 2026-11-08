@@ -532,11 +532,30 @@ function Progress({
   );
 }
 
+/** The longest run of characters in a name that has no space or break chance. */
+function longestPart(name: string): number {
+  return Math.max(0, ...name.split(/[\s._-]+/).map((part) => part.length));
+}
+
+/**
+ * Winner names step down in size so they fit the slip: long names, or names
+ * with a long unbroken part (usernames like "bartholomew.featherstonehaugh"),
+ * get smaller type instead of running off the edge. Co-winners share the
+ * size their longest name needs, so nobody's slip looks like second place.
+ */
+export function podiumNameSize(names: string[]): string {
+  if (names.some((name) => name.length > 24)) return "tv-podium__name--xlong";
+  if (names.some((name) => name.length > 14 || longestPart(name) > 12))
+    return "tv-podium__name--long";
+  return "";
+}
+
 function DisplayResults({ view }: { view: DisplayView }) {
   const results = view.results;
   if (!results) return null;
   const winners = results.standings.filter((s) => results.winnerIds.includes(s.playerId));
   const rest = results.standings.filter((s) => !results.winnerIds.includes(s.playerId));
+  const nameSize = podiumNameSize(winners.map((w) => w.name));
   return (
     <section className="tv-results" aria-labelledby="tv-results-title">
       <span className="stamp stamp--red tv-stamp">
@@ -547,7 +566,10 @@ function DisplayResults({ view }: { view: DisplayView }) {
           ? `Shared win: ${listNames(winners.map((w) => w.name))}`
           : `Winner: ${winners[0]?.name ?? "nobody"}`}
       </h1>
-      <ul className="tv-podium" aria-hidden="true">
+      <ul
+        className={`tv-podium ${winners.length >= 3 ? "tv-podium--crowd" : ""}`}
+        aria-hidden="true"
+      >
         {winners.map((w, i) => (
           <li
             key={w.playerId}
@@ -555,10 +577,8 @@ function DisplayResults({ view }: { view: DisplayView }) {
             style={{ "--tilt": `${i % 2 === 0 ? -1.5 : 1.5}deg` } as React.CSSProperties}
           >
             <span className="tv-podium__rank">{ordinal(w.rank)}</span>
-            <span
-              className={`tv-podium__name ${w.name.length > 14 ? "tv-podium__name--long" : ""}`}
-            >
-              {w.name}
+            <span className={`tv-podium__name ${nameSize}`}>
+              <Name name={w.name} />
             </span>
             <span className="tv-podium__score num">{formatScore(w.score)}</span>
           </li>
@@ -569,7 +589,9 @@ function DisplayResults({ view }: { view: DisplayView }) {
           {rest.map((s) => (
             <li key={s.playerId}>
               <span className="num">{ordinal(s.rank)}</span>
-              <span className="name">{s.name}</span>
+              <span className="name">
+                <Name name={s.name} />
+              </span>
               <span className="num">{formatScore(s.score)}</span>
             </li>
           ))}
