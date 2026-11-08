@@ -852,13 +852,18 @@
     list-style: none;
   }
 
+  /*
+    Tiles in a row stretch to the tallest one; the name sits at the top and
+    the score at the bottom, so every score is on one line even when one
+    name wraps to two.
+  */
   .tv-score {
     position: relative;
     display: grid;
-    grid-template-rows: auto auto;
+    grid-template-rows: 1fr auto;
     gap: 0;
     min-width: 0;
-    padding: 0.45em 0.7em 0.5em;
+    padding: 0.5em 0.7em 0.5em;
     background: var(--stage-raise);
     border: 2px solid #f6f1e533;
     transition:
@@ -867,13 +872,25 @@
   }
 
   .tv-score__name {
+    align-self: start;
     font-size: 0.85em;
     font-weight: 700;
     line-height: 1.2;
+    overflow-wrap: break-word;
+    text-wrap: balance;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Five or six players: narrower tiles, so the name gets a little more room. */
+  .tv-scores--dense .tv-score {
+    padding-inline: 0.5em;
+  }
+
+  .tv-scores--dense .tv-score__name {
+    font-size: 0.8em;
   }
 
   .tv-score__pts {
@@ -887,14 +904,19 @@
     color: var(--stage-bad);
   }
 
+  /* State tags hang on the tile's top edge; 0.8em is 24px on a 1080p TV. */
   .tv-score__tag {
     position: absolute;
-    top: -0.75em;
+    top: 0;
     right: 0.5em;
-    font-size: 0.6em;
+    padding: 0.05em 0.45em;
+    font-size: 0.8em;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    white-space: nowrap;
+    transform: translateY(-62%);
   }
 
   .tv-score__tag:empty {
@@ -906,7 +928,6 @@
   }
 
   .tv-score--picks .tv-score__tag {
-    padding: 0.1em 0.5em;
     color: var(--ink);
     background: var(--stage-blue);
   }
@@ -918,7 +939,6 @@
   }
 
   .tv-score--answering .tv-score__tag {
-    padding: 0.1em 0.5em;
     color: var(--ink);
     background: var(--stage-text);
   }
@@ -930,15 +950,28 @@
 
   .tv-score--away {
     border-style: dashed;
+  }
+
+  /* Muted text only on the dark tile: on the blue answering tile it would fail contrast. */
+  .tv-score--away:not(.tv-score--answering) {
     color: var(--stage-muted);
   }
 
-  .tv-score--away .tv-score__tag,
+  /* Locked out: a dashed tile and a dimmed score, not only the tag. */
+  .tv-score--locked {
+    border-style: dashed;
+    border-color: var(--stage-faint);
+  }
+
+  .tv-score--locked .tv-score__pts:not(.is-neg) {
+    color: var(--stage-muted);
+  }
+
+  .tv-score--away:not(.tv-score--answering) .tv-score__tag,
   .tv-score--locked .tv-score__tag {
-    padding: 0.1em 0.5em;
     color: var(--stage-text);
     background: var(--stage);
-    border: 1.5px solid var(--stage-faint);
+    border: 2px solid var(--stage-faint);
   }
 
   .tv-score--pulse {

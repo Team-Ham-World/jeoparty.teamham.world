@@ -594,7 +594,10 @@ function ScoreStrip({
   const locked =
     view.clue && view.clue.stage !== "revealed" && !solved ? view.clue.lockedOutPlayerIds : [];
   return (
-    <footer className="tv-scores" aria-label="Scores">
+    <footer
+      className={`tv-scores ${view.players.length >= 5 ? "tv-scores--dense" : ""}`}
+      aria-label="Scores"
+    >
       <ul style={{ "--n": view.players.length } as React.CSSProperties}>
         {view.players.map((player) => {
           const isAnswering = player.id === answering;
@@ -606,7 +609,9 @@ function ScoreStrip({
               key={player.id === pulseId ? `${player.id}-${pulseKey}` : player.id}
               className={`tv-score ${isAnswering ? "tv-score--answering" : ""} ${picks ? "tv-score--picks" : ""} ${!player.connected ? "tv-score--away" : ""} ${locked.includes(player.id) ? "tv-score--locked" : ""} ${player.id === pulseId ? "tv-score--pulse" : ""}`}
             >
-              <span className="tv-score__name name">{player.name}</span>
+              <span className="tv-score__name name">
+                <Name name={player.name} />
+              </span>
               <span className={`tv-score__pts num ${player.score < 0 ? "is-neg" : ""}`}>
                 {formatScore(player.score)}
               </span>
