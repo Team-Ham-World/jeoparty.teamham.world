@@ -10,7 +10,14 @@ import type {
 } from "@/features/engine/contract";
 import { HotHam } from "@/features/ui/brand";
 import { Countdown } from "@/features/ui/countdown";
-import { formatDelta, formatScore, listNames, nameOf, ordinal } from "@/features/ui/format";
+import {
+  answeringMargin,
+  formatDelta,
+  formatScore,
+  listNames,
+  nameOf,
+  ordinal,
+} from "@/features/ui/format";
 import { WagerForm } from "@/features/ui/wager-form";
 import type { HostActions } from "./host-screen";
 
@@ -129,6 +136,7 @@ export function HostClue({
   const attempt = currentAttempt(clue);
   const stake = clue.kind === "wager" ? (clue.wager ?? clue.value) : clue.value;
   const answering = nameOf(view.players, clue.answeringPlayerId);
+  const margin = answeringMargin(clue);
   const controller = nameOf(view.players, view.controllerId);
 
   const can = actions.can;
@@ -265,7 +273,12 @@ export function HostClue({
               ) : clue.stage === "answering" ? (
                 <>
                   <strong className="name">{answering}</strong> is answering
-                  {attempt?.timedOut ? " · time ran out, judge anyway" : ""}.
+                  {attempt?.timedOut ? (
+                    " · time ran out, judge anyway"
+                  ) : margin ? (
+                    <span className="host-margin"> · first {margin}</span>
+                  ) : null}
+                  .
                 </>
               ) : clue.stage === "revealed" ? (
                 "The answer is on the big screen."

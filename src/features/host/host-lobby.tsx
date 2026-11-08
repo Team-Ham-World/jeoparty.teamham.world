@@ -14,17 +14,21 @@ import { QrCode } from "@/features/ui/qr-code";
 import { CopyField } from "@/features/ui/copy-field";
 import type { HostActions } from "./host-screen";
 import { DisplayLinkPanel } from "./display-link";
+import { PingChip, pingStatus } from "./ping";
 
 export function HostLobby({
   view,
   packs,
   joinUrl,
+  pings,
   actions,
   onCreateDisplayLink,
 }: {
   view: HostView;
   packs: PackSummary[];
   joinUrl: string;
+  /** Server-measured median ping per player (host only). */
+  pings: Record<string, number | null>;
   actions: HostActions;
   onCreateDisplayLink: () => Promise<string>;
 }) {
@@ -34,6 +38,9 @@ export function HostLobby({
   const settingsFormId = useId();
   const canStart = actions.can("startGame") && !settingsDirty;
   const blocked = settingsDirty || view.startBlockers.length > 0;
+  const anySlowPing = view.players.some(
+    (player) => player.connected && pingStatus(pings[player.id] ?? null).kind === "slow",
+  );
 
   return (
     <>
@@ -53,6 +60,7 @@ export function HostLobby({
                 <li key={player.id}>
                   <span className="name">{player.name}</span>
                   {!player.connected ? <span className="host-away">away</span> : null}
+                  <PingChip ms={pings[player.id]} connected={player.connected} />
                   <button
                     type="button"
                     className="btn btn--small"
@@ -66,6 +74,12 @@ export function HostLobby({
               ))}
             </ul>
           )}
+          {anySlowPing ? (
+            <p className="host-ping-note">
+              <strong>Slow ping:</strong> fair buzzing can only make up for so much lag. Moving
+              closer to the Wi-Fi helps.
+            </p>
+          ) : null}
           {view.waitingPlayers.length > 0 ? (
             <p className="muted" style={{ marginTop: "0.75rem" }}>
               Waiting for a seat: {view.waitingPlayers.map((w) => w.name).join(", ")}
@@ -304,6 +318,20 @@ const SECONDS = {
 type SecondsKey = keyof typeof SECONDS;
 const SECONDS_KEYS = Object.keys(SECONDS) as SecondsKey[];
 
+/** The two buzz rules (docs/RULES.md, "Fair buzzing"), each with a plain explanation. */
+const BUZZ_OPTIONS = [
+  {
+    key: "fairBuzzing",
+    label: "Fair buzzing",
+    hint: "Evens out phone lag: buzzers light up together and the fastest reaction wins, not the fastest connection.",
+  },
+  {
+    key: "falseStartLockout",
+    label: "False-start lockout",
+    hint: "Tapping before your buzzer lights locks you out for a quarter of a second.",
+  },
+] as const satisfies readonly { key: keyof Draft; label: string; hint: string }[];
+
 function validSeconds(key: SecondsKey, value: string): boolean {
   const n = Number(value);
   return Number.isInteger(n) && n >= SECONDS[key].min && n <= SECONDS[key].max;
@@ -469,6 +497,28 @@ function SettingsEditor({
         </div>
       </div>
 
+      <fieldset className="host-settings__group" disabled={disabled}>
+        <legend className="field__label">Buzzing</legend>
+        <div className="host-options">
+          {BUZZ_OPTIONS.map((option) => (
+            <div className="host-option" key={option.key}>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={draft[option.key]}
+                  aria-describedby={`${id}-${option.key}-hint`}
+                  onChange={(event) => set(option.key, event.target.checked)}
+                />
+                {option.label}
+              </label>
+              <p id={`${id}-${option.key}-hint`} className="field__hint">
+                {option.hint}
+              </p>
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
       <div className="row">
         <label className="check">
           <input
@@ -490,26 +540,6 @@ function SettingsEditor({
         </label>
       </div>
 
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={draft.fairBuzzing}
-            disabled={disabled}
-            onChange={(event) => set("fairBuzzing", event.target.checked)}
-          />{" "}
-          Fair buzzing
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={draft.falseStartLockout}
-            disabled={disabled}
-            onChange={(event) => set("falseStartLockout", event.target.checked)}
-          />{" "}
-          False-start lockout
-        </label>
-      </div>
       {draft.timersEnabled ? (
         <div className="host-settings__grid">
           {SECONDS_KEYS.map((key) => (

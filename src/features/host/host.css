@@ -210,6 +210,40 @@
     color: var(--muted);
   }
 
+  /* Ping: quiet muted digits beside a name. Over the slow threshold it
+     becomes a yellow chip that also says "slow", so color never carries it
+     alone. Before the first sample it says "measuring…". */
+  .ping {
+    flex: none;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .ping--slow {
+    padding: 0 0.4em;
+    color: var(--ink);
+    background: var(--highlight);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+  }
+
+  .host-ping-note {
+    margin-top: 0.75rem;
+    font-size: var(--fs-sm);
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+
+  .host-ping-note strong {
+    padding: 0 0.25em;
+    color: var(--ink);
+    background: var(--highlight);
+  }
+
   .host-invite {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 8.5rem;
@@ -313,6 +347,29 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
     gap: 1rem;
+  }
+
+  /* Buzz rules: a checkbox row each, with its explanation hung under the
+     label text (past the 1.25rem box and its 0.5rem gap). auto-fill keeps
+     the empty third track, so on a wide lobby the two rules sit on the same
+     columns as the three fields above them. */
+  .host-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: 0.25rem 1rem;
+    justify-self: stretch; /* the fieldset lays its children out at their own width */
+  }
+
+  .host-option {
+    display: grid;
+    align-content: start;
+  }
+
+  .host-option .field__hint {
+    max-width: 48ch;
+    margin-top: -0.4rem;
+    padding-left: 1.75rem;
+    font-size: var(--fs-sm);
   }
 
   /* Seconds are two or three digits; a full-column box overstates them. */
@@ -564,6 +621,12 @@
     font-size: var(--fs-lg);
   }
 
+  /* "first by 0.04 s" stays together when the status line wraps. */
+  .host-margin {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   .host-wager {
     display: grid;
     gap: 0.75rem;
@@ -695,7 +758,8 @@
   .host-roster__tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.3rem;
+    align-items: center;
+    gap: 0.3rem 0.5rem;
   }
 
   .host-roster__tags .stamp {

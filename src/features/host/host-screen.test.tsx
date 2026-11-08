@@ -3,16 +3,16 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostView } from "@/features/engine/contract";
 import type { ClientCommand } from "@/features/network/protocol";
-import { PACKS, hostFixture } from "@/features/preview/fixtures";
+import { PACKS, PINGS_MIXED, hostFixture } from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
 import { HostScreen } from "./host-screen";
 
-function renderView(view: HostView) {
+function renderView(view: HostView, pings: Record<string, number | null> = {}) {
   const onSend = vi.fn<(cmd: ClientCommand) => void>();
   render(
     <HostScreen
       code="BCDFG"
-      connection={mockConnection(view, { onSend })}
+      connection={mockConnection(view, { onSend, pings })}
       packs={PACKS}
       joinUrl="https://quiz.example/r/BCDFG"
       onCreateDisplayLink={async () => "https://quiz.example/display/BCDFG#key=k"}
@@ -108,6 +108,83 @@ describe("host lobby settings", () => {
   });
 });
 
+describe("host lobby buzzing settings", () => {
+  const fair = () => screen.getByRole("checkbox", { name: "Fair buzzing" });
+  const lockout = () => screen.getByRole("checkbox", { name: "False-start lockout" });
+
+  it("labels each rule and explains it in plain words", () => {
+    renderHost("lobby");
+    expect(screen.getByRole("group", { name: "Buzzing" })).toContainElement(fair());
+    expect(fair()).toBeChecked();
+    expect(fair()).toHaveAccessibleDescription(
+      "Evens out phone lag: buzzers light up together and the fastest reaction wins, not the fastest connection.",
+    );
+    expect(lockout()).toBeChecked();
+    expect(lockout()).toHaveAccessibleDescription(
+      "Tapping before your buzzer lights locks you out for a quarter of a second.",
+    );
+  });
+
+  it("blocks Start until a changed rule is saved or undone", () => {
+    renderHost("lobby");
+    const start = screen.getByRole("button", { name: "Start game" });
+    fireEvent.click(lockout());
+    expect(lockout()).not.toBeChecked();
+    expect(start).toBeDisabled();
+    expect(screen.getByRole("list", { name: "Before you can start" })).toHaveTextContent(
+      "Save or undo your settings changes first.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo changes" }));
+    expect(lockout()).toBeChecked();
+    expect(start).toBeEnabled();
+  });
+
+  it("saves both rules with the other settings", async () => {
+    const onSend = renderHost("lobby");
+    fireEvent.click(fair());
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    });
+    expect(onSend).toHaveBeenCalledWith({
+      type: "updateSettings",
+      patch: expect.objectContaining({ fairBuzzing: false, falseStartLockout: true }),
+    });
+  });
+
+  it("can't be changed when settings can't be updated", () => {
+    renderView({ ...hostFixture("lobby"), allowedCommands: ["startGame"] });
+    expect(fair()).toBeDisabled();
+    expect(lockout()).toBeDisabled();
+  });
+});
+
+describe("host pings", () => {
+  it("shows each phone's ping in the lobby, flags slow ones in words and explains them", () => {
+    renderView(hostFixture("lobby"), PINGS_MIXED);
+    const rows = screen.getAllByRole("listitem");
+    const row = (name: string) => rows.find((li) => li.textContent?.startsWith(name))!;
+    expect(row("Ivvy")).toHaveTextContent("38 ms");
+    expect(row("Medchu")).toHaveTextContent("measuring…");
+    expect(row("Scarlet")).toHaveTextContent("312 ms · slow");
+    expect(row("Maximilian")).not.toHaveTextContent(/ms|measuring/); // away: no number
+    expect(screen.getByText(/fair buzzing can only make up for so much lag/)).toBeVisible();
+  });
+
+  it("leaves out the slow-ping note when every phone is fine", () => {
+    renderView(hostFixture("lobby"), { "p-ivvy": 38, "p-medchu": 64, "p-scarlet": 112 });
+    expect(screen.queryByText(/Slow ping/)).toBeNull();
+  });
+
+  it("shows pings beside names in the score sidebar", () => {
+    renderView(hostFixture("board"), PINGS_MIXED);
+    const scores = screen.getByRole("complementary", { name: "Scores" });
+    expect(within(scores).getByText("Ping 38 ms")).toBeInTheDocument();
+    expect(within(scores).getByText("Ping 312 ms, slow")).toBeInTheDocument();
+    expect(within(scores).getByText("Ping: measuring")).toBeInTheDocument();
+  });
+});
+
 describe("host top bar", () => {
   // Leaving mid-game pauses it for the whole room, so the logo isn't a link then.
   it.each([
@@ -143,6 +220,25 @@ describe("host clue", () => {
     expect(
       correct.compareDocumentPosition(attempts) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("says how far ahead the answering player buzzed", () => {
+    renderHost("answeringRace");
+    expect(document.querySelector(".host-callout")).toHaveTextContent(
+      "Medchu is answering · first by 0.04 s.",
+    );
+  });
+
+  it("leaves the margin out when only one player buzzed", () => {
+    const view = hostFixture("answeringRace");
+    renderView({
+      ...view,
+      clue: {
+        ...view.clue!,
+        buzzResult: { winnerId: "p-medchu", marginMs: null, contenderCount: 1 },
+      },
+    });
+    expect(document.querySelector(".host-callout")).toHaveTextContent(/^Medchu is answering\.$/);
   });
 
   it("drops the separate wager stamp while the wager is placed", () => {

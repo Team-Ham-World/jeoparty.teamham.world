@@ -23,6 +23,7 @@ import { useFreshEvent } from "@/features/ui/use-fresh-event";
 import { DisplayLinkPanel } from "./display-link";
 import { HostClue, HostFinal, HostResults } from "./host-clue";
 import { HostLobby } from "./host-lobby";
+import { PingChip } from "./ping";
 
 export interface HostActions {
   /** True when the view allows this command right now and the connection is fresh. */
@@ -180,6 +181,7 @@ function HostBody({
             view={view}
             packs={packs}
             joinUrl={joinUrl}
+            pings={connection.pings}
             actions={actions}
             onCreateDisplayLink={onCreateDisplayLink}
           />
@@ -192,6 +194,7 @@ function HostBody({
           <aside className="host-side" aria-label="Scores">
             <Scores
               view={view}
+              pings={connection.pings}
               canAdjust={can("adjustScore")}
               onAdjust={(playerId) => setDialog({ adjust: playerId })}
             />
@@ -334,10 +337,12 @@ function HostPhase({
 
 function Scores({
   view,
+  pings,
   canAdjust,
   onAdjust,
 }: {
   view: HostView;
+  pings: Record<string, number | null>;
   canAdjust: boolean;
   onAdjust: (id: PlayerId | null) => void;
 }) {
@@ -369,6 +374,7 @@ function Scores({
                   <span className="stamp stamp--good stamp--flat">Answering</span>
                 ) : null}
                 {!player.connected ? <span className="host-away">away</span> : null}
+                <PingChip ms={pings[player.id]} connected={player.connected} />
               </span>
             </span>
             <span className={`score ${player.score < 0 ? "score--neg" : ""}`}>
