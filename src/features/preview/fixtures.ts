@@ -416,6 +416,32 @@ export const SPECS = {
     timer: timer("answer", 10_000, 6_200),
     lastEvent: { kind: "buzzAccepted", clueId: "clue-0-3-2", playerId: "p-medchu" },
   },
+  // A fresh fair-buzzing race: three phones buzzed, Medchu won by 40 ms.
+  answeringRace: {
+    phase: "clue",
+    board: BOARD_ACTIVE,
+    controllerId: "p-ivvy",
+    clue: clue("answering", {
+      answeringPlayerId: "p-medchu",
+      attempts: [ATTEMPT_PENDING],
+      buzzResult: { winnerId: "p-medchu", marginMs: 40, contenderCount: 3 },
+    }),
+    timer: timer("answer", 10_000, 8_600),
+    lastEvent: { kind: "buzzAccepted", clueId: "clue-0-3-2", playerId: "p-medchu" },
+  },
+  // Two phones, 4 ms apart: too close for hundredths of a second.
+  answeringRaceClose: {
+    phase: "clue",
+    board: BOARD_ACTIVE,
+    controllerId: "p-ivvy",
+    clue: clue("answering", {
+      answeringPlayerId: "p-medchu",
+      attempts: [ATTEMPT_PENDING],
+      buzzResult: { winnerId: "p-medchu", marginMs: 4, contenderCount: 2 },
+    }),
+    timer: timer("answer", 10_000, 8_600),
+    lastEvent: { kind: "buzzAccepted", clueId: "clue-0-3-2", playerId: "p-medchu" },
+  },
   closed: {
     phase: "clue",
     board: BOARD_ACTIVE,
@@ -661,6 +687,8 @@ export const HOST_ALLOWED: Record<SpecId, HostCommandType[]> = {
   reading: ["openBuzzers", "endAttempts", "reveal", ...DURING_GAME],
   open: ["endAttempts", "reveal", ...DURING_GAME],
   answering: ["judge", ...DURING_GAME],
+  answeringRace: ["judge", ...DURING_GAME],
+  answeringRaceClose: ["judge", ...DURING_GAME],
   closed: ["openBuzzers", "reveal", ...DURING_GAME],
   judgedCorrect: ["reveal", ...DURING_GAME],
   revealed: ["returnToBoard", ...DURING_GAME],
@@ -691,6 +719,24 @@ export function hostFixture(id: SpecId): HostView {
 export function displayFixture(id: SpecId): DisplayView {
   return displayOf(SPECS[id]);
 }
+
+// ---------------------------------------------------------------- pings
+
+/** Host-only median pings (ms) as the server reports them. Max is away, so null. */
+export const PINGS: Record<PlayerId, number | null> = {
+  "p-ivvy": 38,
+  "p-medchu": 64,
+  "p-scarlet": 112,
+  "p-max": null,
+};
+
+/** One phone past the slow threshold and one not measured yet. */
+export const PINGS_MIXED: Record<PlayerId, number | null> = {
+  "p-ivvy": 38,
+  "p-medchu": null,
+  "p-scarlet": 312,
+  "p-max": null,
+};
 
 // ---------------------------------------------------------------- API data
 

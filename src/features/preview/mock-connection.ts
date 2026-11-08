@@ -13,6 +13,8 @@ export interface MockOptions {
   onSend?: (cmd: ClientCommand) => void;
   /** Make every command fail with this message (to preview rejection toasts). */
   reject?: string;
+  /** Host-only ping map; players and displays always get an empty one. */
+  pings?: Record<string, number | null>;
 }
 
 /** A RoomConnection that never touches the network, for previews and tests. */
@@ -28,7 +30,7 @@ export function mockConnection<V extends { revision: number } | null>(
     closeReason: options.closeReason ?? null,
     clockOffsetMs: options.clockOffsetMs ?? 0,
     rttMs: null,
-    pings: {},
+    pings: options.pings ?? {},
     async send(cmd): Promise<CommandOutcome> {
       options.onSend?.(cmd);
       if (options.reject) return { ok: false, error: "wrongPhase", message: options.reject };

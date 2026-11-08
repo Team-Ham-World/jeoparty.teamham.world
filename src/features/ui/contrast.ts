@@ -36,6 +36,7 @@ export const CONTRAST_PAIRS: { fg: string; bg: string; min: number; use: string 
   { fg: "ink", bg: "blue-tint", min: 4.5, use: "hover, answering row" },
   { fg: "ink", bg: "good-tint", min: 4.5, use: "correct row" },
   { fg: "ink", bg: "bad-tint", min: 4.5, use: "incorrect row" },
+  { fg: "muted", bg: "good-tint", min: 4.5, use: "ping beside the answering player (host)" },
   { fg: "muted", bg: "paper", min: 4.5, use: "secondary text" },
   { fg: "muted", bg: "surface", min: 4.5, use: "secondary text on panels" },
   { fg: "muted", bg: "shade", min: 4.5, use: "disabled buzzer label" },

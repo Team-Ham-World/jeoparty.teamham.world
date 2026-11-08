@@ -1,4 +1,4 @@
-import type { PlayerId, PublicPlayer } from "@/features/engine/contract";
+import type { ClueView, PlayerId, PublicPlayer } from "@/features/engine/contract";
 
 const numberFormat = new Intl.NumberFormat("en-US");
 
@@ -41,4 +41,32 @@ export function ordinal(rank: number): string {
 
 export function plural(count: number, one: string, many = `${one}s`): string {
   return `${count} ${count === 1 ? one : many}`;
+}
+
+/**
+ * How far ahead a fair-buzzing winner was: "by 0.04 s", or "by a hair" under
+ * 10 ms. Hundredths of a second are how people already read race results, and
+ * finer digits would claim more precision than phone timing has. Rounding
+ * would turn anything under 10 ms into "by 0.00 s" or "0.01 s", so those read
+ * "by a hair" (the server breaks exact ties by arrival). Null means nobody
+ * else buzzed, so there is no margin to show.
+ */
+export function formatMargin(marginMs: number | null): string | null {
+  if (marginMs === null || !Number.isFinite(marginMs)) return null;
+  if (marginMs < 10) return "by a hair";
+  // 995 ms and up would round to "1.00 s"; whole tenths read better there.
+  if (marginMs < 995) return `by ${(Math.round(marginMs / 10) / 100).toFixed(2)} s`;
+  return `by ${(Math.round(marginMs / 100) / 10).toFixed(1)} s`;
+}
+
+/**
+ * The winning margin to show beside the player who is answering, or null.
+ * Only while they answer the buzz they won: a wager clue has no race, and a
+ * result from an earlier opening never describes the current answerer.
+ */
+export function answeringMargin(clue: ClueView): string | null {
+  const result = clue.buzzResult;
+  if (clue.stage !== "answering" || !result || result.winnerId !== clue.answeringPlayerId)
+    return null;
+  return formatMargin(result.marginMs);
 }
