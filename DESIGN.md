@@ -193,6 +193,20 @@ components:
     backgroundColor: "{colors.shade}"
     textColor: "{colors.muted}"
     rounded: "{rounded.full}"
+  buzz-early:
+    backgroundColor: "{colors.bad}"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.full}"
+  ping:
+    textColor: "{colors.muted}"
+  ping-slow:
+    backgroundColor: "{colors.highlight}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+  tv-margin:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
   board-cell-stage:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
@@ -224,7 +238,7 @@ Every surface is a set of paper slips cut out and pasted down. On the phone, the
 
 The system is HAM's organisation-wide System A (organization-docs/BRAND.md), specialised for a party game. It is dense where people operate (host console, editor), loud and sparse where people react (TV, buzzer), and always readable first: Atkinson Hyperlegible carries every word of UI, and Bricolage Grotesque at weight 800 is reserved for headings, scores and clue values. Decoration is cheap and physical (tape, tilt, a dot grid on the TV), never glossy: no gradients except the highlighter strips, no blur shadows, no glassmorphism, no rounded cards.
 
-Motion is short and paper-like: slips drop in, stamps thud down at a slight angle, the buzzer breathes while live. Nothing moves under reduced motion, and the one-shot "Correct!"/"Incorrect" feedback then holds still for its usual 2.4 s.
+Motion is short and paper-like: slips drop in, stamps thud down at a slight angle, the buzzer breathes while live and shakes "no" once on a false start. Nothing moves under reduced motion, and the one-shot "Correct!"/"Incorrect" feedback then holds still for its usual 2.4 s.
 
 **Key Characteristics:**
 - Warm paper (#f6f1e5) and surface (#fffdf6) grounds with near-black ink (#1c1a17) for text and 2 px borders.
@@ -245,12 +259,12 @@ A warm, papery neutral base with five functional accents, each paired with a wor
 
 ### Secondary
 - **Correct Green** (good): "Correct" buttons and stamps, the "You're up!" slip, the correct flash. Always paired with the word. Tint (good-tint) for correct rows and the submitted tag on the TV.
-- **Incorrect Rust** (bad): "Incorrect" buttons and stamps, negative scores, field errors, the low-time countdown fill. Always paired with the word or a minus sign. Tint (bad-tint) for incorrect rows and the error banner.
+- **Incorrect Rust** (bad): "Incorrect" buttons and stamps, negative scores, field errors, the low-time countdown fill, the "Too early!" buzzer. Always paired with the word or a minus sign. Tint (bad-tint) for incorrect rows and the error banner.
 
 ### Tertiary
 - **Ham Pink** (hot): the "Hot HAM!" wager brand and wager stamps. The host board uses a lighter pink (hot-tint, #fde4ea) for hidden wager cells.
-- **Highlighter Yellow** (highlight): answers, warnings, the stale/paused banner, the "you" row highlight strip and text selection.
-- **Marker Red** (red): decorative only. Marker underline, red stamp double outline, TV category-slip shadow, TV room-code letter shadow, podium shadow, the Hot HAM! starburst. Never text, never a state signal.
+- **Highlighter Yellow** (highlight): answers, warnings, the stale/paused banner, the "you" row highlight strip, the host's "slow" ping chip and text selection.
+- **Marker Red** (red): decorative only. Marker underline, red stamp double outline, the "Too early!" buzzer's outer ring, TV category-slip shadow, TV room-code letter shadow, podium shadow, the Hot HAM! starburst. Never text, never a state signal.
 
 ### Neutral
 - **Paper** (paper): page background on every paper surface; also TV board cells and TV tags.
@@ -299,7 +313,7 @@ The type scale is `--fs-2xs` 0.75 (the floor: tags and labels inside dense board
 ## Layout
 
 - **Paper pages** (home, packs, editor, notices): a 60 px top bar with a 2 px ink bottom rule, then a centred `.page` column, max 72rem (44rem narrow), padding 2rem top and 4rem bottom, with 16 px safe-area-aware side gutters. Notices (loading, sign-in, errors, closed rooms) use `NoticeShell`: the same top bar with the lockup only, then a 34rem column that starts 12vh down (padding, so the page never scrolls).
-- **Host console:** lobby is a 12-column grid (players 4 · invite 4 · big screen 4 · setup 12), collapsing to 6+6+12 below 1180 px and one column below 720 px, with a sticky "Start game" bar at the bottom. Panels in a row share one height, timer inputs are 8rem wide, and the start bar paints a paper band above itself so content disappears cleanly under it. While settings are unsaved the bar says so, offers "Save changes" and disables "Start game". In game, a main column plus a 17–21rem sticky score sidebar, collapsing to one column below 960 px. The clue card's action area has the same shape in every stage, so the main button never moves: a status sentence with the countdown at its right, then the buttons, then the attempts list. It is sticky at the bottom of the viewport.
+- **Host console:** lobby is a 12-column grid (players 4 · invite 4 · big screen 4 · setup 12), collapsing to 6+6+12 below 1180 px and one column below 720 px, with a sticky "Start game" bar at the bottom. Panels in a row share one height, roster rows carry each phone's ping chip, timer inputs are 8rem wide, and the start bar paints a paper band above itself so content disappears cleanly under it. While settings are unsaved the bar says so, offers "Save changes" and disables "Start game". In game, a main column plus a 17–21rem sticky score sidebar, collapsing to one column below 960 px. The clue card's action area has the same shape in every stage, so the main button never moves: a status sentence with the countdown at its right, then the buttons, then the attempts list. It is sticky at the bottom of the viewport.
 - **Player phone:** one column, max 34rem, full dynamic height: top bar (lockup, room code, connection), a "you" strip (name and score), banners, then a flex main area where the buzzer pins to the bottom (`margin-top: auto`). Phone banners are compact (0.45rem × 0.75rem padding, `--fs-sm` title) so a reconnecting or paused banner never pushes the buzzer off screen. The logo links home only in the lobby, on results and on the bench. Above 600 px the column gets 2 px ink side borders.
 - **TV stage:** a full-viewport three-row grid (header, main, score strip) with overflow hidden and everything in em, so 1366×768 and 1920×1080 have the same composition. Below 900 px wide or 520 px tall it becomes a scrolling page at 15 px.
 - **Board:** CSS grid, one column per category, header row plus one row per value via subgrid. Gaps: 0.45em TV, 0.4rem host (0.25rem up to 480 px), 0.25rem phone.
@@ -358,6 +372,7 @@ Rubber stamps for state.
 - **Disabled:** dashed border, transparent, muted text.
 - **Wager input:** 56 px tall with a Bricolage 1.75rem numeral; quick-amount small buttons below, each naming its amount ("Min 5", "Half 600", "All in 1,200").
 - **Segmented control:** a 2 px bordered strip of 40 px buttons (44 px on touch); pressed = ink fill.
+- **Checkbox row:** a native checkbox (1.25rem, blue accent) and a 700 label in a 44 px row. When the option needs explaining, the sentence sits under the label text (indented past the box, 0.875rem muted, at most 48ch) and is the checkbox's accessible description. The host lobby's "Buzzing" group ("Fair buzzing", "False-start lockout") uses these, laid on the same three columns as the fields above it.
 
 ### Navigation
 - **Top bar:** lockup (HAM wordmark + "Quiz" in Bricolage) at 1.5rem left, a flexible middle slot, account and sign-out on the right; wraps on narrow screens. The phone top bar is lighter: lockup 1.3rem, room code, connection pill.
@@ -369,7 +384,11 @@ Rubber stamps for state.
 - **Countdown:** a label and the time left over a 0.6rem bar: whole seconds under a minute ("7s"), `m:ss` from a minute up ("2:59"). Screen readers hear "2 minutes 59 seconds left".
 
 ### The Buzzer (signature)
-A round arcade button, `clamp(9rem, 100dvh - 34.5rem, min(70vw, 17rem))` across: its size depends only on the screen height, so it never resizes or moves when a banner or note appears. The help sentence under it always reserves two lines. Idle: shade face, dashed muted ring, a state word (Wait, Locked, Hold, Closed, Offline, Paused). Live: blue face, ink ring, a paper halo and an 8 px ink drop shadow. The halo is a separate decorative `.buzz-halo` layer that breathes every 1.4 s by animating only `scale` and `opacity`. Fires on pointer-down; on press it drops 7 px, turns ink and reads "Sent!". A helper sentence under it explains every state.
+A round arcade button, `clamp(9rem, 100dvh - 34.5rem, min(70vw, 17rem))` across: its size depends only on the screen height, so it never resizes or moves when a banner or note appears. The help sentence under it always reserves two lines. Fires on pointer-down (and on Enter/Space); its accessible name is always the word on its face, and the help sentence is its description.
+- **Idle:** shade face, dashed muted ring, a state word (Wait, Locked, Hold, Closed, Offline, Paused). "Hold" names who won and, with fair buzzing, by how much ("Medchu got there first by 0.04 s.").
+- **Live:** blue face, ink ring, a paper halo and an 8 px ink drop shadow. Lighting up has no transition, so every phone turns blue on the same frame, and nothing around it moves. The halo is a separate decorative `.buzz-halo` layer that breathes every 1.4 s by animating only `scale` and `opacity`.
+- **Sent:** on press it drops 7 px (a 60 ms eased press, the only transition), turns ink and reads "Sent!".
+- **Too early!:** a false start, for the 250 ms lockout only. Rust face with surface text, held down 7 px in its base (so it can't look pressable), ringed paper then marker red like the red stamp, and the halo stops breathing. It shakes once, 240 ms on `translate` so it finishes inside the lockout; under reduced motion it holds still. On small buzzers the label breaks onto two lines. Help: "Locked for a moment: you tapped before it lit." When the lockout lifts it snaps up to blue "Buzz!" and the help says "Go! You were held back for tapping early." A phone that can't buzz the clue anyway never shows it.
 
 ### The Board (signature)
 One grid component in three skins, under a visually hidden h2 so headings never skip a level. TV: paper slips on ink with tilted category headers shadowed in red, completed cells dashed with the value struck through (no visible "done" word; screen readers still hear it), the active cell blue with a paper outline and a 1.04 scale. Host: surface buttons with small slip shadows; hover turns blue; hidden wager cells hot-tint with a tilted "Hot" tag; completed cells read "done". One cell is in the tab order and the arrow keys move between open cells (Home/End jump to the first and last). Phone: a compact read-only board with `--fs-2xs` category labels; completed cells are empty dashed slots. Category titles wrap between words; browsers don't hyphenate capitalised words, so a Title Case word wider than a phone column still breaks without a hyphen.
@@ -381,6 +400,12 @@ One grid component in three skins, under a visually hidden h2 so headings never 
 One tile per player in a single row: name (two lines max, breaking after `.`, `_` and `-`; 0.8em with 5–6 players) over a Bricolage score, on stage-raise with a faint paper border. Tiles in a row stretch to the tallest and the score sits at the bottom, so scores line up. Tags (0.8em, 24 px at 1080p) sit on the top edge: "Picks" (stage-blue), "Answering" (blue tile lifted 0.3em), "Locked out" (also a dashed tile border and a dimmed score), "Away" (dashed).
 
 Nothing on the TV is smaller than 24 px at 1080p. In the final round's judging and results, responses sit in rows of up to three (2×2 for four), long answers are clamped with an ellipsis, each verdict is a flat Correct/Incorrect stamp followed by the score change, and the correct answer slip always fits above the score strip. The results podium breaks long names at `.`, `_` and `-` and steps down in size only when a part can't fit; three or more co-winners get smaller slips, three to a row.
+
+### Winning margin
+With fair buzzing, how far ahead the race winner was, shown only while they answer and only with two or more contenders. Hundredths of a second ("by 0.04 s"), "by a hair" under 10 ms (rounding would claim "0.00 s"), tenths from a second up. On the TV it is a stamped slip after "<name> buzzed in!": surface, 2 px ink border, −2°, Atkinson 700 at 0.6 of the cue (about 29 px at 1080p), lower-case so the seconds read "s", stamping in 140 ms after the cue. The host's status line adds " · first by 0.04 s"; the winner's "You're up!" slip adds a small "You got there first by 0.04 s."; the others read it in the buzzer's help line. The TV lobby's free header corner says "Fair buzzing on · fastest reaction wins" while it is on, and the phone lobby says "Wait for the light." while the false-start lockout is on.
+
+### Ping chip (host only)
+Each phone's server-measured median ping beside its name, in the host lobby roster and the score sidebar's tag row: `--fs-2xs` 700 tabular muted digits ("38 ms"), never on a phone or the TV. Above 250 ms it becomes a yellow chip with a 1.5 px ink border that also says "slow" ("312 ms · slow"), because fair buzzing stops fully compensating near there; the lobby then adds one line, "Slow ping: fair buzzing can only make up for so much lag. Moving closer to the Wi-Fi helps." Before the first sample it says "measuring…"; an away phone shows only its "away" tag. Screen readers hear "Ping 312 ms, slow".
 
 ## Do's and Don'ts
 
