@@ -82,6 +82,10 @@ export function BuzzButton({
 
   return (
     <div className="buzz-zone">
+      {/* The base under the live button; it glows while buzzing is open. Decoration only. */}
+      {enabled ? (
+        <span className={`buzz-halo ${sent ? "buzz-halo--still" : ""}`} aria-hidden="true" />
+      ) : null}
       <button
         type="button"
         className={`buzz ${enabled ? "buzz--live" : ""} ${sent ? "buzz--sent" : ""}`}
