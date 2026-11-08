@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import type { ClueView, DisplayView, FinalView, PublicPlayer } from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
 import { BoardGrid } from "@/features/board/board-grid";
@@ -146,6 +147,25 @@ export function DisplayScreen({
 
 function shortUrl(url: string): string {
   return url.replace(/^https?:\/\//, "");
+}
+
+/**
+ * A player name with line-break chances after ".", "_" and "-", so a long
+ * username like "bartholomew.featherstonehaugh" wraps between its parts
+ * instead of mid-word. The text itself is unchanged.
+ */
+export function Name({ name }: { name: string }) {
+  const parts = name.match(/[^._-]*[._-]|[^._-]+$/g) ?? [name];
+  return (
+    <>
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {i > 0 ? <wbr /> : null}
+          {part}
+        </Fragment>
+      ))}
+    </>
+  );
 }
 
 function DisplayPhase({
@@ -402,15 +422,25 @@ function DisplayFinal({
     );
   }
 
+  // Judging and done fit every response on screen: up to three per row, so
+  // four make two rows of two and five or six make two rows of three.
+  // Two rows ("dense") get tighter type.
+  const count = final.responses.length;
+  const columns = count <= 3 ? Math.max(count, 1) : Math.ceil(count / 2);
+  const dense = final.stage !== "answering" && count >= 4;
+
   return (
-    <section className={`tv-clue tv-final tv-final--${final.stage}`} aria-labelledby="tv-final-cat">
+    <section
+      className={`tv-clue tv-final tv-final--${final.stage} ${dense ? "tv-final--dense" : ""}`}
+      aria-labelledby="tv-final-cat"
+    >
       <header className="tv-clue__head">
         <h1 id="tv-final-cat" className="name">
           Final round · {final.categoryTitle}
         </h1>
       </header>
       <p
-        className={`tv-prompt ${final.stage === "answering" ? promptSize(final.prompt ?? "") : "tv-prompt--s"}`}
+        className={`tv-prompt ${final.stage === "answering" ? promptSize(final.prompt ?? "") : "tv-prompt--recap"}`}
       >
         {final.prompt}
       </p>
@@ -429,23 +459,35 @@ function DisplayFinal({
         </footer>
       ) : (
         <>
-          <ol className="tv-responses">
+          <ol className="tv-responses" style={{ "--cols": columns } as React.CSSProperties}>
             {final.responses.map((r) => (
               <li
                 key={r.playerId}
                 className={`tv-response tv-response--${r.status} ${r.status === "judged" ? (r.correct ? "is-good" : "is-bad") : ""}`}
               >
-                <span className="tv-response__who name">{nameOf(view.players, r.playerId)}</span>
+                <span className="tv-response__who name">
+                  <Name name={nameOf(view.players, r.playerId)} />
+                </span>
                 <span className="tv-response__said">
                   {r.status === "hidden" ? "?" : r.answer ? `“${r.answer}”` : "(no answer)"}
                 </span>
-                <span className="tv-response__result">
-                  {r.status === "judged"
-                    ? `${r.correct ? "Correct" : "Incorrect"} · wager ${formatScore(r.wager ?? 0)} · ${formatDelta(r.delta ?? 0)}`
-                    : r.status === "revealed"
-                      ? "Judging…"
-                      : "Not yet revealed"}
-                </span>
+                {r.status === "judged" ? (
+                  <span className="tv-response__result">
+                    <span
+                      className={`stamp stamp--flat ${r.correct ? "stamp--good" : "stamp--bad"}`}
+                    >
+                      {r.correct ? "Correct" : "Incorrect"}
+                    </span>{" "}
+                    <span className="tv-response__delta num">{formatDelta(r.delta ?? 0)}</span>{" "}
+                    <span className="tv-response__wager">
+                      wager <span className="num">{formatScore(r.wager ?? 0)}</span>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="tv-response__result">
+                    {r.status === "revealed" ? "Judging…" : "Not yet revealed"}
+                  </span>
+                )}
               </li>
             ))}
           </ol>
