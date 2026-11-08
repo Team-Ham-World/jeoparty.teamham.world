@@ -417,6 +417,11 @@
     justify-items: center;
     gap: 0.75rem;
     margin-top: auto;
+    /* Mashing before the light must not zoom the page or select the help text. */
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Rare: reconnecting while paused shows two banners. */
@@ -448,6 +453,13 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+  }
+
+  /* Browsers disagree on whether a disabled button passes pointer events to
+     its parent. Taps go straight to .buzz-zone instead, so false starts are
+     noticed on every browser. */
+  .buzz:disabled {
+    pointer-events: none;
   }
 
   .buzz__label {
