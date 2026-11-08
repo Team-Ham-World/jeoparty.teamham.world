@@ -189,6 +189,47 @@ describe("display layout", () => {
     expect(value).toHaveTextContent("Wager1,000");
   });
 
+  it("stamps the winning margin beside the player who buzzed in", () => {
+    const { container } = renderView(displayFixture("answeringRace"));
+    expect(container.querySelector(".tv-cue--answering")).toHaveTextContent(
+      "Medchu buzzed in! first by 0.04 s",
+    );
+    expect(container.querySelector(".tv-margin")).toHaveTextContent(/^first by 0\.04 s$/);
+  });
+
+  it("says 'by a hair' for a near tie, and nothing with a single contender", () => {
+    expect(
+      renderView(displayFixture("answeringRaceClose")).container.querySelector(".tv-margin"),
+    ).toHaveTextContent("first by a hair");
+    expect(
+      renderView(displayFixture("answering")).container.querySelector(".tv-margin"),
+    ).toBeNull();
+  });
+
+  it("tells the room in the lobby when fair buzzing is on", () => {
+    const lobby = displayFixture("lobby");
+    expect(renderView(lobby).container.querySelector(".tv-head")).toHaveTextContent(
+      "Fair buzzing on · fastest reaction wins",
+    );
+    const off = { ...lobby, buzzing: { fairBuzzing: false, falseStartLockout: true } };
+    expect(renderView(off).container.querySelector(".tv-head")).not.toHaveTextContent(
+      "Fair buzzing",
+    );
+  });
+
+  it("never shows pings, even if a connection carried them", () => {
+    for (const id of ["lobby", "board", "answeringRace"] as const) {
+      const { container, unmount } = render(
+        <DisplayScreen
+          connection={mockConnection(displayFixture(id), { pings: { "p-ivvy": 38 } })}
+          joinUrl="https://quiz.example/r/BCDFG"
+        />,
+      );
+      expect(container).not.toHaveTextContent(/\b38 ms|\bping\b/i);
+      unmount();
+    }
+  });
+
   it("drops the header join URL in the lobby, where step 1 already shows it", () => {
     expect(
       renderView(displayFixture("lobby")).container.querySelector(".tv-head"),

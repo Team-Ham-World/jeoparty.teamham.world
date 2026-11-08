@@ -527,6 +527,26 @@
     background: var(--blue-tint);
   }
 
+  /* The winning margin, stamped beside "<name> buzzed in!" a beat after it:
+     0.6 of the 1.6em cue, about 29 px at 1080p. Not uppercase, so the
+     seconds read "s". */
+  .tv-margin {
+    display: inline-block;
+    margin-left: 0.25em;
+    padding: 0.08em 0.45em 0.12em;
+    font-size: 0.6em;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    white-space: nowrap;
+    vertical-align: 0.3em;
+    color: var(--ink);
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    transform: rotate(-2deg);
+    animation: stamp-in 260ms 140ms var(--ease) both;
+  }
+
   .tv-countdown {
     flex: 1 1 14em;
     max-width: 24em;

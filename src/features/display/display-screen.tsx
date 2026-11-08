@@ -9,7 +9,15 @@ import { closedCopy } from "@/features/ui/connection-status";
 import { useOpeningLit } from "@/features/ui/clock";
 import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
-import { formatDelta, formatScore, listNames, nameOf, ordinal, plural } from "@/features/ui/format";
+import {
+  answeringMargin,
+  formatDelta,
+  formatScore,
+  listNames,
+  nameOf,
+  ordinal,
+  plural,
+} from "@/features/ui/format";
 import { QrCode } from "@/features/ui/qr-code";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
 
@@ -96,6 +104,11 @@ export function DisplayScreen({
             <>
               <span className="tv-head__label">Join at</span> <strong>{shortUrl(joinUrl)}</strong>
             </>
+          ) : view.buzzing.fairBuzzing ? (
+            // The lobby's free corner tells the room how races are decided.
+            <span className="tv-head__note">
+              <strong>Fair buzzing on</strong> · fastest reaction wins
+            </span>
           ) : null}
         </div>
       </header>
@@ -291,6 +304,7 @@ function DisplayClue({
   clockOffsetMs: number;
 }) {
   const lit = useOpeningLit(clue.opensAt, clockOffsetMs);
+  const margin = answeringMargin(clue);
   const lastAttempt = clue.attempts[clue.attempts.length - 1] ?? null;
   const controller = nameOf(view.players, view.controllerId);
 
@@ -363,6 +377,12 @@ function DisplayClue({
             <p className="tv-cue tv-cue--answering">
               <strong className="name">{nameOf(view.players, clue.answeringPlayerId)}</strong>
               {clue.kind === "wager" ? " is answering" : " buzzed in!"}
+              {margin ? (
+                <>
+                  {" "}
+                  <span className="tv-margin">first {margin}</span>
+                </>
+              ) : null}
             </p>
             {view.timer ? (
               <Countdown
