@@ -548,11 +548,13 @@ function longestPart(name: string): number {
 /**
  * Winner names step down in size so they fit the slip: long names, or names
  * with a long unbroken part (usernames like "bartholomew.featherstonehaugh"),
- * get smaller type instead of running off the edge. Co-winners share the
- * size their longest name needs, so nobody's slip looks like second place.
+ * get smaller type instead of running off the edge. Long names may take two
+ * or three lines; only an unbroken part too wide for one line at 2.1em gets
+ * the smallest size. Co-winners share the size their longest name needs, so
+ * nobody's slip looks like second place.
  */
 export function podiumNameSize(names: string[]): string {
-  if (names.some((name) => name.length > 24)) return "tv-podium__name--xlong";
+  if (names.some((name) => longestPart(name) > 18)) return "tv-podium__name--xlong";
   if (names.some((name) => name.length > 14 || longestPart(name) > 12))
     return "tv-podium__name--long";
   return "";

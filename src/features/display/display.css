@@ -783,7 +783,6 @@
   }
 
   /* The correct answer, last and centred, under every response. */
-  .tv-final--judging .tv-answer,
   .tv-final--done .tv-answer {
     grid-row: 4;
     margin: 0.15em auto 0.6em;

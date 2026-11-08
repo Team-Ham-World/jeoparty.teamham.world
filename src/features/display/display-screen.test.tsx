@@ -125,8 +125,9 @@ describe("display layout", () => {
     expect(podiumNameSize(["Scarlet the Great"])).toBe("tv-podium__name--long");
     expect(podiumNameSize(["featherstonehau"])).toBe("tv-podium__name--long");
     expect(podiumNameSize(["abcdefghijklm"])).toBe("tv-podium__name--long");
-    expect(podiumNameSize(["bartholomew.featherstonehaugh"])).toBe("tv-podium__name--xlong");
-    expect(podiumNameSize(["Medchu", "Maximilian Featherstonehaugh III"])).toBe(
+    expect(podiumNameSize(["bartholomew.featherstonehaugh"])).toBe("tv-podium__name--long");
+    expect(podiumNameSize(["maximilianfeatherstonehaugh"])).toBe("tv-podium__name--xlong");
+    expect(podiumNameSize(["Medchu", "maximilianfeatherstonehaugh"])).toBe(
       "tv-podium__name--xlong",
     );
   });
@@ -135,7 +136,7 @@ describe("display layout", () => {
     const { container } = renderView(displayFixture("results"));
     const names = [...container.querySelectorAll(".tv-podium__name")];
     expect(names).toHaveLength(2);
-    for (const name of names) expect(name).toHaveClass("tv-podium__name--xlong");
+    for (const name of names) expect(name).toHaveClass("tv-podium__name--long");
   });
 
   it("uses the dense score strip for five or six players", () => {
