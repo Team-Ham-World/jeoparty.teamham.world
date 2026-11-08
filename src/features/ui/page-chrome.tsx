@@ -42,14 +42,51 @@ export function PageHeader({
   );
 }
 
+/**
+ * Frame for a full-screen notice: loading, sign-in, errors, closed rooms.
+ * On paper it draws the same top bar as the other paper pages (lockup only),
+ * then a narrow column for the message. `tone="stage"` leaves the top bar out
+ * for a notice drawn on the TV's ink stage.
+ */
+export function NoticeShell({
+  children,
+  busy = false,
+  homeLink = true,
+  tone = "paper",
+}: {
+  children: ReactNode;
+  /** True while waiting for something; sets aria-busy on <main>. */
+  busy?: boolean;
+  /** Link the lockup to home. Pass false where leaving would interrupt a game. */
+  homeLink?: boolean;
+  tone?: "paper" | "stage";
+}) {
+  return (
+    <>
+      {tone === "paper" ? (
+        <header className="topbar">
+          <Lockup href={homeLink ? "/" : undefined} />
+        </header>
+      ) : null}
+      <main
+        id="main-content"
+        className={tone === "stage" ? "notice notice--stage" : "notice"}
+        aria-busy={busy || undefined}
+      >
+        {children}
+      </main>
+    </>
+  );
+}
+
 export function LoadingNotice({ label = "Loading" }: { label?: string }) {
   return (
-    <main id="main-content" className="notice" aria-busy="true">
+    <NoticeShell busy>
       <h1>
         {label}
         <span className="loading-dots" />
       </h1>
-    </main>
+    </NoticeShell>
   );
 }
 
@@ -63,7 +100,7 @@ export function ErrorNotice({
   onRetry?: () => void;
 }) {
   return (
-    <main id="main-content" className="notice">
+    <NoticeShell>
       <span className="stamp stamp--ink">Hmm</span>
       <h1>{title}</h1>
       <p className="muted">{body}</p>
@@ -77,7 +114,7 @@ export function ErrorNotice({
           Go home
         </Link>
       </div>
-    </main>
+    </NoticeShell>
   );
 }
 
@@ -94,7 +131,7 @@ export function SignInNotice({
   body: string;
 }) {
   return (
-    <main id="main-content" className="notice">
+    <NoticeShell>
       <span className="stamp stamp--red">Sign in</span>
       <h1>{title}</h1>
       <p className="muted">{body}</p>
@@ -102,6 +139,6 @@ export function SignInNotice({
         Sign in with HAM
       </a>
       {authMode === "fixture" ? <FixtureStamp /> : null}
-    </main>
+    </NoticeShell>
   );
 }

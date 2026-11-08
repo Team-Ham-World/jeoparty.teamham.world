@@ -913,14 +913,16 @@
     image-rendering: pixelated;
   }
 
-  /* ------------------------------------------------------------- loaders */
+  /* ------------------------------------------------------------- notices */
+  /* The drop below the top bar is padding, not margin: a top margin would
+     collapse through <body> and make every notice page scroll by 12vh. */
   .notice {
     display: grid;
     justify-items: start;
     gap: 1rem;
     max-width: 34rem;
-    margin: 12vh auto 0;
-    padding-inline: var(--gutter-l) var(--gutter-r);
+    margin: 0 auto;
+    padding: 12vh var(--gutter-r) 2rem var(--gutter-l);
   }
 
   .notice h1 {
