@@ -79,14 +79,47 @@
     border-bottom: 2px solid var(--ink);
   }
 
+  /* Zero basis: the bar stays one row while the stamp's longest word still fits. */
   .ed-bar__status {
-    flex: 1;
+    flex: 1 1 0;
+  }
+
+  /* On a phone a long state ("Unsaved changes") stacks into a two-line stamp. */
+  .ed-bar__status .stamp {
+    white-space: normal;
+    text-align: center;
+  }
+
+  @media (max-width: 30rem) {
+    .ed-bar {
+      gap: 0.5rem;
+    }
+
+    .ed-bar > .btn--quiet {
+      padding-inline: 0.35rem;
+    }
+
+    .ed-bar > .btn--primary {
+      padding-inline: 0.75rem;
+    }
+  }
+
+  /* Title with the file actions beside it; they wrap under it on narrow screens. */
+  .ed-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
   }
 
   .ed-title {
-    justify-self: start;
     font-size: var(--fs-3xl);
     overflow-wrap: anywhere;
+  }
+
+  .ed-file {
+    gap: 0.5rem;
   }
 
   .ed-errors {
