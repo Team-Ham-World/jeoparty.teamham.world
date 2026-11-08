@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import {
   MAX_PLAYERS,
   type ClueView,
+  type FinalResponseView,
   type FinalView,
   type PlayerView,
   type PublicPlayer,
@@ -16,6 +17,7 @@ import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
 import { formatDelta, formatScore, listNames, nameOf, ordinal, plural } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
+import { NoticeShell } from "@/features/ui/page-chrome";
 import { ToastProvider } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
@@ -65,24 +67,28 @@ function PlayerBody({
 
   if (!view) {
     return (
-      <main id="main-content" className="notice">
+      <NoticeShell busy>
         <span className="stamp stamp--dashed">Room {code}</span>
         <h1>
           Connecting
           <span className="loading-dots" />
         </h1>
         <p className="muted">Hang tight. Your phone becomes a buzzer in a second.</p>
-      </main>
+      </NoticeShell>
     );
   }
 
   const announcement = fresh ? describeEvent(fresh.event, view.players, view.me.id) : null;
   const isController = view.controllerId === view.me.id;
+  // Leaving is safe only when you're not mid-game: the lobby, results, or the bench.
+  // During play the logo isn't a link, so a stray tap can't leave the buzzer.
+  const canLeave =
+    view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting";
 
   return (
     <div className={`pl pl--${view.phase}`}>
       <header className="pl-top">
-        <Lockup href="/" />
+        <Lockup href={canLeave ? "/" : undefined} />
         <span className="room-code" aria-label={`Room ${view.roomCode.split("").join(" ")}`}>
           {view.roomCode}
         </span>
@@ -93,10 +99,10 @@ function PlayerBody({
         <div className="pl-me__who">
           <span className="eyebrow">You</span>
           <strong className="name">{view.me.name}</strong>
+          {isController && (view.phase === "board" || view.phase === "roundIntro") ? (
+            <span className="stamp stamp--blue">Your pick</span>
+          ) : null}
         </div>
-        {isController && (view.phase === "board" || view.phase === "roundIntro") ? (
-          <span className="stamp stamp--blue">Your pick</span>
-        ) : null}
         <div className="pl-me__score">
           <span className="eyebrow">Score</span>
           <strong className={`score ${view.me.score < 0 ? "score--neg" : ""}`}>
@@ -130,8 +136,7 @@ function PlayerBody({
         />
       </main>
 
-      {onLeave &&
-      (view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting") ? (
+      {onLeave && canLeave ? (
         <footer className="pl-foot">
           <button type="button" className="btn btn--quiet btn--small" onClick={onLeave}>
             Leave room
@@ -563,9 +568,10 @@ function PlayerFinal({
           {plural(final.eligiblePlayerIds.length, "player")}{" "}
           {final.wagerSubmittedIds.length === 1 ? "has" : "have"} wagered.
         </p>
+        {/* "Saved", not "locked": the wager can still change until the clue shows. */}
         {submitted !== null ? (
           <p className="final-status" role="status">
-            <span className="stamp stamp--good stamp--flat">Locked in</span>
+            <span className="stamp stamp--good stamp--flat">Wager saved</span>
             <span>
               Your wager: <strong className="num">{formatScore(submitted)}</strong>. You can change
               it until the host shows the clue.
@@ -584,7 +590,7 @@ function PlayerFinal({
               initial={submitted}
               disabled={stale}
               busy={pending === "submitFinalWager"}
-              submitLabel={submitted === null ? "Lock in wager" : "Update wager"}
+              submitLabel={submitted === null ? "Save wager" : "Change wager"}
               onSubmit={(amount) => void run({ type: "submitFinalWager", amount })}
             />
           </section>
@@ -653,18 +659,28 @@ function PlayerFinal({
                   <span className="pl-said">“{response.answer}”</span>
                 ) : null}
               </span>
-              <span>
-                {response.status === "hidden"
-                  ? "…"
-                  : response.status === "revealed"
-                    ? "judging"
-                    : `${response.correct ? "Correct" : "Incorrect"} ${response.delta !== null ? formatDelta(response.delta) : ""}`}
-              </span>
+              <FinalVerdict response={response} />
             </li>
           ))}
         </ol>
       </section>
     </div>
+  );
+}
+
+/** Where one final response stands: waiting, being judged, or judged with its score change. */
+function FinalVerdict({ response }: { response: FinalResponseView }) {
+  if (response.status === "hidden") return <span className="pl-verdict muted">Waiting</span>;
+  if (response.status === "revealed") return <span className="pl-verdict">Judging…</span>;
+  return (
+    <span className="pl-verdict">
+      <span className={`stamp stamp--flat ${response.correct ? "stamp--good" : "stamp--bad"}`}>
+        {response.correct ? "Correct" : "Incorrect"}
+      </span>
+      {response.delta !== null ? (
+        <strong className="score">{formatDelta(response.delta)}</strong>
+      ) : null}
+    </span>
   );
 }
 

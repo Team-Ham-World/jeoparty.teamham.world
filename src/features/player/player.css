@@ -29,6 +29,16 @@
     font-size: 1.3rem;
   }
 
+  /* The logo only links home in the lobby and on results (see PlayerBody).
+     On touch the link reaches 44 px tall into the bar's padding, like the
+     paper top bar, so the bar keeps its height. */
+  @media (pointer: coarse) {
+    .pl-top a.lockup {
+      padding-block: 0.6rem;
+      margin-block: -0.6rem;
+    }
+  }
+
   .pl-top .room-code {
     margin-left: auto;
     font-size: var(--fs-sm);
@@ -54,11 +64,23 @@
     flex: 1;
   }
 
+  /* Long HAM usernames get two lines instead of an early "…". */
   .pl-me__who strong {
+    display: -webkit-box;
     overflow: hidden;
     font-size: var(--fs-lg);
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* During a clue every pixel goes to the buzzer, so the name keeps one line. */
+  .pl--clue .pl-me__who strong {
+    -webkit-line-clamp: 1;
+  }
+
+  .pl-me__who .stamp {
+    justify-self: start;
+    margin-top: 0.35rem;
   }
 
   .pl-me__score {
@@ -82,12 +104,25 @@
     padding-top: 0.75rem;
   }
 
+  /* Phone banners are compact: one bold line, then the sentence. Every pixel
+     they take comes out of the buzzer's height (see .buzz-zone). */
+  .pl-banners .banner {
+    gap: 0.1rem 0.6rem;
+    padding: 0.45rem 0.75rem;
+    font-size: var(--fs-sm);
+    line-height: 1.35;
+  }
+
+  .pl-banners:not(:empty) + .pl-main {
+    padding-top: 0.75rem;
+  }
+
   .pl-main {
     display: flex;
     flex: 1;
     flex-direction: column;
     gap: 1rem;
-    padding: 1.25rem var(--gutter-r) calc(1.5rem + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
+    padding: 1.25rem var(--gutter-r) calc(1rem + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
   }
 
   .pl-main > .stack {
@@ -177,6 +212,21 @@
     color: var(--muted);
   }
 
+  /* Final reveal list: Waiting → Judging… → a Correct/Incorrect stamp and the score change. */
+  .pl-verdict {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .pl-verdict.muted {
+    font-weight: 400;
+  }
+
   .pl-scores--results li {
     gap: 0.75rem;
     font-size: var(--fs-lg);
@@ -212,7 +262,12 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+
+  /* Leaves room for a two-line "<long name> is answering." above the buzzer. */
+  .pl-clue-wrap .pl-waiting {
+    padding-block: 0.65rem;
   }
 
   .pl-clue {
@@ -328,20 +383,42 @@
   }
 
   /* ----------------------------------------------------------- buzz button */
+  /*
+    The buzzer never moves under the thumb. It sits at the bottom of the
+    screen (margin-top: auto) and the page doesn't scroll, so its bottom edge
+    stays put; and its size depends only on the screen, never on what is
+    above it. Everything else on a clue screen, including one status banner
+    or the "is answering" note, takes about 34.5rem, so the buzzer gets the
+    rest: at most 17rem (or 70% of the width), at least 9rem. The help
+    sentence below it always reserves two lines.
+  */
   .buzz-zone {
+    --buzz-size: clamp(9rem, 100dvh - 34.5rem, min(70vw, 17rem));
     display: grid;
     justify-items: center;
     gap: 0.75rem;
     margin-top: auto;
-    padding-top: 0.5rem;
+  }
+
+  /* Rare: reconnecting while paused shows two banners. */
+  .pl:has(.pl-banners .banner + .banner) .buzz-zone {
+    --buzz-size: clamp(8.5rem, 100dvh - 38rem, min(70vw, 17rem));
+  }
+
+  /* The halo and the button share one grid cell; the halo is drawn first,
+     so it sits underneath. */
+  .buzz,
+  .buzz-halo {
+    grid-area: 1 / 1;
   }
 
   .buzz {
+    position: relative;
     display: grid;
     place-items: center;
-    width: min(70vw, 17rem, 32dvh);
+    align-self: center;
+    width: var(--buzz-size);
     aspect-ratio: 1;
-    max-width: 100%;
     padding: 0;
     color: var(--muted);
     background: var(--shade);
@@ -356,25 +433,26 @@
 
   .buzz__label {
     font-family: var(--font-display);
-    font-size: clamp(2rem, 11vw, 3.25rem);
+    /* The second cap keeps "Offline" inside the smallest buzzer. */
+    font-size: min(clamp(2rem, 11vw, 3.25rem), calc(var(--buzz-size) * 0.22));
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 1;
   }
 
+  /* The face, its own ink drop and a paper ring. The base it sits on is
+     .buzz-halo, so pressing drops the face into a base that stays put. */
   .buzz--live {
     color: var(--surface);
     background: var(--blue);
     border: 3px solid var(--ink);
     box-shadow:
       0 8px 0 var(--ink),
-      0 0 0 6px var(--paper),
-      0 8px 0 6px var(--ink);
+      0 0 0 6px var(--paper);
     cursor: pointer;
     transition:
       transform 60ms var(--ease),
       box-shadow 60ms var(--ease);
-    animation: buzz-ready 1.4s var(--ease) infinite;
   }
 
   .buzz--live:active,
@@ -382,9 +460,7 @@
     transform: translateY(7px);
     box-shadow:
       0 1px 0 var(--ink),
-      0 0 0 6px var(--paper),
-      0 1px 0 6px var(--ink);
-    animation: none;
+      0 0 0 6px var(--paper);
   }
 
   .buzz--sent {
@@ -398,21 +474,68 @@
     outline-offset: 10px;
   }
 
+  /*
+    The live buzzer's base: an ink disc 6 px wider than the button all
+    round and 8 px lower. While buzzing is open it breathes: a blue disc
+    (::before) and a paper disc (::after, centred on the button) grow 4 px
+    past the base, so the base glows blue below a wider paper gap, then
+    shrink back. Only transform and opacity animate, so phones composite
+    the glow instead of repainting a shadow every frame. Reduced motion
+    stops it on the plain base (globals.css).
+  */
+  .buzz-halo {
+    position: relative;
+    align-self: center;
+    width: calc(var(--buzz-size) + 12px);
+    aspect-ratio: 1;
+    margin: -6px; /* lays out at the button's size */
+    background: var(--ink);
+    border-radius: 50%;
+    transform: translateY(8px);
+    pointer-events: none;
+  }
+
+  .buzz-halo::before,
+  .buzz-halo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    animation: buzz-breathe 1.4s var(--ease) infinite;
+  }
+
+  .buzz-halo::before {
+    background: var(--blue);
+    opacity: 0;
+  }
+
+  .buzz-halo::after {
+    background: var(--paper);
+    translate: 0 -8px;
+  }
+
+  .buzz-halo--still::before,
+  .buzz-halo--still::after {
+    animation: none;
+  }
+
+  /* 1.035 ≈ (size + 20 px) ÷ (size + 12 px) across the buzzer's sizes. */
+  @keyframes buzz-breathe {
+    50% {
+      opacity: 1;
+      scale: 1.035;
+    }
+  }
+
+  /* Exactly two lines, so a one- or two-line sentence never moves the buzzer. */
   .buzz-help {
-    min-height: 3em;
+    min-height: 2.6em;
     max-width: 22rem;
+    line-height: 1.3;
     text-align: center;
     color: var(--muted);
     font-weight: 700;
-  }
-
-  @keyframes buzz-ready {
-    50% {
-      box-shadow:
-        0 8px 0 var(--ink),
-        0 0 0 10px var(--paper),
-        0 8px 0 10px var(--blue);
-    }
+    overflow-wrap: break-word;
   }
 
   /* ----------------------------------------------------------- wager form */
@@ -469,6 +592,12 @@
       opacity: 0;
       visibility: hidden;
     }
+  }
+
+  /* --------------------------------------------- join card (player-route) */
+  /* The join card lays its children out at their own width; a banner spans it. */
+  .join-alert {
+    justify-self: stretch;
   }
 
   /* ------------------------------------------------------------ Hot HAM! */

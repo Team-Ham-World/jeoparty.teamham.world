@@ -162,7 +162,7 @@ test("game screens", async ({ browser }) => {
   // Final round.
   for (const player of [ana, ben, cy]) {
     await player.page.getByRole("button", { name: "Half" }).click();
-    await player.page.getByRole("button", { name: "Lock in wager" }).click();
+    await player.page.getByRole("button", { name: "Save wager" }).click();
   }
   await H.getByRole("button", { name: "Show final clue" }).click();
   const said = {

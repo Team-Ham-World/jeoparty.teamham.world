@@ -12,7 +12,13 @@ import {
 } from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
 import { ROOM_CODE_PATTERN, type RoomSummary } from "@/features/network/protocol";
-import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
+import {
+  ErrorNotice,
+  LoadingNotice,
+  NoticeShell,
+  PageHeader,
+  SignInNotice,
+} from "@/features/ui/page-chrome";
 import { useSession } from "@/features/ui/session";
 import { PlayerScreen } from "./player-screen";
 
@@ -59,6 +65,9 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  // The server said "room full": offer "Check again" instead of a Join that would fail again.
+  const [full, setFull] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -97,7 +106,7 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
 
   if (summary.myRole === "host") {
     return (
-      <main id="main-content" className="notice">
+      <NoticeShell>
         <span className="stamp stamp--blue">You&apos;re the host</span>
         <h1>You&apos;re hosting room {code}</h1>
         <p className="muted">
@@ -106,8 +115,20 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
         <Link className="btn btn--primary btn--big" href={`/host/${code}`}>
           Open the control room
         </Link>
-      </main>
+      </NoticeShell>
     );
+  }
+
+  /** Reads the room again so the facts on the card are current. */
+  async function refresh(): Promise<RoomSummary | null> {
+    try {
+      const next = await getRoom(code);
+      setRoom({ status: "ready", summary: next });
+      return next;
+    } catch (error) {
+      setRoom({ status: "error", error });
+      return null;
+    }
   }
 
   async function join() {
@@ -117,14 +138,24 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
       await joinRoom(csrf, code);
       setJoined(true);
     } catch (error) {
-      setJoinError(
-        error instanceof ApiError && error.code === "roomFull"
-          ? "This game is full. Ask the host to make room or start a new game."
-          : errorMessage(error),
-      );
+      if (error instanceof ApiError && error.code === "roomFull") {
+        setFull(true);
+        void refresh(); // show the current player count
+      } else {
+        setJoinError(errorMessage(error));
+      }
     } finally {
       setJoining(false);
     }
+  }
+
+  // Join comes back once a seat is free, or once the game has started
+  // (latecomers can always wait for the next game). The server still decides.
+  async function checkAgain() {
+    setChecking(true);
+    const next = await refresh();
+    if (next && (next.status !== "lobby" || next.playerCount < next.maxPlayers)) setFull(false);
+    setChecking(false);
   }
 
   const playing = summary.status !== "lobby";
@@ -164,20 +195,38 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
               ? "You can join now and you'll be in for the next game when the host chooses Play again."
               : "Your phone becomes your buzzer. The board and questions show on the big screen."}
           </p>
-          {joinError ? (
-            <p className="field__error" role="alert">
-              {joinError}
-            </p>
+          {full ? (
+            <div className="banner banner--bad join-alert" role="alert">
+              <span>This game is full</span>
+              <p>Ask the host to make room or start a new game, then check again.</p>
+            </div>
+          ) : joinError ? (
+            <div className="banner banner--bad join-alert" role="alert">
+              <span>Couldn&apos;t join</span>
+              <p>{joinError}</p>
+            </div>
           ) : null}
-          <button
-            type="button"
-            className="btn btn--primary btn--big"
-            onClick={join}
-            disabled={joining}
-            aria-busy={joining || undefined}
-          >
-            {joining ? "Joining…" : playing ? "Join the next game" : "Join game"}
-          </button>
+          {full ? (
+            <button
+              type="button"
+              className="btn btn--big"
+              onClick={checkAgain}
+              disabled={checking}
+              aria-busy={checking || undefined}
+            >
+              {checking ? "Checking…" : "Check again"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--primary btn--big"
+              onClick={join}
+              disabled={joining}
+              aria-busy={joining || undefined}
+            >
+              {joining ? "Joining…" : playing ? "Join the next game" : "Join game"}
+            </button>
+          )}
         </section>
       </main>
     </>
