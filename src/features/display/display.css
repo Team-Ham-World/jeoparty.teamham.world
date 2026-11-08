@@ -35,7 +35,7 @@
   }
 
   .tv-stamp {
-    font-size: 0.75em;
+    font-size: 0.8em;
   }
 
   /* Stamps sit on the ink stage: give the outline ones a paper ground. */
@@ -54,7 +54,7 @@
   }
 
   .tv-eyebrow {
-    font-size: 0.75em;
+    font-size: 0.8em;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -247,6 +247,12 @@
     padding-bottom: 0.4em;
   }
 
+  /* Who's here is what the room checks: full strength, not a muted eyebrow. */
+  .tv-lobby__players .tv-eyebrow {
+    font-size: 1em;
+    color: var(--stage-text);
+  }
+
   .tv-tags {
     display: flex;
     flex-wrap: wrap;
@@ -325,15 +331,22 @@
     height: 100%;
   }
 
+  /* The board's only instruction: who picks next. */
   .tv-picks {
     justify-self: start;
-    padding: 0.2em 0.8em;
-    font-size: 1em;
+    max-width: 100%;
+    padding: 0.12em 0.8em 0.12em 1em;
+    font-size: 1.3em;
+    line-height: 1.3;
     color: var(--ink);
     background: var(--paper);
     border: 2px solid var(--ink);
-    box-shadow: inset 0.35em 0 0 var(--blue);
-    padding-left: 1em;
+    box-shadow: inset 0.3em 0 0 var(--blue);
+  }
+
+  .tv-picks strong {
+    font-family: var(--font-display);
+    font-weight: 800;
   }
 
   /* ---------------------------------------------------------------- clue */
@@ -347,6 +360,32 @@
     border: 0.08em solid var(--ink);
     box-shadow: 0.3em 0.3em 0 #000;
     animation: card-in 260ms var(--ease) both;
+  }
+
+  /*
+    Standard clues reserve the answer's row from the start (a one-line
+    answer slip is about 5.4em with its margin), so the prompt doesn't jump
+    up when the answer appears. The final round lays itself out below.
+  */
+  .tv-clue:not(.tv-final) {
+    grid-template-rows: auto minmax(0, 1fr) minmax(5.4em, auto) auto;
+  }
+
+  .tv-clue:not(.tv-final) > .tv-clue__head {
+    grid-row: 1;
+  }
+
+  .tv-clue:not(.tv-final) > .tv-prompt {
+    grid-row: 2;
+  }
+
+  .tv-clue:not(.tv-final) > .tv-answer {
+    grid-row: 3;
+    align-self: start;
+  }
+
+  .tv-clue:not(.tv-final) > .tv-clue__foot {
+    grid-row: 4;
   }
 
   @keyframes card-in {
@@ -376,11 +415,15 @@
 
   .tv-clue__value {
     flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
     font-family: var(--font-display);
     font-size: 1.5em;
     font-weight: 800;
   }
 
+  /* "Wager" label beside the stake; 0.55em of the value is about 25px at 1080p. */
   .tv-clue__value .stamp {
     font-size: 0.55em;
   }
@@ -568,6 +611,10 @@
 
   .tv-final--wagers .tv-progress {
     justify-items: center;
+  }
+
+  .tv-final--wagers .tv-tags {
+    justify-content: center;
   }
 
   .tv-progress {

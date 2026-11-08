@@ -90,11 +90,12 @@ export function DisplayScreen({
             <span className="tv-conn" role="status">
               {status === "connecting" ? "Connecting…" : "Reconnecting… this screen may be behind"}
             </span>
-          ) : (
+          ) : view.phase !== "lobby" ? (
+            // Not in the lobby: its step 1 already shows the join URL.
             <>
               <span className="tv-head__label">Join at</span> <strong>{shortUrl(joinUrl)}</strong>
             </>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -198,7 +199,10 @@ function DisplayPhase({
       return (
         <section className="tv-board" aria-label="Board">
           <p className="tv-picks">
-            <strong className="name">{nameOf(view.players, view.controllerId)}</strong> picks
+            <strong className="name">
+              <Name name={nameOf(view.players, view.controllerId)} />
+            </strong>{" "}
+            picks
           </p>
           {view.board ? <BoardGrid board={view.board} variant="stage" /> : null}
         </section>
@@ -315,9 +319,13 @@ function DisplayClue({
         </h1>
         <span className="tv-clue__value num">
           {clue.kind === "wager" ? (
-            <span className="stamp stamp--hot stamp--flat">
-              {clue.wager !== null ? `Wager ${formatScore(clue.wager)}` : "Wager clue"}
-            </span>
+            <>
+              {/* The stake is the drama: it gets the same size as a normal clue value. */}
+              <span className="stamp stamp--hot stamp--flat">
+                {clue.wager !== null ? "Wager" : "Wager clue"}
+              </span>
+              {clue.wager !== null ? <span>{formatScore(clue.wager)}</span> : null}
+            </>
           ) : (
             formatScore(clue.value)
           )}
