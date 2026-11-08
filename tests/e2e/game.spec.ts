@@ -74,7 +74,8 @@ test("host, TV and three phones play a full game with wagers, a final round and 
   const winner = byName(players, raceWinner);
   const loser = raceWinner === alice.name ? bea : alice;
   await expect(winner.page.getByText("You're up!", { exact: true })).toBeVisible();
-  await expect(loser.page.getByText(`${winner.name} got there first.`)).toBeVisible();
+  // With fair buzzing the sentence may add the margin ("… got there first by 0.02 s.").
+  await expect(loser.page.getByText(`${winner.name} got there first`)).toBeVisible();
   await expect(loser.page.locator(".toast")).toHaveCount(0); // Losing a race is not an error.
   await expect(tv.page.getByText(`${winner.name} buzzed in!`)).toBeVisible();
 

@@ -356,6 +356,25 @@
     font-size: var(--fs-lg);
   }
 
+  /* The brag line: smaller than the instruction it follows. */
+  .pl-up .pl-up__margin {
+    margin-top: 0.15rem;
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One house rule in the lobby, read once before the first clue. Its lead
+     gets the yellow highlighter pass: attention, with a sentence after it. */
+  .pl-tip {
+    text-wrap: pretty;
+  }
+
+  .pl-tip strong {
+    padding: 0 0.2em;
+    background: var(--highlight);
+  }
+
   .pl-result {
     padding: 0.7rem 1rem;
     font-size: var(--fs-lg);
@@ -441,7 +460,9 @@
   }
 
   /* The face, its own ink drop and a paper ring. The base it sits on is
-     .buzz-halo, so pressing drops the face into a base that stays put. */
+     .buzz-halo, so pressing drops the face into a base that stays put.
+     Lighting up has no transition: every phone snaps to blue on the same
+     frame. Only the press itself is eased, on the way down. */
   .buzz--live {
     color: var(--surface);
     background: var(--blue);
@@ -450,9 +471,6 @@
       0 8px 0 var(--ink),
       0 0 0 6px var(--paper);
     cursor: pointer;
-    transition:
-      transform 60ms var(--ease),
-      box-shadow 60ms var(--ease);
   }
 
   .buzz--live:active,
@@ -461,6 +479,50 @@
     box-shadow:
       0 1px 0 var(--ink),
       0 0 0 6px var(--paper);
+    transition:
+      transform 60ms var(--ease),
+      box-shadow 60ms var(--ease);
+  }
+
+  /*
+    False start: the buzzer lights for everyone, but this one is held down in
+    its base for the 250 ms lockout, in Incorrect rust and ringed like the red
+    stamp (paper, then a band of decorative red). It shakes "no" once, inside
+    the lockout, then snaps up to blue "Buzz!". The word carries the meaning;
+    under reduced motion it holds still.
+  */
+  .buzz--early {
+    color: var(--surface);
+    background: var(--bad);
+    border: 3px solid var(--ink);
+    transform: translateY(7px);
+    box-shadow:
+      0 1px 0 var(--ink),
+      0 0 0 4px var(--paper),
+      0 0 0 8px var(--red);
+    animation: buzz-shake 240ms var(--ease) both;
+  }
+
+  /* Ten letters: on a small buzzer it breaks onto two lines, inside the circle. */
+  .buzz--early .buzz__label {
+    max-width: 80%;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  @keyframes buzz-shake {
+    20% {
+      translate: -7px 0;
+    }
+    40% {
+      translate: 6px 0;
+    }
+    60% {
+      translate: -4px 0;
+    }
+    80% {
+      translate: 2px 0;
+    }
   }
 
   .buzz--sent {

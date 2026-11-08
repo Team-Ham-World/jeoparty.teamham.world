@@ -15,7 +15,15 @@ import { HotHam, Lockup } from "@/features/ui/brand";
 import { ClosedNotice, ConnectionPill, StaleBanner } from "@/features/ui/connection-status";
 import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
-import { formatDelta, formatScore, listNames, nameOf, ordinal, plural } from "@/features/ui/format";
+import {
+  answeringMargin,
+  formatDelta,
+  formatScore,
+  listNames,
+  nameOf,
+  ordinal,
+  plural,
+} from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
 import { NoticeShell } from "@/features/ui/page-chrome";
 import { ToastProvider } from "@/features/ui/toasts";
@@ -275,6 +283,12 @@ function PlayerLobby({ view }: { view: PlayerView }) {
           Keep this page open. Your phone is your buzzer, and the questions show up on the big
           screen.
         </p>
+        {view.buzzing.falseStartLockout ? (
+          <p className="pl-tip">
+            <strong>Wait for the light.</strong> Tapping before your buzzer lights locks it for a
+            moment.
+          </p>
+        ) : null}
       </div>
       <section className="panel panel--flat" aria-labelledby="lobby-players">
         <h2 id="lobby-players" className="panel__title">
@@ -410,6 +424,7 @@ function PlayerClue({
   clockOffsetMs: number;
 }) {
   const answeringMe = clue.answeringPlayerId === view.me.id && clue.stage === "answering";
+  const margin = answeringMargin(clue);
   const lastAttempt = clue.attempts[clue.attempts.length - 1];
 
   useEffect(() => {
@@ -473,6 +488,7 @@ function PlayerClue({
         <div className="pl-up" role="status">
           <strong>You&apos;re up!</strong>
           <span>Say your answer out loud to the host.</span>
+          {margin ? <span className="pl-up__margin">You got there first {margin}.</span> : null}
         </div>
       ) : clue.stage === "answering" ? (
         <p className="pl-waiting">

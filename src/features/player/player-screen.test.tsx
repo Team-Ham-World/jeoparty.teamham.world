@@ -123,4 +123,40 @@ describe("player screen", () => {
     expect(screen.getByRole("button", { name: "Wait" })).toBeDisabled();
     expect(container.querySelector(".buzz-halo")).toBeNull();
   });
+
+  it("tells the race winner how far ahead they were", () => {
+    renderView(playerOf(SPECS.answeringRace, "p-medchu"));
+    expect(screen.getByText("You're up!").closest(".pl-up")).toHaveTextContent(
+      "You're up!Say your answer out loud to the host.You got there first by 0.04 s.",
+    );
+  });
+
+  it("leaves the winner's margin out when nobody else buzzed", () => {
+    renderView(playerOf(SPECS.answering, "p-medchu"));
+    expect(screen.queryByText(/You got there first/)).toBeNull();
+  });
+
+  it("warns about early taps in the lobby only while the lockout is on", () => {
+    const view = playerOf(SPECS.lobby, "p-medchu");
+    const { unmount } = renderView(view);
+    expect(screen.getByText("Wait for the light.")).toBeVisible();
+    unmount();
+    renderView({ ...view, buzzing: { fairBuzzing: true, falseStartLockout: false } });
+    expect(screen.queryByText("Wait for the light.")).toBeNull();
+  });
+
+  it("never shows pings, even if a connection carried them", () => {
+    for (const spec of [SPECS.lobby, SPECS.board, SPECS.answeringRace]) {
+      const { container, unmount } = render(
+        <PlayerScreen
+          code="BCDFG"
+          connection={mockConnection(playerOf(spec, "p-medchu"), {
+            pings: { "p-ivvy": 38, "p-medchu": 312 },
+          })}
+        />,
+      );
+      expect(container).not.toHaveTextContent(/\b(38|312) ms|\bping\b/i);
+      unmount();
+    }
+  });
 });

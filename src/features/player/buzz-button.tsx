@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, type PointerEvent, type MouseEvent } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type PointerEvent,
+  type MouseEvent,
+} from "react";
 import type { ClueView, PlayerView } from "@/features/engine/contract";
 import type { CommandOutcome } from "@/features/network/connection";
 import type { ClientCommand } from "@/features/network/protocol";
-import { nameOf } from "@/features/ui/format";
+import { answeringMargin, nameOf } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
 import { useBuzzerTiming } from "./use-buzzer-timing";
 import type { RunOptions } from "@/features/ui/use-command";
@@ -31,17 +38,40 @@ export function buzzCopy(
       return { label: "Wait", help: "Buzzers open when the host finishes reading." };
     case "open":
       return { label: "Wait", help: "You can't buzz on this clue." };
-    case "answering":
+    case "answering": {
+      const who = nameOf(view.players, clue.answeringPlayerId);
+      const margin = answeringMargin(clue);
       return {
         label: "Hold",
-        help: `${nameOf(view.players, clue.answeringPlayerId)} got there first.`,
+        help: margin ? `${who} got there first ${margin}.` : `${who} got there first.`,
       };
+    }
     case "closed":
       return { label: "Closed", help: "No more buzzes on this clue." };
     default:
       return { label: "Closed", help: "Buzzing is closed." };
   }
 }
+
+/** The false-start lockout: the buzzer lit, but this phone tapped in the second before. */
+const TOO_EARLY_COPY = {
+  label: "Too early!",
+  help: "Locked for a moment: you tapped before it lit.",
+} as const;
+
+/** Once the lockout lifts, the button is a normal "Buzz!" and the help says why it was late. */
+const AFTER_EARLY_HELP = "Go! You were held back for tapping early.";
+
+/**
+ * Previews only: holds the buzzer in a timing state that lasts a moment in
+ * play (the 250 ms "Too early!" lockout), so it can be looked at. Play never
+ * provides it.
+ */
+export const PinnedBuzzerTiming = createContext<{
+  lit: boolean;
+  lockedOut: boolean;
+  falseStart: boolean;
+} | null>(null);
 
 /**
  * The phone buzzer. Fires on pointer-down for the fastest possible send
@@ -62,7 +92,7 @@ export function BuzzButton({
   run: (cmd: ClientCommand, options?: RunOptions) => Promise<CommandOutcome | null>;
 }) {
   const [sentFor, setSentFor] = useState<string | null>(null);
-  const timing = useBuzzerTiming({
+  const measured = useBuzzerTiming({
     opensAt: clue.opensAt,
     active: clue.stage === "open" && !view.paused && !stale,
     clockOffsetMs,
@@ -70,18 +100,29 @@ export function BuzzButton({
     lockoutEnabled: view.buzzing.falseStartLockout,
     clueId: clue.clueId,
   });
-  const visiblyLit = view.can.buzz && !stale && timing.lit;
+  const pinned = useContext(PinnedBuzzerTiming);
+  const timing = pinned ? { ...measured, ...pinned } : measured;
+  const visiblyLit = view.can.buzz && !stale && !view.paused && timing.lit;
+  // Locked for a false start: lit like everyone else's, but not pressable yet.
+  const early = visiblyLit && timing.lockedOut;
   const enabled = visiblyLit && !timing.lockedOut;
   const openingKey = `${clue.clueId}:${clue.opensAt}`;
   const sent = sentFor === openingKey && clue.stage === "open";
   const copy =
     stale || view.paused
       ? buzzCopy(view, clue, stale)
-      : timing.lockedOut
-        ? { label: "Too early!", help: "Wait 250 ms after the light." }
+      : early
+        ? TOO_EARLY_COPY
         : view.can.buzz && !timing.lit
           ? { label: "Wait", help: "Buzzers are about to open." }
-          : buzzCopy(view, clue, stale);
+          : enabled && timing.falseStart
+            ? { label: "Buzz!", help: AFTER_EARLY_HELP }
+            : buzzCopy(view, clue, stale);
+
+  // A short double pulse in the hand says "locked" without looking down.
+  useEffect(() => {
+    if (early && !pinned) vibrate([30, 40, 30]);
+  }, [early, pinned]);
 
   function buzz() {
     if (!enabled || sent) return;
@@ -120,11 +161,14 @@ export function BuzzButton({
     >
       {/* The base under the live button; it glows while buzzing is open. Decoration only. */}
       {visiblyLit ? (
-        <span className={`buzz-halo ${sent ? "buzz-halo--still" : ""}`} aria-hidden="true" />
+        <span
+          className={`buzz-halo ${sent || early ? "buzz-halo--still" : ""}`}
+          aria-hidden="true"
+        />
       ) : null}
       <button
         type="button"
-        className={`buzz ${visiblyLit ? "buzz--live" : ""} ${sent ? "buzz--sent" : ""}`}
+        className={`buzz ${early ? "buzz--early" : visiblyLit ? "buzz--live" : ""} ${sent ? "buzz--sent" : ""}`}
         disabled={!enabled}
         aria-disabled={sent || undefined}
         onPointerDown={onPointerDown}

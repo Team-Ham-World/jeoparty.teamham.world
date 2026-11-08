@@ -67,12 +67,52 @@ describe("buzz button", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
+  it("says who won the race, and by how much", () => {
+    const view = playerOf(SPECS.answeringRace, "p-ivvy");
+    render(<PlayerScreen code="BCDFG" connection={mockConnection(view)} />);
+    expect(screen.getByRole("button", { name: "Hold" })).toHaveAccessibleDescription(
+      "Medchu got there first by 0.04 s.",
+    );
+  });
+
+  it("keeps the plain sentence when nobody else buzzed", () => {
+    const view = playerOf(SPECS.answering, "p-ivvy");
+    render(<PlayerScreen code="BCDFG" connection={mockConnection(view)} />);
+    expect(screen.getByRole("button", { name: "Hold" })).toHaveAccessibleDescription(
+      "Medchu got there first.",
+    );
+  });
+
   it("explains a lockout instead of offering the button", () => {
     const view = playerOf(SPECS.closed, "p-scarlet");
     render(<PlayerScreen code="BCDFG" connection={mockConnection(view)} />);
     expect(screen.getByRole("button", { name: "Locked" })).toBeDisabled();
     expect(screen.getByText("You already had a go at this clue.")).toBeVisible();
   });
+});
+
+it("doesn't call an early tap 'Too early!' for a phone that can't buzz this clue anyway", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(1000);
+  try {
+    const reading = playerOf(SPECS.reading, "p-scarlet");
+    // Scarlet already had a go: the reopened clue lights, but not for her.
+    const open = playerOf(
+      { ...SPECS.open, clue: { ...SPECS.open.clue, lockedOutPlayerIds: ["p-scarlet"] } },
+      "p-scarlet",
+    );
+    open.clue!.opensAt = 1200;
+    const run = vi.fn();
+    const { rerender } = render(
+      <BuzzButton view={reading} clue={reading.clue!} stale={false} run={run} />,
+    );
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Wait" }), { button: 0 });
+    rerender(<BuzzButton view={open} clue={open.clue!} stale={false} run={run} />);
+    act(() => vi.advanceTimersByTime(200));
+    expect(screen.getByRole("button", { name: "Locked" })).not.toHaveClass("buzz--early");
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("captures early button taps, lights while locked, and sends the penalty with a measured reaction", async () => {
@@ -91,13 +131,17 @@ it("captures early button taps, lights while locked, and sends the penalty with 
     act(() => vi.advanceTimersByTime(200));
     const locked = screen.getByRole("button", { name: "Too early!" });
     expect(locked).toBeDisabled();
-    expect(locked).toHaveClass("buzz--live");
+    // Lit with everyone else, but in its own held-down look, never the pressable blue.
+    expect(locked).toHaveClass("buzz--early");
+    expect(locked).not.toHaveClass("buzz--live");
+    expect(locked).toHaveAccessibleDescription("Locked for a moment: you tapped before it lit.");
     act(() => vi.advanceTimersByTime(249));
     expect(run).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(1));
-    await act(async () =>
-      fireEvent.pointerDown(screen.getByRole("button", { name: "Buzz!" }), { button: 0 }),
-    );
+    const live = screen.getByRole("button", { name: "Buzz!" });
+    expect(live).toHaveClass("buzz--live");
+    expect(live).toHaveAccessibleDescription("Go! You were held back for tapping early.");
+    await act(async () => fireEvent.pointerDown(live, { button: 0 }));
     expect(run).toHaveBeenCalledWith(
       { type: "buzz", clueId: open.clue!.clueId, reactionMs: 250, falseStart: true },
       expect.anything(),
