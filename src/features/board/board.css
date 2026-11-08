@@ -66,7 +66,7 @@
     top: -0.35rem;
     right: -0.35rem;
     padding: 0 0.3rem;
-    font-size: 0.7rem;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -103,7 +103,7 @@
   .board--stage .board__cell--active {
     background: var(--paper);
     border: 2px solid var(--ink);
-    box-shadow: 0.14em 0.14em 0 #00000080;
+    box-shadow: 0.14em 0.14em 0 #000;
   }
 
   .board--stage .board__value {
@@ -188,7 +188,7 @@
   }
 
   .board--host .board__cell--wager {
-    background: #fde4ea;
+    background: var(--hot-tint);
   }
 
   .board--host .board__cell--active {

@@ -36,6 +36,16 @@
   --highlight: #fce38a; /* yellow highlighter for warnings and "you" */
   --shade: #e9e1cf; /* pressed / sunken paper */
   --rule: #cfc5ae; /* hairlines; decorative, never text */
+  --hot-tint: #fde4ea; /* host only: hidden wager cells on the host board */
+
+  /* Hover shades of the filled buttons */
+  --blue-press: #173fb0;
+  --good-press: #17562e;
+  --bad-press: #8a1f15;
+
+  /* Masking tape on a few hero slips (decorative) */
+  --tape: #e6d8b0b8;
+  --tape-edge: #b9a87a;
 
   /* TV stage (ink) */
   --stage: #1c1a17;
@@ -51,6 +61,7 @@
   --font-display:
     "Bricolage Grotesque Variable", "Bricolage Fallback", system-ui, "Arial Black", sans-serif;
   --font-body: "Atkinson Hyperlegible", "Atkinson Fallback", Verdana, system-ui, sans-serif;
+  --fs-2xs: 0.75rem; /* floor for tags and labels inside dense board cells and rows */
   --fs-xs: 0.8125rem;
   --fs-sm: 0.875rem;
   --fs-md: 1rem;
@@ -365,7 +376,7 @@
   }
 
   .btn--primary:hover:not(:disabled) {
-    background: #173fb0;
+    background: var(--blue-press);
   }
 
   .btn--good {
@@ -374,7 +385,7 @@
   }
 
   .btn--good:hover:not(:disabled) {
-    background: #17562e;
+    background: var(--good-press);
   }
 
   .btn--bad {
@@ -383,7 +394,7 @@
   }
 
   .btn--bad:hover:not(:disabled) {
-    background: #8a1f15;
+    background: var(--bad-press);
   }
 
   .btn--quiet {
@@ -575,9 +586,9 @@
     left: 50%;
     width: 5.5rem;
     height: 1.3rem;
-    background: #e6d8b0b8;
-    border-left: 1px dashed #b9a87a;
-    border-right: 1px dashed #b9a87a;
+    background: var(--tape);
+    border-left: 1px dashed var(--tape-edge);
+    border-right: 1px dashed var(--tape-edge);
     transform: translateX(-50%) rotate(-3deg);
     pointer-events: none;
   }

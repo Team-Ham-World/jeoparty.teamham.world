@@ -38,7 +38,7 @@ per screen.
 | `wager-form.tsx` | Whole-number wager inside server-given bounds, with quick picks |
 | `qr-code.tsx` | QR code as one SVG path (no images, no network) |
 | `copy-field.tsx` | Read-only link + Copy button |
-| `page-chrome.tsx` | Paper top bar, loading/error/sign-in notices |
+| `page-chrome.tsx` | Paper top bar, `NoticeShell` (top bar + notice column), loading/error/sign-in notices |
 | `haptics.ts` | Optional `navigator.vibrate`, only after the person has tapped |
 | `contrast.ts` | WCAG math and the list of color pairs we use |
 
@@ -62,9 +62,14 @@ below on each `npm test`. Recompute this table if a token changes.
 | muted | shade | 5.60 | 4.5 | disabled buzzer label |
 | blue | paper | 5.95 | 4.5 | links; focus ring (3:1 needed) |
 | blue | surface | 6.58 | 4.5 | links on panels |
+| ink | hot-tint | 14.44 | 4.5 | host wager cell |
+| muted | hot-tint | 6.06 | 4.5 | host wager cell while selecting is off |
 | surface | blue | 6.58 | 4.5 | primary buttons, buzz |
+| surface | blue-press | 8.69 | 4.5 | primary button hover |
 | surface | good | 6.41 | 4.5 | Correct button / stamp |
+| surface | good-press | 8.57 | 4.5 | Correct button hover |
 | surface | bad | 7.15 | 4.5 | Incorrect button / stamp |
+| surface | bad-press | 9.02 | 4.5 | Incorrect button hover |
 | surface | ink | 17.06 | 4.5 | ink headers, stamps |
 | good | paper | 5.79 | 4.5 | correct text |
 | bad | paper | 6.46 | 4.5 | negative scores, errors |
