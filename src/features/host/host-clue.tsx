@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
-import type { AttemptView, ClueView, FinalView, HostView } from "@/features/engine/contract";
+import { useEffect, useRef, type ReactNode } from "react";
+import type {
+  AttemptView,
+  ClueView,
+  FinalView,
+  HostView,
+  TimerView,
+} from "@/features/engine/contract";
 import { HotHam } from "@/features/ui/brand";
 import { Countdown } from "@/features/ui/countdown";
 import { formatDelta, formatScore, listNames, nameOf, ordinal } from "@/features/ui/format";
@@ -9,7 +15,7 @@ import { WagerForm } from "@/features/ui/wager-form";
 import type { HostActions } from "./host-screen";
 
 const STAGE_LABEL: Record<ClueView["stage"], string> = {
-  wager: "Wager",
+  wager: "Placing wager",
   reading: "Reading",
   open: "Buzzers open",
   answering: "Answering",
@@ -50,6 +56,11 @@ function useShortcuts(shortcuts: Shortcut[]) {
   }, [shortcuts]);
 }
 
+/**
+ * A big host action with its shortcut key. The key letter is drawn by CSS
+ * from `data-key` (see host.css), so the button's text and accessible name
+ * are only the action; screen readers get the key from aria-keyshortcuts.
+ */
 function ActionButton({
   label,
   hint,
@@ -75,8 +86,32 @@ function ActionButton({
       onClick={onClick}
     >
       {label}
-      {hint ? <kbd aria-hidden="true">{hint}</kbd> : null}
+      {hint ? <kbd aria-hidden="true" data-key={hint} /> : null}
     </button>
+  );
+}
+
+/**
+ * The line above the action buttons: what is happening now, plus the timer
+ * while one runs. It is always at least one timer tall, so the buttons below
+ * it stay in the same place from one stage to the next.
+ */
+function ActionStatus({
+  children,
+  timer,
+  clockOffsetMs,
+}: {
+  children: ReactNode;
+  timer: TimerView | null;
+  clockOffsetMs: number;
+}) {
+  return (
+    <div className="host-status">
+      <p className="host-callout">{children}</p>
+      {timer ? (
+        <Countdown timer={timer} clockOffsetMs={clockOffsetMs} className="host-status__timer" />
+      ) : null}
+    </div>
   );
 }
 
@@ -125,6 +160,7 @@ export function HostClue({
     clue.stage !== "revealed" &&
     clue.stage !== "wager";
   const canBack = can("returnToBoard") && clue.stage === "revealed";
+  const timer = clue.stage === "open" || clue.stage === "answering" ? view.timer : null;
 
   useShortcuts([
     { key: "o", run: () => canOpen && open() },
@@ -142,7 +178,8 @@ export function HostClue({
           {clue.categoryTitle} <span className="num">· {formatScore(clue.value)}</span>
         </h2>
         <div className="row">
-          {clue.kind === "wager" ? (
+          {/* While the wager is placed, the Hot HAM! slip below already says it. */}
+          {clue.kind === "wager" && clue.stage !== "wager" ? (
             <span className="stamp stamp--hot stamp--flat">Wager clue</span>
           ) : null}
           <span className="stamp stamp--ink stamp--flat" role="status">
@@ -188,27 +225,9 @@ export function HostClue({
             <strong className="num">{formatScore(clue.wager)}</strong>.
           </p>
         ) : null}
-
-        {view.timer && (clue.stage === "open" || clue.stage === "answering") ? (
-          <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
-        ) : null}
-
-        {clue.attempts.length > 0 ? (
-          <ol className="host-attempts" aria-label="Attempts on this clue">
-            {clue.attempts.map((a) => (
-              <li key={a.id} className={`host-attempt host-attempt--${a.result}`}>
-                <span className="name">{nameOf(view.players, a.playerId)}</span>
-                <span>
-                  {a.result === "pending" ? "answering" : a.result}
-                  {a.timedOut ? " · time ran out" : ""}
-                </span>
-                <span className="num">{a.delta !== null ? formatDelta(a.delta) : ""}</span>
-              </li>
-            ))}
-          </ol>
-        ) : null}
       </div>
 
+      {/* Same shape in every stage after the wager: status line, then buttons. */}
       <div className="host-clue__actions">
         {clue.stage === "wager" ? (
           <div className="host-wager">
@@ -236,100 +255,118 @@ export function HostClue({
               Skip this clue (no score change)
             </button>
           </div>
-        ) : clue.stage === "answering" ? (
-          <>
-            <p className="host-callout">
-              <strong className="name">{answering}</strong> is answering
-              {attempt?.timedOut ? " · time ran out, judge anyway" : ""}.
-            </p>
-            <div className="row">
-              <ActionButton
-                label={`Correct ${formatDelta(stake)}`}
-                hint="C"
-                tone="btn--good"
-                enabled={canJudge}
-                busy={actions.pending === "judge"}
-                onClick={() => judge(true)}
-              />
-              <ActionButton
-                label={`Incorrect ${formatDelta(-stake)}`}
-                hint="X"
-                tone="btn--bad"
-                enabled={canJudge}
-                busy={actions.pending === "judge"}
-                onClick={() => judge(false)}
-              />
-            </div>
-          </>
-        ) : clue.stage === "revealed" ? (
-          <div className="row">
-            <ActionButton
-              label="Back to board"
-              hint="B"
-              tone="btn--primary"
-              enabled={canBack}
-              busy={actions.pending === "returnToBoard"}
-              onClick={back}
-            />
-          </div>
         ) : (
           <>
-            {clue.stage === "open" ? (
-              <p className="host-callout">Buzzers are open. Waiting for a buzz…</p>
-            ) : null}
-            {clue.stage === "closed" ? (
-              <p className="host-callout">
-                {solved && last ? (
-                  <>
-                    <strong className="name">{nameOf(view.players, last.playerId)}</strong> got it.
-                    Reveal the answer, then head back to the board.
-                  </>
-                ) : skipped ? (
-                  "Wager clue skipped with no score change. Reveal the answer to move on."
-                ) : clue.kind === "wager" && last ? (
-                  <>
-                    <strong className="name">{nameOf(view.players, last.playerId)}</strong> missed
-                    it. Reveal the answer to move on.
-                  </>
-                ) : showOpen ? (
-                  "Reopen for players who haven't tried, or reveal the answer."
-                ) : (
-                  "Everyone has had a go. Reveal the answer."
-                )}
-              </p>
-            ) : null}
+            <ActionStatus timer={timer} clockOffsetMs={clockOffsetMs}>
+              {clue.stage === "reading" ? (
+                "Read the clue aloud, then open the buzzers."
+              ) : clue.stage === "open" ? (
+                "Buzzers are open. Waiting for a buzz…"
+              ) : clue.stage === "answering" ? (
+                <>
+                  <strong className="name">{answering}</strong> is answering
+                  {attempt?.timedOut ? " · time ran out, judge anyway" : ""}.
+                </>
+              ) : clue.stage === "revealed" ? (
+                "The answer is on the big screen."
+              ) : solved && last ? (
+                <>
+                  <strong className="name">{nameOf(view.players, last.playerId)}</strong> got it.
+                  Reveal the answer, then head back to the board.
+                </>
+              ) : skipped ? (
+                "Wager clue skipped with no score change. Reveal the answer to move on."
+              ) : clue.kind === "wager" && last ? (
+                <>
+                  <strong className="name">{nameOf(view.players, last.playerId)}</strong> missed it.
+                  Reveal the answer to move on.
+                </>
+              ) : showOpen ? (
+                "Reopen for players who haven't tried, or reveal the answer."
+              ) : (
+                "Everyone has had a go. Reveal the answer."
+              )}
+            </ActionStatus>
             <div className="row">
-              {showOpen ? (
+              {clue.stage === "answering" ? (
+                <>
+                  <ActionButton
+                    label={`Correct ${formatDelta(stake)}`}
+                    hint="C"
+                    tone="btn--good"
+                    enabled={canJudge}
+                    busy={actions.pending === "judge"}
+                    onClick={() => judge(true)}
+                  />
+                  <ActionButton
+                    label={`Incorrect ${formatDelta(-stake)}`}
+                    hint="X"
+                    tone="btn--bad"
+                    enabled={canJudge}
+                    busy={actions.pending === "judge"}
+                    onClick={() => judge(false)}
+                  />
+                </>
+              ) : clue.stage === "revealed" ? (
                 <ActionButton
-                  label={clue.stage === "closed" ? "Reopen buzzers" : "Open buzzers"}
-                  hint="O"
+                  label="Back to board"
+                  hint="B"
                   tone="btn--primary"
-                  enabled={canOpen}
-                  busy={actions.pending === "openBuzzers"}
-                  onClick={open}
+                  enabled={canBack}
+                  busy={actions.pending === "returnToBoard"}
+                  onClick={back}
                 />
-              ) : null}
-              <ActionButton
-                label="Reveal answer"
-                hint="R"
-                tone={clue.stage === "closed" && !showOpen ? "btn--primary" : ""}
-                enabled={canReveal}
-                busy={actions.pending === "reveal"}
-                onClick={reveal}
-              />
-              {clue.stage !== "closed" ? (
-                <ActionButton
-                  label="End attempts"
-                  hint="E"
-                  enabled={canEnd}
-                  busy={actions.pending === "endAttempts"}
-                  onClick={end}
-                />
-              ) : null}
+              ) : (
+                <>
+                  {showOpen ? (
+                    <ActionButton
+                      label={clue.stage === "closed" ? "Reopen buzzers" : "Open buzzers"}
+                      hint="O"
+                      tone="btn--primary"
+                      enabled={canOpen}
+                      busy={actions.pending === "openBuzzers"}
+                      onClick={open}
+                    />
+                  ) : null}
+                  <ActionButton
+                    label="Reveal answer"
+                    hint="R"
+                    tone={clue.stage === "closed" && !showOpen ? "btn--primary" : ""}
+                    enabled={canReveal}
+                    busy={actions.pending === "reveal"}
+                    onClick={reveal}
+                  />
+                  {clue.stage !== "closed" ? (
+                    <ActionButton
+                      label="End attempts"
+                      hint="E"
+                      enabled={canEnd}
+                      busy={actions.pending === "endAttempts"}
+                      onClick={end}
+                    />
+                  ) : null}
+                </>
+              )}
             </div>
           </>
         )}
       </div>
+
+      {/* Below the buttons, so a new attempt never pushes them down. */}
+      {clue.attempts.length > 0 ? (
+        <ol className="host-attempts" aria-label="Attempts on this clue">
+          {clue.attempts.map((a) => (
+            <li key={a.id} className={`host-attempt host-attempt--${a.result}`}>
+              <span className="name">{nameOf(view.players, a.playerId)}</span>
+              <span>
+                {a.result === "pending" ? "answering" : a.result}
+                {a.timedOut ? " · time ran out" : ""}
+              </span>
+              <span className="num">{a.delta !== null ? formatDelta(a.delta) : ""}</span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
     </section>
   );
 }
@@ -347,9 +384,63 @@ export function HostFinal({
 }) {
   const can = actions.can;
   const next = final.responses.find((r) => r.playerId === final.nextResponderId) ?? null;
+  const nextName = next ? nameOf(view.players, next.playerId) : "";
+  const nextWager = next?.wager ?? null;
+  // The one step the host takes next; it picks the button, its shortcut and the status line.
+  const step =
+    final.stage === "wagers"
+      ? "showClue"
+      : final.stage === "answering"
+        ? "lock"
+        : final.stage === "judging" && next
+          ? next.status === "hidden"
+            ? "reveal"
+            : "judge"
+          : "finish";
+  const timer = final.stage === "answering" ? view.timer : null;
+
+  const showClue = () => actions.run({ type: "showFinalClue" });
+  const lock = () => actions.run({ type: "lockFinalAnswers" });
+  const revealNext = () => {
+    if (next) actions.run({ type: "revealFinalResponse", playerId: next.playerId });
+  };
+  const judgeNext = (correct: boolean) => {
+    if (next) actions.run({ type: "judgeFinal", playerId: next.playerId, correct });
+  };
+  const finish = () => actions.run({ type: "finishGame" });
+
+  const canShowClue = step === "showClue" && can("showFinalClue");
+  const canLock = step === "lock" && can("lockFinalAnswers");
+  const canReveal = step === "reveal" && can("revealFinalResponse");
+  const canJudge = step === "judge" && can("judgeFinal");
+  const canFinish = step === "finish" && can("finishGame");
+
+  useShortcuts([
+    { key: "s", run: () => canShowClue && showClue() },
+    { key: "l", run: () => canLock && lock() },
+    { key: "r", run: () => canReveal && revealNext() },
+    { key: "c", run: () => canJudge && judgeNext(true) },
+    { key: "x", run: () => canJudge && judgeNext(false) },
+    { key: "f", run: () => canFinish && finish() },
+  ]);
+
+  // Keep the response being revealed or judged in view, clear of the sticky
+  // action bar, as the host works down the list.
+  const responsesRef = useRef<HTMLOListElement>(null);
+  const nextKey = next ? `${next.playerId}:${next.status}` : "";
+  useEffect(() => {
+    const row = responsesRef.current?.querySelector<HTMLElement>(".is-next");
+    if (!row) return;
+    const bar = row.closest(".host-clue")?.querySelector<HTMLElement>(".host-clue__actions");
+    row.style.scrollMarginBottom = `${(bar?.offsetHeight ?? 0) + 16}px`;
+    row.scrollIntoView({ block: "nearest" });
+  }, [nextKey]);
 
   return (
-    <section className="host-clue host-final" aria-labelledby="host-final-title">
+    <section
+      className={`host-clue host-final host-final--${final.stage}`}
+      aria-labelledby="host-final-title"
+    >
       <header className="host-clue__head">
         <h2 id="host-final-title" className="name">
           Final round · {final.categoryTitle}
@@ -383,10 +474,6 @@ export function HostFinal({
           <p>{final.answer}</p>
         </div>
 
-        {final.stage === "answering" && view.timer ? (
-          <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
-        ) : null}
-
         {final.stage === "wagers" || final.stage === "answering" ? (
           <ul
             className="host-checklist"
@@ -408,7 +495,7 @@ export function HostFinal({
             })}
           </ul>
         ) : (
-          <ol className="host-responses" aria-label="Responses in reveal order">
+          <ol ref={responsesRef} className="host-responses" aria-label="Responses in reveal order">
             {final.responses.map((r) => (
               <li
                 key={r.playerId}
@@ -438,90 +525,85 @@ export function HostFinal({
       </div>
 
       <div className="host-clue__actions">
-        {final.stage === "wagers" ? (
-          <>
-            <p className="host-callout">
-              {final.wagerSubmittedIds.length} of {final.eligiblePlayerIds.length} wagers in.
-              Missing wagers count as 0.
-            </p>
-            <div className="row">
-              <ActionButton
-                label="Show final clue"
-                tone="btn--primary"
-                enabled={can("showFinalClue")}
-                busy={actions.pending === "showFinalClue"}
-                onClick={() => actions.run({ type: "showFinalClue" })}
-              />
-            </div>
-          </>
-        ) : final.stage === "answering" ? (
-          <>
-            <p className="host-callout">
-              {final.answerSubmittedIds.length} of {final.eligiblePlayerIds.length} answers in.
-              Answers lock when time runs out.
-            </p>
-            <div className="row">
-              <ActionButton
-                label="Lock answers"
-                tone="btn--primary"
-                enabled={can("lockFinalAnswers")}
-                busy={actions.pending === "lockFinalAnswers"}
-                onClick={() => actions.run({ type: "lockFinalAnswers" })}
-              />
-            </div>
-          </>
-        ) : final.stage === "judging" && next ? (
-          next.status === "hidden" ? (
-            <div className="row">
-              <ActionButton
-                label={`Reveal ${nameOf(view.players, next.playerId)}'s response`}
-                tone="btn--primary"
-                enabled={can("revealFinalResponse")}
-                busy={actions.pending === "revealFinalResponse"}
-                onClick={() =>
-                  actions.run({ type: "revealFinalResponse", playerId: next.playerId })
-                }
-              />
-            </div>
-          ) : (
+        <ActionStatus timer={timer} clockOffsetMs={clockOffsetMs}>
+          {step === "showClue" ? (
+            `${final.wagerSubmittedIds.length} of ${final.eligiblePlayerIds.length} wagers in. Missing wagers count as 0.`
+          ) : step === "lock" ? (
+            `${final.answerSubmittedIds.length} of ${final.eligiblePlayerIds.length} answers in. ${
+              timer ? "Answers lock when time runs out." : "Lock them once everyone has answered."
+            }`
+          ) : step === "reveal" ? (
             <>
-              <p className="host-callout">
-                Judge <strong className="name">{nameOf(view.players, next.playerId)}</strong>: “
-                {next.answer ?? ""}”
-              </p>
-              <div className="row">
-                <ActionButton
-                  label={`Correct ${next.wager !== null ? formatDelta(next.wager) : ""}`}
-                  tone="btn--good"
-                  enabled={can("judgeFinal")}
-                  busy={actions.pending === "judgeFinal"}
-                  onClick={() =>
-                    actions.run({ type: "judgeFinal", playerId: next.playerId, correct: true })
-                  }
-                />
-                <ActionButton
-                  label={`Incorrect ${next.wager !== null ? formatDelta(-next.wager) : ""}`}
-                  tone="btn--bad"
-                  enabled={can("judgeFinal")}
-                  busy={actions.pending === "judgeFinal"}
-                  onClick={() =>
-                    actions.run({ type: "judgeFinal", playerId: next.playerId, correct: false })
-                  }
-                />
-              </div>
+              Next up: <strong className="name">{nextName}</strong>. Reveal their response, then
+              judge it.
             </>
-          )
-        ) : (
-          <div className="row">
+          ) : step === "judge" ? (
+            <>
+              Judge <strong className="name">{nextName}</strong>:{" "}
+              {next?.answer ? `“${next.answer}”` : "(no answer)"}
+            </>
+          ) : (
+            "Every response is judged. The answer is on the big screen."
+          )}
+        </ActionStatus>
+        <div className="row">
+          {step === "showClue" ? (
+            <ActionButton
+              label="Show final clue"
+              hint="S"
+              tone="btn--primary"
+              enabled={canShowClue}
+              busy={actions.pending === "showFinalClue"}
+              onClick={showClue}
+            />
+          ) : step === "lock" ? (
+            <ActionButton
+              label="Lock answers"
+              hint="L"
+              tone="btn--primary"
+              enabled={canLock}
+              busy={actions.pending === "lockFinalAnswers"}
+              onClick={lock}
+            />
+          ) : step === "reveal" ? (
+            <ActionButton
+              label={`Reveal ${nextName}'s response`}
+              hint="R"
+              tone="btn--primary"
+              enabled={canReveal}
+              busy={actions.pending === "revealFinalResponse"}
+              onClick={revealNext}
+            />
+          ) : step === "judge" ? (
+            <>
+              <ActionButton
+                label={`Correct ${nextWager !== null ? formatDelta(nextWager) : ""}`}
+                hint="C"
+                tone="btn--good"
+                enabled={canJudge}
+                busy={actions.pending === "judgeFinal"}
+                onClick={() => judgeNext(true)}
+              />
+              <ActionButton
+                label={`Incorrect ${nextWager !== null ? formatDelta(-nextWager) : ""}`}
+                hint="X"
+                tone="btn--bad"
+                enabled={canJudge}
+                busy={actions.pending === "judgeFinal"}
+                onClick={() => judgeNext(false)}
+              />
+            </>
+          ) : (
             <ActionButton
               label="Show results"
+              hint="F"
               tone="btn--primary"
-              enabled={can("finishGame")}
+              enabled={canFinish}
               busy={actions.pending === "finishGame"}
-              onClick={() => actions.run({ type: "finishGame" })}
+              onClick={finish}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );

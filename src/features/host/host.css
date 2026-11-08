@@ -93,11 +93,12 @@
   }
 
   /* --------------------------------------------------------------- lobby */
+  /* Panels in a row share one height, so the row reads as a set. */
   .host-lobby {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 1.5rem;
-    align-items: start;
+    align-items: stretch;
   }
 
   .host-lobby__players {
@@ -116,7 +117,11 @@
     grid-column: span 12;
   }
 
-  /* Lobby start bar: always on screen, so "Start game" never hides below the fold. */
+  /* Lobby start bar: always on screen, so "Start game" never hides below the fold.
+     The second shadow paints a band of paper above the bar, so content scrolling
+     under it disappears cleanly instead of being cut mid-line. Its 4px spread
+     also covers the panel's offset shadow at the sides; the band (1.5rem) matches
+     the page gap, so it is invisible once the bar reaches its resting place. */
   .host-start {
     position: sticky;
     bottom: 0;
@@ -129,7 +134,20 @@
     padding: 0.85rem 1.1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
     background: var(--surface);
     border: 2px solid var(--ink);
-    box-shadow: var(--shadow);
+    box-shadow:
+      var(--shadow),
+      0 calc(-1rem - 4px) 0 4px var(--paper);
+  }
+
+  /* Focus and scroll-into-view stop above the sticky start bar. */
+  :root:has(.host-start) {
+    scroll-padding-bottom: 8rem;
+  }
+
+  @media (max-width: 720px) {
+    :root:has(.host-start) {
+      scroll-padding-bottom: 12rem;
+    }
   }
 
   .host-start > .host-blockers,
@@ -273,6 +291,10 @@
     flex: 1 1 18rem;
   }
 
+  .host-pack .btn {
+    max-width: 100%;
+  }
+
   .host-settings {
     display: grid;
     gap: 1rem;
@@ -291,6 +313,11 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
     gap: 1rem;
+  }
+
+  /* Seconds are two or three digits; a full-column box overstates them. */
+  .host-settings__grid .input.num {
+    max-width: 8rem;
   }
 
   .host-blockers {
@@ -313,6 +340,12 @@
     width: 1.4rem;
     text-indent: 0;
     color: var(--bad);
+  }
+
+  .host-blockers__unsaved .btn {
+    margin-left: 0.35rem;
+    text-indent: 0;
+    vertical-align: middle;
   }
 
   .host-ready {
@@ -484,9 +517,39 @@
   .host-clue__actions {
     display: grid;
     gap: 0.75rem;
-    padding: 1rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.85rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
     border-top: 2px dashed var(--rule);
     background: var(--paper);
+  }
+
+  /* Status line over the buttons. Its minimum height is the countdown's, so
+     the buttons sit at the same height whether or not a timer is running. */
+  .host-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    min-height: 2.25rem;
+  }
+
+  .host-status .host-callout {
+    flex: 1 1 20rem;
+    min-width: 0;
+  }
+
+  .host-status__timer {
+    flex: 0 1 16rem;
+  }
+
+  /* The shortcut key is drawn here, not in the DOM, so it isn't part of the
+     button's text (see ActionButton). */
+  .host-clue kbd[data-key]::after {
+    content: attr(data-key);
+  }
+
+  /* The attempts sit under the action strip, so a new buzz never moves the buttons. */
+  .host-clue > .host-attempts {
+    padding: 0.9rem 1.1rem 1.1rem;
   }
 
   /* Judging buttons stay reachable even when a long clue pushes them below
@@ -581,8 +644,11 @@
     justify-items: start;
   }
 
+  /* Phone heading size on phones (DESIGN.md), so long names keep whole words;
+     an unbroken username still wraps rather than widening the page. */
   .host-results__title {
-    font-size: var(--fs-3xl);
+    font-size: clamp(1.75rem, 8vw, var(--fs-3xl));
+    overflow-wrap: anywhere;
   }
 
   .host-standings {
@@ -633,7 +699,7 @@
   }
 
   .host-roster__tags .stamp {
-    font-size: 0.6875rem;
+    font-size: var(--fs-2xs);
   }
 
   .host-roster--scores .score {
