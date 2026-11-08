@@ -299,8 +299,8 @@ The type scale is `--fs-2xs` 0.75 (the floor: tags and labels inside dense board
 ## Layout
 
 - **Paper pages** (home, packs, editor, notices): a 60 px top bar with a 2 px ink bottom rule, then a centred `.page` column, max 72rem (44rem narrow), padding 2rem top and 4rem bottom, with 16 px safe-area-aware side gutters. Notices (loading, sign-in, errors, closed rooms) use `NoticeShell`: the same top bar with the lockup only, then a 34rem column that starts 12vh down (padding, so the page never scrolls).
-- **Host console:** lobby is a 12-column grid (players 4 · invite 4 · big screen 4 · setup 12), collapsing to 6+6+12 below 1180 px and one column below 720 px, with a sticky "Start game" bar at the bottom. In game, a main column plus a 17–21rem sticky score sidebar, collapsing to one column below 960 px. The clue card's action row is sticky at the bottom of the viewport.
-- **Player phone:** one column, max 34rem, full dynamic height: top bar (lockup, room code, connection), a "you" strip (name and score), banners, then a flex main area where the buzzer pins to the bottom (`margin-top: auto`). Above 600 px the column gets 2 px ink side borders.
+- **Host console:** lobby is a 12-column grid (players 4 · invite 4 · big screen 4 · setup 12), collapsing to 6+6+12 below 1180 px and one column below 720 px, with a sticky "Start game" bar at the bottom. Panels in a row share one height, timer inputs are 8rem wide, and the start bar paints a paper band above itself so content disappears cleanly under it. While settings are unsaved the bar says so, offers "Save changes" and disables "Start game". In game, a main column plus a 17–21rem sticky score sidebar, collapsing to one column below 960 px. The clue card's action area has the same shape in every stage, so the main button never moves: a status sentence with the countdown at its right, then the buttons, then the attempts list. It is sticky at the bottom of the viewport.
+- **Player phone:** one column, max 34rem, full dynamic height: top bar (lockup, room code, connection), a "you" strip (name and score), banners, then a flex main area where the buzzer pins to the bottom (`margin-top: auto`). Phone banners are compact (0.45rem × 0.75rem padding, `--fs-sm` title) so a reconnecting or paused banner never pushes the buzzer off screen. The logo links home only in the lobby, on results and on the bench. Above 600 px the column gets 2 px ink side borders.
 - **TV stage:** a full-viewport three-row grid (header, main, score strip) with overflow hidden and everything in em, so 1366×768 and 1920×1080 have the same composition. Below 900 px wide or 520 px tall it becomes a scrolling page at 15 px.
 - **Board:** CSS grid, one column per category, header row plus one row per value via subgrid. Gaps: 0.45em TV, 0.4rem host (0.25rem up to 480 px), 0.25rem phone.
 - **Rhythm:** spacing uses literal rem steps rather than tokens: 0.25, 0.35, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5 rem. Stacks default to 1rem gaps (0.5rem tight); rows to 0.75rem.
@@ -339,7 +339,7 @@ Tactile slips you press down into their shadow.
 - **Quiet:** no border or shadow, blue underlined text, blue-tint on hover. Used for "Go home", "My packs", "Leave room", secondary links.
 - **Big:** min height 56 px, 1.125rem text, 4 px slip shadow. Used for the one primary action of a screen. **Small:** min height 36 px with a mouse or trackpad and 44 px on touch screens (`pointer: coarse`), 0.875rem text.
 - **Disabled:** transparent, dashed muted border, muted text, no shadow, not-allowed cursor.
-- **Shortcut hint:** a `kbd` chip (1.5 px border, 3 px bottom border) inside host action buttons.
+- **Shortcut hint:** a `kbd` chip (1.5 px border, 3 px bottom border) inside host action buttons, drawn by CSS so the button's text stays the action alone. The final round has its own keys (S show the clue, L lock answers, R reveal the next response, C/X judge, F results), never on screen at the same time as the clue keys.
 
 ### Stamps
 Rubber stamps for state.
@@ -369,7 +369,7 @@ Rubber stamps for state.
 - **Countdown:** a label and the time left over a 0.6rem bar: whole seconds under a minute ("7s"), `m:ss` from a minute up ("2:59"). Screen readers hear "2 minutes 59 seconds left".
 
 ### The Buzzer (signature)
-A round arcade button, `min(70vw, 17rem, 32dvh)` across. Idle: shade face, dashed muted ring, a state word (Wait, Locked, Hold, Closed, Offline, Paused). Live: blue face, ink ring, a paper halo and an 8 px ink drop shadow that breathes every 1.4 s. Fires on pointer-down; on press it drops 7 px, turns ink and reads "Sent!". A helper sentence under it explains every state.
+A round arcade button, `clamp(9rem, 100dvh - 34.5rem, min(70vw, 17rem))` across: its size depends only on the screen height, so it never resizes or moves when a banner or note appears. The help sentence under it always reserves two lines. Idle: shade face, dashed muted ring, a state word (Wait, Locked, Hold, Closed, Offline, Paused). Live: blue face, ink ring, a paper halo and an 8 px ink drop shadow. The halo is a separate decorative `.buzz-halo` layer that breathes every 1.4 s by animating only `scale` and `opacity`. Fires on pointer-down; on press it drops 7 px, turns ink and reads "Sent!". A helper sentence under it explains every state.
 
 ### The Board (signature)
 One grid component in three skins, under a visually hidden h2 so headings never skip a level. TV: paper slips on ink with tilted category headers shadowed in red, completed cells dashed with the value struck through (no visible "done" word; screen readers still hear it), the active cell blue with a paper outline and a 1.04 scale. Host: surface buttons with small slip shadows; hover turns blue; hidden wager cells hot-tint with a tilted "Hot" tag; completed cells read "done". One cell is in the tab order and the arrow keys move between open cells (Home/End jump to the first and last). Phone: a compact read-only board with `--fs-2xs` category labels; completed cells are empty dashed slots. Category titles wrap between words; browsers don't hyphenate capitalised words, so a Title Case word wider than a phone column still breaks without a hyphen.
@@ -378,7 +378,9 @@ One grid component in three skins, under a visually hidden h2 so headings never 
 "Hot" in Bricolage, the HAM wordmark graphic, "!" in Bricolage, on a ham-pink slip with a red offset shadow, tilted −2°. On the TV it sits on a red 16-point starburst.
 
 ### TV Score Strip
-One tile per player in a single row: name (two lines max) over a Bricolage score, on stage-raise with a faint paper border. Tags float on the top edge: "Picks" (stage-blue), "Answering" (blue tile lifted 0.3em), "Locked out", "Away" (dashed).
+One tile per player in a single row: name (two lines max, breaking after `.`, `_` and `-`; 0.8em with 5–6 players) over a Bricolage score, on stage-raise with a faint paper border. Tiles in a row stretch to the tallest and the score sits at the bottom, so scores line up. Tags (0.8em, 24 px at 1080p) sit on the top edge: "Picks" (stage-blue), "Answering" (blue tile lifted 0.3em), "Locked out" (also a dashed tile border and a dimmed score), "Away" (dashed).
+
+Nothing on the TV is smaller than 24 px at 1080p. In the final round's judging and results, responses sit in rows of up to three (2×2 for four), long answers are clamped with an ellipsis, each verdict is a flat Correct/Incorrect stamp followed by the score change, and the correct answer slip always fits above the score strip. The results podium breaks long names at `.`, `_` and `-` and steps down in size only when a part can't fit; three or more co-winners get smaller slips, three to a row.
 
 ## Do's and Don'ts
 
