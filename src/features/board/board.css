@@ -27,9 +27,16 @@
     font-weight: 800;
     line-height: 1.05;
     letter-spacing: -0.01em;
-    overflow-wrap: anywhere;
+    /* Wrap between words; hyphenate a long word where the browser can, and
+       only break it bare as a last resort ("anywhere" broke words first). */
+    overflow-wrap: break-word;
     hyphens: auto;
     text-wrap: balance;
+  }
+
+  /* The title is a flex item: let it shrink so long words wrap, not spill. */
+  .board__cat > span {
+    min-width: 0;
   }
 
   .board__cell {
@@ -125,21 +132,22 @@
     font-size: 0.55em;
   }
 
+  /* Played: a dashed outline and the value struck through say "done" from
+     across the room; the word itself stays for screen readers only. */
   .board--stage .board__cell--completed {
     color: var(--stage-faint);
     background: transparent;
-    border: 2px dashed #5c5648;
+    border: 2px dashed var(--muted);
   }
 
   .board--stage .board__cell--completed .board__value {
     font-size: 1.1em;
     text-decoration: line-through;
     text-decoration-thickness: 0.08em;
-    opacity: 0.9;
   }
 
-  .board--stage .board__cell--completed .board__done {
-    font-size: 0.5em;
+  .board--stage .board__done {
+    display: none;
   }
 
   /* ---------------------------------------------------------------- host */
@@ -161,8 +169,9 @@
     box-shadow: var(--shadow-sm);
   }
 
+  /* Shrinks on a phone so "1,000" stays inside a 54 px cell. */
   .board--host .board__value {
-    font-size: var(--fs-xl);
+    font-size: clamp(var(--fs-sm), 3.6vw, var(--fs-xl));
   }
 
   .board--host button.board__cell {
@@ -208,6 +217,24 @@
     display: none;
   }
 
+  /* Hosting from a phone: six columns in about 360 px. */
+  @media (max-width: 480px) {
+    .board--host {
+      --board-gap: 0.25rem;
+    }
+
+    .board--host .board__cat {
+      padding-inline: 0;
+      font-size: var(--fs-2xs);
+      line-height: 1.15;
+    }
+
+    .board--host .board__cell {
+      min-height: 2.75rem;
+      padding: 0.1rem;
+    }
+  }
+
   /* --------------------------------------------------------------- phone */
   .board--phone {
     --board-gap: 0.25rem;
@@ -216,8 +243,8 @@
 
   .board--phone .board__cat {
     padding-bottom: 0.25rem;
-    font-size: 0.6875rem;
-    line-height: 1.1;
+    font-size: var(--fs-2xs);
+    line-height: 1.15;
     border-bottom: 2px solid var(--ink);
   }
 
@@ -229,7 +256,7 @@
   }
 
   .board--phone .board__value {
-    font-size: clamp(0.75rem, 3.6vw, 1.05rem);
+    font-size: clamp(var(--fs-2xs), 3.6vw, var(--fs-md));
   }
 
   .board--phone .board__cell--active {
@@ -237,8 +264,10 @@
     background: var(--blue);
   }
 
+  /* A played cell is an empty dashed slot; screen readers still hear "done". */
   .board--phone .board__cell--active .board__now,
-  .board--phone .board__cell--completed .board__value {
+  .board--phone .board__cell--completed .board__value,
+  .board--phone .board__done {
     display: none;
   }
 
@@ -247,9 +276,5 @@
     background: transparent;
     border-style: dashed;
     border-color: var(--rule);
-  }
-
-  .board--phone .board__done {
-    font-size: 0.625rem;
   }
 }
