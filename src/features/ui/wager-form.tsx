@@ -43,9 +43,11 @@ export function WagerForm({
     onSubmit(amount);
   }
 
+  // Every quick amount says its number, so nobody does maths on the clock.
+  const half = Math.max(min, Math.floor(max / 2));
   const quick = [
     { label: `Min ${formatScore(min)}`, value: min },
-    { label: "Half", value: Math.max(min, Math.floor(max / 2)) },
+    { label: `Half ${formatScore(half)}`, value: half },
     { label: `All in ${formatScore(max)}`, value: max },
   ].filter((choice, index, all) => all.findIndex((c) => c.value === choice.value) === index);
 
