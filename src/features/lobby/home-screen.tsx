@@ -129,7 +129,7 @@ function HostCard({
   }
 
   return (
-    <section className="panel home-card" aria-labelledby={`${id}-title`}>
+    <section className="panel home-card home-card--host" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`}>Host a game</h2>
       <p className="muted">You run the show and keep score. Hosts don&apos;t play.</p>
       <form className="stack" onSubmit={submit}>
@@ -194,7 +194,7 @@ function JoinCard({ onJoin }: { onJoin: (code: string) => void }) {
   }
 
   return (
-    <section className="panel home-card" aria-labelledby={`${id}-title`}>
+    <section className="panel home-card home-card--join" aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`}>Join a game</h2>
       <p className="muted">Enter the code from the big screen.</p>
       <form className="stack" onSubmit={submit} noValidate>
@@ -213,10 +213,12 @@ function JoinCard({ onJoin }: { onJoin: (code: string) => void }) {
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            placeholder="BCDFG"
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${id}-error` : undefined}
+            aria-describedby={error ? `${id}-hint ${id}-error` : `${id}-hint`}
           />
+          <span id={`${id}-hint`} className="field__hint">
+            5 letters, no vowels.
+          </span>
           {error ? (
             <span id={`${id}-error`} className="field__error" role="alert">
               {error}
