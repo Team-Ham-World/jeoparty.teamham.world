@@ -594,6 +594,12 @@
     }
   }
 
+  /* --------------------------------------------- join card (player-route) */
+  /* The join card lays its children out at their own width; a banner spans it. */
+  .join-alert {
+    justify-self: stretch;
+  }
+
   /* ------------------------------------------------------------ Hot HAM! */
   .hot-ham {
     display: inline-flex;
