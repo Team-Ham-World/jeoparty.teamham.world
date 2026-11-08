@@ -21,7 +21,7 @@ Evidence: `npm run check` (engine, content, server, security and UI tests), `npm
 
 1. ~~Register the HAM client~~: done 2026-11-07. See [HAM registration](HAM_REGISTRATION.md).
 2. ~~Deploy~~: live at https://quiz.teamham.world since 2026-11-07. See [Deployment](DEPLOYMENT.md#current-deployment).
-3. **Live verification:** real HAM sign-in and sign-out, a superseding login, two or more real phones on different networks, a TV at 10 feet, iOS Safari and Android Chrome, one backend restart mid-game.
+3. **Live verification:** fair buzzing and the false-start lockout on real phones on mixed Wi-Fi and mobile data (iOS Safari first), link previews in Discord and iMessage, real HAM sign-in and sign-out, a superseding login, two or more real phones on different networks, a TV at 10 feet, iOS Safari and Android Chrome, one backend restart mid-game.
 4. **Playtest** a full game with the group and record what to change.
 
 ## Backlog
