@@ -517,9 +517,39 @@
   .host-clue__actions {
     display: grid;
     gap: 0.75rem;
-    padding: 1rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.85rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
     border-top: 2px dashed var(--rule);
     background: var(--paper);
+  }
+
+  /* Status line over the buttons. Its minimum height is the countdown's, so
+     the buttons sit at the same height whether or not a timer is running. */
+  .host-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    min-height: 2.25rem;
+  }
+
+  .host-status .host-callout {
+    flex: 1 1 20rem;
+    min-width: 0;
+  }
+
+  .host-status__timer {
+    flex: 0 1 16rem;
+  }
+
+  /* The shortcut key is drawn here, not in the DOM, so it isn't part of the
+     button's text (see ActionButton). */
+  .host-clue kbd[data-key]::after {
+    content: attr(data-key);
+  }
+
+  /* The attempts sit under the action strip, so a new buzz never moves the buttons. */
+  .host-clue > .host-attempts {
+    padding: 0.9rem 1.1rem 1.1rem;
   }
 
   /* Judging buttons stay reachable even when a long clue pushes them below

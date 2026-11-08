@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostView } from "@/features/engine/contract";
 import type { ClientCommand } from "@/features/network/protocol";
 import { PACKS, hostFixture } from "@/features/preview/fixtures";
@@ -22,6 +22,12 @@ function renderView(view: HostView) {
 }
 
 const renderHost = (id: Parameters<typeof hostFixture>[0]) => renderView(hostFixture(id));
+
+async function press(key: string) {
+  await act(async () => {
+    fireEvent.keyDown(window, { key });
+  });
+}
 
 describe("host lobby settings", () => {
   it("blocks Start while settings have unsaved changes", () => {
@@ -99,5 +105,87 @@ describe("host lobby settings", () => {
       fireEvent.click(screen.getByRole("button", { name: `Use “${PACKS[0].title}”` }));
     });
     expect(onSend).toHaveBeenCalledWith({ type: "choosePack", packId: PACKS[0].id });
+  });
+});
+
+describe("host clue", () => {
+  it("keeps the attempts list below the action buttons", () => {
+    renderHost("answering");
+    const correct = screen.getByRole("button", { name: /Correct \+600/ });
+    const attempts = screen.getByRole("list", { name: "Attempts on this clue" });
+    expect(
+      correct.compareDocumentPosition(attempts) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("drops the separate wager stamp while the wager is placed", () => {
+    renderHost("wager");
+    expect(screen.getByText("Placing wager")).toBeVisible();
+    expect(screen.queryByText("Wager clue")).toBeNull();
+  });
+});
+
+describe("host final round", () => {
+  const scroll = vi.fn();
+  beforeEach(() => {
+    // jsdom has no layout, so no scrollIntoView; judging calls it on every change.
+    scroll.mockClear();
+    Element.prototype.scrollIntoView = scroll;
+  });
+
+  it("shows the final clue with S", async () => {
+    const onSend = renderHost("finalWagers");
+    expect(screen.getByRole("button", { name: "Show final clue" })).toHaveAttribute(
+      "aria-keyshortcuts",
+      "S",
+    );
+    await press("s");
+    expect(onSend).toHaveBeenCalledWith({ type: "showFinalClue" });
+  });
+
+  it("locks answers with L", async () => {
+    const onSend = renderHost("finalAnswering");
+    await press("l");
+    expect(onSend).toHaveBeenCalledWith({ type: "lockFinalAnswers" });
+  });
+
+  it("reveals the next response with R, keeping its name free of the key", async () => {
+    const base = hostFixture("finalJudging");
+    const onSend = renderView({
+      ...base,
+      final: { ...base.final!, nextResponderId: "p-max" },
+      allowedCommands: ["revealFinalResponse", "judgeFinal", "pause", "endGame"],
+    });
+    const button = screen.getByRole("button", { name: /^Reveal .*'s response$/ });
+    expect(button.textContent).toMatch(/'s response$/);
+    expect(button).toHaveAttribute("aria-keyshortcuts", "R");
+    await press("c"); // Nothing to judge until it's revealed.
+    expect(onSend).not.toHaveBeenCalled();
+    await press("r");
+    expect(onSend).toHaveBeenCalledWith({ type: "revealFinalResponse", playerId: "p-max" });
+  });
+
+  it("judges the revealed response with C and X", async () => {
+    const onSend = renderHost("finalJudging");
+    await press("x");
+    expect(onSend).toHaveBeenCalledWith({
+      type: "judgeFinal",
+      playerId: "p-ivvy",
+      correct: false,
+    });
+  });
+
+  it("shows results with F once every response is judged", async () => {
+    const onSend = renderHost("finalDone");
+    await press("r");
+    expect(onSend).not.toHaveBeenCalled();
+    await press("f");
+    expect(onSend).toHaveBeenCalledWith({ type: "finishGame" });
+  });
+
+  it("scrolls the response being judged into view", () => {
+    renderHost("finalJudging");
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest" });
+    expect(scroll.mock.contexts[0]).toHaveClass("is-next");
   });
 });
