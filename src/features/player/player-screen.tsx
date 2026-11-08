@@ -16,6 +16,7 @@ import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
 import { formatDelta, formatScore, listNames, nameOf, ordinal, plural } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
+import { NoticeShell } from "@/features/ui/page-chrome";
 import { ToastProvider } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
@@ -65,14 +66,14 @@ function PlayerBody({
 
   if (!view) {
     return (
-      <main id="main-content" className="notice">
+      <NoticeShell busy>
         <span className="stamp stamp--dashed">Room {code}</span>
         <h1>
           Connecting
           <span className="loading-dots" />
         </h1>
         <p className="muted">Hang tight. Your phone becomes a buzzer in a second.</p>
-      </main>
+      </NoticeShell>
     );
   }
 

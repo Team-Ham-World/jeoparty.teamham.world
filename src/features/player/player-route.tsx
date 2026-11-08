@@ -12,7 +12,13 @@ import {
 } from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
 import { ROOM_CODE_PATTERN, type RoomSummary } from "@/features/network/protocol";
-import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
+import {
+  ErrorNotice,
+  LoadingNotice,
+  NoticeShell,
+  PageHeader,
+  SignInNotice,
+} from "@/features/ui/page-chrome";
 import { useSession } from "@/features/ui/session";
 import { PlayerScreen } from "./player-screen";
 
@@ -97,7 +103,7 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
 
   if (summary.myRole === "host") {
     return (
-      <main id="main-content" className="notice">
+      <NoticeShell>
         <span className="stamp stamp--blue">You&apos;re the host</span>
         <h1>You&apos;re hosting room {code}</h1>
         <p className="muted">
@@ -106,7 +112,7 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
         <Link className="btn btn--primary btn--big" href={`/host/${code}`}>
           Open the control room
         </Link>
-      </main>
+      </NoticeShell>
     );
   }
 
