@@ -13,7 +13,7 @@ import { PacksList } from "@/features/editor/packs-list";
 import { HostScreen } from "@/features/host/host-screen";
 import { HomeScreen } from "@/features/lobby/home-screen";
 import { PlayerScreen } from "@/features/player/player-screen";
-import { PageHeader } from "@/features/ui/page-chrome";
+import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
 import { ToastProvider } from "@/features/ui/toasts";
 import {
   FIXTURE_NOW,
@@ -320,6 +320,39 @@ export const PREVIEWS: PreviewEntry[] = [
     {},
     { status: "closed", closeReason: "roomClosed" },
   ),
+  {
+    id: "player-gate-signin",
+    group: "Player",
+    title: "Gate: sign in to join",
+    viewport: "phone",
+    render: () => (
+      <SignInNotice
+        returnTo={`/r/${ROOM}`}
+        authMode="fixture"
+        title={`Join room ${ROOM}`}
+        body="Sign in with your HAM account to grab a buzzer. You'll come straight back here."
+      />
+    ),
+  },
+  {
+    id: "player-gate-loading",
+    group: "Player",
+    title: "Gate: finding the room",
+    viewport: "phone",
+    render: () => <LoadingNotice label={`Finding room ${ROOM}`} />,
+  },
+  {
+    id: "player-gate-missing",
+    group: "Player",
+    title: "Gate: no such room",
+    viewport: "phone",
+    render: () => (
+      <ErrorNotice
+        title={`No room ${ROOM}`}
+        body="That room doesn't exist or has closed. Check the code with your host."
+      />
+    ),
+  },
 
   // ---------------------------------------------------------------- host
   host("lobby", "Lobby: ready to start", "lobby"),
@@ -343,7 +376,24 @@ export const PREVIEWS: PreviewEntry[] = [
   host("paused", "Paused", "paused"),
   host("restored", "Restored after restart", "restored"),
   host("stale", "Reconnecting (actions off)", "answering", { status: "reconnecting" }),
-  host("closed", "Closed: room closed", "lobby", { status: "closed", closeReason: "roomClosed" }),
+  host("room-closed", "Closed: room closed", "lobby", {
+    status: "closed",
+    closeReason: "roomClosed",
+  }),
+  {
+    id: "host-gate-signin",
+    group: "Host",
+    title: "Gate: sign in to host",
+    viewport: "laptop",
+    render: () => (
+      <SignInNotice
+        returnTo={`/host/${ROOM}`}
+        authMode="fixture"
+        title={`Host room ${ROOM}`}
+        body="Sign in with the HAM account that created this room."
+      />
+    ),
+  },
 
   // ------------------------------------------------------------- display
   display("lobby", "Lobby: join instructions", "lobby"),
@@ -385,7 +435,7 @@ export const PREVIEWS: PreviewEntry[] = [
   display("restored", "Restored after restart", "restored"),
   display("stale", "Reconnecting", "board", { status: "reconnecting" }),
   display("connecting", "Connecting", "lobby", { status: "connecting" }),
-  display("closed", "Closed: display link replaced", "lobby", {
+  display("link-replaced", "Closed: display link replaced", "lobby", {
     status: "closed",
     closeReason: "displayRevoked",
   }),
