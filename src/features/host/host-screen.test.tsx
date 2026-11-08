@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostView } from "@/features/engine/contract";
 import type { ClientCommand } from "@/features/network/protocol";
@@ -105,6 +105,33 @@ describe("host lobby settings", () => {
       fireEvent.click(screen.getByRole("button", { name: `Use “${PACKS[0].title}”` }));
     });
     expect(onSend).toHaveBeenCalledWith({ type: "choosePack", packId: PACKS[0].id });
+  });
+});
+
+describe("host top bar", () => {
+  // Leaving mid-game pauses it for the whole room, so the logo isn't a link then.
+  it.each([
+    ["lobby", 1],
+    ["results", 1],
+    ["board", 0],
+    ["answering", 0],
+    ["finalWagers", 0],
+    ["paused", 0],
+  ] as const)("links the logo home in %s: %i link(s)", (id, links) => {
+    renderHost(id);
+    const topBar = document.querySelector<HTMLElement>(".host-top")!;
+    expect(within(topBar).queryAllByRole("link")).toHaveLength(links);
+  });
+
+  it("says which round is on", () => {
+    renderHost("board");
+    expect(screen.getByText("Round 1 of 2")).toBeVisible();
+  });
+
+  it("names the round when the pack gives it its own title", () => {
+    const view = hostFixture("board");
+    renderView({ ...view, round: { index: 1, total: 2, title: "Lightning" } });
+    expect(screen.getByText("Lightning · 2 of 2")).toBeVisible();
   });
 });
 

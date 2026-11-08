@@ -16,6 +16,7 @@ import { ClosedNotice, ConnectionPill, StaleBanner } from "@/features/ui/connect
 import { ConfirmDialog, Dialog } from "@/features/ui/dialog";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
 import { formatDelta, formatScore, nameOf } from "@/features/ui/format";
+import { NoticeShell } from "@/features/ui/page-chrome";
 import { ToastProvider } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
@@ -83,32 +84,33 @@ function HostBody({
 
   if (!view) {
     return (
-      <main id="main-content" className="notice">
+      <NoticeShell busy>
         <span className="stamp stamp--dashed">Room {code}</span>
         <h1>
           Opening the control room
           <span className="loading-dots" />
         </h1>
-      </main>
+      </NoticeShell>
     );
   }
 
   const inGame = view.phase !== "lobby";
+  // Leaving this page mid-game pauses it for everyone (host offline), so the
+  // logo only links home before the game and after it.
+  const homeLink = view.phase === "lobby" || view.phase === "results";
   const announcement = fresh ? describeEvent(fresh.event, view.players) : null;
 
   return (
     <div className={`host host--${view.phase}`}>
       <header className="topbar host-top">
-        <Lockup href="/" />
+        <Lockup href={homeLink ? "/" : undefined} />
         <div className="topbar__mid">
           <span className="host-top__room">
             Room <span className="room-code">{view.roomCode}</span>
           </span>
           {view.pack ? <span className="host-top__pack name">{view.pack.title}</span> : null}
           {view.round && view.phase !== "final" && view.phase !== "results" ? (
-            <span className="stamp stamp--flat">
-              {view.round.title} · {view.round.index + 1}/{view.round.total}
-            </span>
+            <span className="stamp stamp--flat">{roundLabel(view.round)}</span>
           ) : view.phase === "final" ? (
             <span className="stamp stamp--flat">Final round</span>
           ) : null}
@@ -156,7 +158,7 @@ function HostBody({
             </p>
             <button
               type="button"
-              className="btn btn--small btn--primary"
+              className="btn btn--primary"
               disabled={!can("resume")}
               onClick={() => actions.run({ type: "resume" })}
             >
@@ -236,6 +238,14 @@ function HostBody({
       </p>
     </div>
   );
+}
+
+/** "Round 1 of 2", or "Warm-up · 1 of 2" when the pack gives the round its own name. */
+function roundLabel(round: NonNullable<HostView["round"]>): string {
+  const position = `${round.index + 1} of ${round.total}`;
+  return round.title === `Round ${round.index + 1}`
+    ? `Round ${position}`
+    : `${round.title} · ${position}`;
 }
 
 function HostPhase({

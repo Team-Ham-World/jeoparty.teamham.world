@@ -11,7 +11,7 @@ import {
 } from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
 import { ROOM_CODE_PATTERN, type PackSummary, type RoomSummary } from "@/features/network/protocol";
-import { ErrorNotice, LoadingNotice, SignInNotice } from "@/features/ui/page-chrome";
+import { ErrorNotice, LoadingNotice, NoticeShell, SignInNotice } from "@/features/ui/page-chrome";
 import { useSession } from "@/features/ui/session";
 import { useOrigin } from "@/features/ui/use-origin";
 import { HostScreen } from "./host-screen";
@@ -81,7 +81,7 @@ function HostGate({ code, csrf }: { code: string; csrf: string }) {
   }
   if (room.summary.myRole !== "host") {
     return (
-      <main id="main-content" className="notice">
+      <NoticeShell>
         <span className="stamp stamp--ink">Host only</span>
         <h1>Only the host can open this page</h1>
         <p className="muted">
@@ -90,7 +90,7 @@ function HostGate({ code, csrf }: { code: string; csrf: string }) {
         <Link className="btn btn--primary" href={`/r/${code}`}>
           Join as a player
         </Link>
-      </main>
+      </NoticeShell>
     );
   }
   return <HostLive code={code} csrf={csrf} />;
