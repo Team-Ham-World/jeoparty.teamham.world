@@ -876,6 +876,15 @@
     font-size: 1.5rem;
   }
 
+  /* On touch, the home link reaches 44 px tall into the bar's own padding,
+     so the bar keeps its height. */
+  @media (pointer: coarse) {
+    .topbar a.lockup {
+      padding-block: 0.6rem;
+      margin-block: -0.6rem;
+    }
+  }
+
   .topbar__mid {
     display: flex;
     flex-wrap: wrap;
