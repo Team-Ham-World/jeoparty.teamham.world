@@ -227,6 +227,7 @@
       padding-inline: 0;
       font-size: var(--fs-2xs);
       line-height: 1.15;
+      letter-spacing: -0.03em;
     }
 
     .board--host .board__cell {
@@ -241,10 +242,13 @@
     font-size: var(--fs-sm);
   }
 
+  /* Tighter tracking lets most 8-letter words ("Midnight") fit a 51 px
+     column at 360 px instead of breaking. */
   .board--phone .board__cat {
     padding-bottom: 0.25rem;
     font-size: var(--fs-2xs);
     line-height: 1.15;
+    letter-spacing: -0.03em;
     border-bottom: 2px solid var(--ink);
   }
 
