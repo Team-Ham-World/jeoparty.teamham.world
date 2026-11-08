@@ -2,7 +2,7 @@
 
 A party quiz-show game for HAM. A host runs the game from a laptop, a TV or projector shows the board, and 2–6 players buzz in from their phones. Host and players sign in with TeamHam.world; the TV opens from a link the host generates.
 
-**Status:** the full game is implemented and tested locally: two rounds, wager clues ("Hot HAM!"), a final round, server timers, pause and reconnect recovery, games that survive a backend restart, and a pack editor. It is live at **https://quiz.teamham.world** (deployed 2026-11-07 with Docker behind the shared Caddy on the Oracle host and proxied by Cloudflare), using HAM sign-in with the registered `quiz` client. See [Deployment](docs/DEPLOYMENT.md#current-deployment).
+**Status:** the full game is implemented and tested locally: two rounds, wager clues ("Hot HAM!"), a final round, server timers, pause and reconnect recovery, games that survive a backend restart, and a pack editor. It is live at **https://quiz.teamham.world** (deployed 2026-11-07, last updated 2026-11-08, with Docker behind the shared Caddy on the Oracle host and proxied by Cloudflare), using HAM sign-in with the registered `quiz` client. See [Deployment](docs/DEPLOYMENT.md#current-deployment).
 
 ## Quickstart
 

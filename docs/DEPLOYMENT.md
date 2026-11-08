@@ -65,7 +65,7 @@ The container runs as `node`, with a persistent SQLite volume, a read-only root,
 
 ## Current deployment
 
-Deployed 2026-11-07 at **https://quiz.teamham.world**, from commit `503b74c` on `feat/ham-quiz`.
+First deployed 2026-11-07 at **https://quiz.teamham.world**. Redeployed 2026-11-08 with the UI polish pass, from commit `553f748` on `feat/ham-quiz`.
 
 - **DNS:** `quiz.teamham.world` is a Cloudflare-proxied CNAME to `oracle.cyr1en.dev`, the same as Strokies.
 - **Ingress:** the shared Caddy on the Oracle host serves `/opt/stacks/caddy/sites/quiz.caddy` (a copy of `deploy/quiz.caddy`), with a Let's Encrypt certificate.
