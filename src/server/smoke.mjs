@@ -138,6 +138,42 @@ try {
     signedIn: false,
     authMode: "fixture",
   });
+  // A crawler has no HAM session. Static art and metadata must be public.
+  for (const card of ["home", "invite"]) {
+    const image = await host.request(`/og/${card}.png`);
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get("content-type"), "image/png");
+    assert.equal(image.headers.get("cache-control"), "public, max-age=86400");
+    assert.equal(image.headers.has("cross-origin-resource-policy"), false);
+    const bytes = new Uint8Array(await image.arrayBuffer());
+    assert.deepEqual([...bytes.slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  }
+  for (const [route, card] of [
+    ["/", "home"],
+    ["/r/BCDFG", "invite"],
+    ["/r/bcdfg", "invite"],
+    ["/r/private-input", "invite"],
+    ["/packs", "home"],
+    ["/host/BCDFG", "home"],
+    ["/display/BCDFG", "home"],
+  ]) {
+    const page = await host.request(route, { headers: { "user-agent": "Discordbot" } });
+    assert.equal(page.status, 200);
+    const html = await page.text();
+    const head = html.split("</head>")[0];
+    // Packs is prerendered at build time; dynamic routes inherit the startup origin.
+    const imageOrigin = route === "/packs" ? "https://quiz.teamham.world" : origin;
+    assert.ok(
+      head.includes(`<meta property="og:image" content="${imageOrigin}/og/${card}.png"`),
+      `${route}: expected ${imageOrigin}/og/${card}.png; received ${head.match(/<meta property="og:image"[^>]*>/)?.[0]}`,
+    );
+    assert.ok(head.includes('<meta name="twitter:card" content="summary_large_image"'));
+    if (route === "/r/private-input") assert.ok(!head.includes("private-input"));
+    if (route === "/r/BCDFG" || route === "/r/bcdfg") {
+      assert.ok(head.includes("Join room BCDFG · HAM Quiz"));
+      assert.ok(head.includes(`<meta property="og:url" content="${origin}/r/BCDFG"`));
+    }
+  }
   await host.signIn("smoke-host");
   for (const route of ["/", "/packs", "/r/BCDFG", "/host/BCDFG", "/display/BCDFG"]) {
     const page = await host.request(route);
@@ -224,7 +260,7 @@ try {
     assert.equal(v.players.find((p) => p.id === players[0].id).score, cell.value);
   }
   console.log(
-    "Production build smoke passed: health, session, fixture OAuth, Next pages and security headers, Origin rejection, room/join/display claim, select/open/buzz/judge/reveal/board, public privacy and score convergence.",
+    "Production build smoke passed: health, session, public social cards and metadata, fixture OAuth, Next pages and security headers, Origin rejection, room/join/display claim, select/open/buzz/judge/reveal/board, public privacy and score convergence.",
   );
 } finally {
   sockets.forEach((ws) => ws.close());

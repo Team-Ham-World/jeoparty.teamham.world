@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { socialMetadata } from "./social-metadata";
 import "@fontsource-variable/bricolage-grotesque/opsz.css";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
@@ -16,9 +17,8 @@ import "@/features/editor/editor.css";
 */
 
 export const metadata: Metadata = {
+  ...socialMetadata(),
   title: { default: "HAM Quiz", template: "%s · HAM Quiz" },
-  description:
-    "A quiz-show party game for HAM: the host runs it, the TV shows the board, and everyone buzzes in from their phone.",
 };
 
 export const viewport: Viewport = {
