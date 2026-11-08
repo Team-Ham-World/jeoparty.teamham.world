@@ -13,6 +13,8 @@ The original milestones 0–5 are implemented and covered by automated tests:
 | 4. Content and durability | Pack editor with validation, import/export; saved packs; games restored (paused) after a backend restart |
 | 5. Fuller gameplay | Two rounds, server timers, wager clues, final round with private wagers and answers |
 
+UI/UX polish (2026-11-08): an [Impeccable](https://github.com/pbakaus/impeccable) audit of every screen at phone, laptop and TV sizes found 48 issues (one blocking: the 6-player final round ran off the TV). All were fixed or deliberately adjusted; the design system as built is recorded in [DESIGN.md](../DESIGN.md) and the product context in [PRODUCT.md](../PRODUCT.md).
+
 Evidence: `npm run check` (engine, content, server, security and UI tests), `npm run test:smoke` (production build plays a clue), `npm run test:e2e` (separate browsers for host, TV and players play complete games).
 
 ## Before launch
