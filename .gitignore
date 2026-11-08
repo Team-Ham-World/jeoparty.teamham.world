@@ -23,3 +23,4 @@ dist/
 # UI polish working files (audit reports, before/after screenshots)
 /.polish/
 /.impeccable/critique/
+/.impeccable/hook.cache.json
