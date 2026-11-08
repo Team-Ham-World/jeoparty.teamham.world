@@ -619,6 +619,7 @@ export async function createApp(config: Config, options: Options) {
             void room.attach(c).catch(() => ws.close(WS_CLOSE.roomNotFound));
             const socketId = randomUUID();
             ws.on("message", (data, binary) => {
+              const arrivalMs = now(); // Capture before parsing, room queuing or HAM verification.
               void (async () => {
                 try {
                   limit(`socket:${socketId}`, role === "host" ? 60 : 20, 5000);
@@ -642,9 +643,11 @@ export async function createApp(config: Config, options: Options) {
                   ws.close(1008);
                   return;
                 }
-                if (message.t === "cmd") await room.command(c, message.id, message.cmd);
+                if (message.t === "cmd") await room.command(c, message.id, message.cmd, arrivalMs);
                 else if (c.authorizedUntil > now()) {
-                  if (message.t === "ping") c.send({ t: "pong", at: message.at, serverNow: now() });
+                  if (message.t === "probeAck") room.probeAck(c, message.id, arrivalMs);
+                  else if (message.t === "ping")
+                    c.send({ t: "pong", at: message.at, serverNow: now() });
                   else room.sendView(c);
                 }
               })().catch(() => ws.close(1011));
@@ -666,6 +669,7 @@ export async function createApp(config: Config, options: Options) {
   let sweepWork: Promise<void> | undefined;
   function tick(): Promise<void> {
     if (stopped) return Promise.resolve();
+    for (const room of rooms.values()) room.probe();
     // Lease expiry must still remove presence while a slow provider renewal is in flight.
     for (const room of rooms.values())
       for (const c of room.connections) {

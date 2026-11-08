@@ -12,7 +12,7 @@ import type {
   RejectionCode,
 } from "@/features/engine/contract";
 
-export const PROTOCOL_VERSION = 1 as const;
+export const PROTOCOL_VERSION = 2 as const;
 
 /** Room codes: 5 consonants (no vowels, so no accidental words). */
 export const ROOM_CODE_ALPHABET = "BCDFGHJKLMNPQRSTVWXZ";
@@ -36,15 +36,24 @@ export type AnyView = HostView | PlayerView | DisplayView;
 // latest role-specific `view`; it sends a new view after every accepted change.
 
 export type ClientHostCommand =
-  Exclude<HostCommand, { type: "setPack" }> | { type: "choosePack"; packId: string };
-export type ClientCommand = ClientHostCommand | PlayerCommand;
+  | Exclude<HostCommand, { type: "setPack" | "openBuzzers" }>
+  | { type: "openBuzzers"; clueId: string }
+  | { type: "choosePack"; packId: string };
+export type ClientPlayerCommand =
+  | Exclude<PlayerCommand, { type: "buzz" }>
+  | Omit<
+      Extract<PlayerCommand, { type: "buzz" }>,
+      "arrivalMs" | "uplinkBoundMs" | "maxOtherUplinkMs"
+    >;
+export type ClientCommand = ClientHostCommand | ClientPlayerCommand;
 
 export type ClientMessage =
   /** `id`: a fresh UUID per user intent. Resend the same id when retrying after a reconnect. */
   | { t: "cmd"; id: string; cmd: ClientCommand }
   /** Ask for the current view again (for example after a gap in revisions). */
   | { t: "resync" }
-  | { t: "ping"; at: number };
+  | { t: "ping"; at: number }
+  | { t: "probeAck"; id: string };
 
 export type TransportErrorCode =
   "badMessage" | "notAllowed" | "unknownPack" | "rateLimited" | "authUnavailable" | "internal";
@@ -66,6 +75,9 @@ export type ServerMessage =
   | { t: "ack"; id: string; ok: true; revision: number }
   | { t: "ack"; id: string; ok: false; error: AckError; message: string }
   | { t: "pong"; at: number; serverNow: number }
+  | { t: "probe"; id: string; at: number }
+  /** Host only. Milliseconds RTT; null for disconnected or unsampled players. */
+  | { t: "pings"; pings: Record<string, number | null> }
   /** Sent just before the server closes the socket on purpose. Do not auto-reconnect for these. */
   | { t: "closing"; reason: CloseReason };
 

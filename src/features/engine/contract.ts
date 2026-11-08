@@ -40,6 +40,8 @@ export interface GameSettings {
   /** Wager clues for round 1 and round 2. */
   wagerClues: readonly [number, number];
   finalRound: boolean;
+  fairBuzzing: boolean;
+  falseStartLockout: boolean;
   timers: TimerSettings;
 }
 
@@ -48,6 +50,8 @@ export interface SettingsPatch {
   categoriesPerRound?: number;
   wagerClues?: readonly [number, number];
   finalRound?: boolean;
+  fairBuzzing?: boolean;
+  falseStartLockout?: boolean;
   timers?: Partial<TimerSettings>;
 }
 
@@ -73,7 +77,7 @@ export type HostCommand =
   | { type: "startGame" }
   | { type: "continue" } // roundIntro → board
   | { type: "selectClue"; clueId: ClueId }
-  | { type: "openBuzzers"; clueId: ClueId }
+  | { type: "openBuzzers"; clueId: ClueId; leadMs: number }
   | { type: "judge"; clueId: ClueId; attemptId: AttemptId; correct: boolean }
   | { type: "endAttempts"; clueId: ClueId }
   | { type: "reveal"; clueId: ClueId }
@@ -91,7 +95,16 @@ export type HostCommand =
   | { type: "playAgain" };
 
 export type PlayerCommand =
-  | { type: "buzz"; clueId: ClueId }
+  | {
+      type: "buzz";
+      clueId: ClueId;
+      reactionMs: number;
+      falseStart: boolean;
+      /** Transport-owned inputs, stripped from the wire command. */
+      arrivalMs: number;
+      uplinkBoundMs: number;
+      maxOtherUplinkMs: number;
+    }
   | { type: "submitWager"; clueId: ClueId; amount: number }
   | { type: "submitFinalWager"; amount: number }
   | { type: "submitFinalAnswer"; text: string };
@@ -259,6 +272,9 @@ export interface ClueView {
   /** Public once submitted. */
   wager: number | null;
   answeringPlayerId: PlayerId | null;
+  /** Server epoch ms for this opening; null before the first opening. */
+  opensAt: number | null;
+  buzzResult: { winnerId: PlayerId; marginMs: number | null; contenderCount: number } | null;
   attempts: AttemptView[];
   lockedOutPlayerIds: PlayerId[];
   /** Public only at `revealed`. The host always sees it. */
@@ -322,6 +338,7 @@ export interface ViewCommon {
   phase: Phase;
   paused: PauseView | null;
   hostConnected: boolean;
+  buzzing: Pick<GameSettings, "fairBuzzing" | "falseStartLockout">;
   players: PublicPlayer[];
   waitingPlayers: WaitingPlayer[];
   controllerId: PlayerId | null;

@@ -15,6 +15,17 @@ const host: Actor = { kind: "host" };
 const system: Actor = { kind: "system" };
 const alice: Actor = { kind: "player", playerId: "a" };
 const bob: Actor = { kind: "player", playerId: "b" };
+function buzzCommand(clueId: string): Extract<Command, { type: "buzz" }> {
+  return {
+    type: "buzz",
+    clueId,
+    reactionMs: 0,
+    falseStart: false,
+    arrivalMs: 0,
+    uplinkBoundMs: 150,
+    maxOtherUplinkMs: 150,
+  };
+}
 function game(seed = 123) {
   let s = engine.createGame({ roomCode: "HAM123", seed, now: 0 });
   const run = (command: Command, actor = host, now = s.updatedAt) => {
@@ -43,7 +54,7 @@ function game(seed = 123) {
       ["b", "Bob"],
     ])
       run({ type: "addPlayer", playerId, name }, system);
-    run({ type: "updateSettings", patch });
+    run({ type: "updateSettings", patch: { fairBuzzing: false, ...patch } });
   };
   const start = (p = pack(), patch: SettingsPatch = {}) => {
     lobby(p, patch);
@@ -106,6 +117,8 @@ describe("lobby, settings and permissions", () => {
       rounds: 1,
       wagerClues: [1, 2],
       finalRound: true,
+      fairBuzzing: false,
+      falseStartLockout: true,
       timers: { enabled: true, buzzWindowMs: 10000, answerWindowMs: 10000, finalAnswerMs: 45000 },
     });
     g.run({ type: "updateSettings", patch: { finalRound: false, timers: { enabled: false } } });
@@ -203,8 +216,8 @@ describe("lobby, settings and permissions", () => {
     g.reject({ type: "startGame" }, "forbidden", alice);
     g.reject({ type: "startGame" }, "forbidden", system);
     g.reject({ type: "addPlayer", playerId: "b", name: "B" }, "forbidden");
-    g.reject({ type: "buzz", clueId: "x" }, "forbidden");
-    g.reject({ type: "buzz", clueId: "x" }, "unknownPlayer", bob);
+    g.reject(buzzCommand("x"), "forbidden");
+    g.reject(buzzCommand("x"), "unknownPlayer", bob);
     g.reject({ type: "submitFinalWager", amount: 0 }, "forbidden");
     const invalid = { ...pack(), schemaVersion: "2.0.0" };
     // Deliberately bypass the compile-time command boundary to test bad external data.
@@ -269,25 +282,25 @@ describe("boards, control, ordinary clues and wagers", () => {
     g.start();
     const original = g.s.controllerId;
     const id = g.select();
-    g.reject({ type: "buzz", clueId: id }, "buzzersClosed", alice);
+    g.reject(buzzCommand(id), "buzzersClosed", alice);
     g.reject({ type: "reveal", clueId: "old" }, "staleClue");
-    g.run({ type: "openBuzzers", clueId: id });
-    g.reject({ type: "buzz", clueId: "old" }, "staleClue", alice);
-    g.run({ type: "buzz", clueId: id }, alice);
-    g.reject({ type: "buzz", clueId: id }, "buzzersClosed", bob);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
+    g.reject(buzzCommand("old"), "staleClue", alice);
+    g.run(buzzCommand(id), alice);
+    g.reject(buzzCommand(id), "buzzersClosed", bob);
     g.reject({ type: "judge", clueId: id, attemptId: "old", correct: true }, "staleAttempt");
     g.reject({ type: "endAttempts", clueId: id }, "mustJudgeFirst");
     g.reject({ type: "reveal", clueId: id }, "mustJudgeFirst");
     g.judge(false);
     expect(g.s.players[0].score).toBe(-g.s.clue!.value);
     expect(g.s.controllerId).toBe(original);
-    g.run({ type: "openBuzzers", clueId: id });
-    g.reject({ type: "buzz", clueId: id }, "alreadyAttempted", alice);
-    g.run({ type: "buzz", clueId: id }, bob);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
+    g.reject(buzzCommand(id), "alreadyAttempted", alice);
+    g.run(buzzCommand(id), bob);
     g.judge();
     expect(g.s.controllerId).toBe("b");
     expect(g.s.players[1].score).toBe(g.s.clue!.value);
-    g.reject({ type: "openBuzzers", clueId: id }, "wrongPhase");
+    g.reject({ type: "openBuzzers", clueId: id, leadMs: 0 }, "wrongPhase");
     g.finishClue();
     g.reject({ type: "selectClue", clueId: id }, "clueCompleted");
     g.reject({ type: "selectClue", clueId: "missing" }, "unknownClue");
@@ -298,15 +311,15 @@ describe("boards, control, ordinary clues and wagers", () => {
     g.start();
     const id = g.select();
     for (const actor of [alice, bob]) {
-      g.run({ type: "openBuzzers", clueId: id });
-      g.run({ type: "buzz", clueId: id }, actor);
+      g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
+      g.run(buzzCommand(id), actor);
       g.judge(false);
     }
-    g.reject({ type: "openBuzzers", clueId: id }, "noEligiblePlayers");
+    g.reject({ type: "openBuzzers", clueId: id, leadMs: 0 }, "noEligiblePlayers");
     g.finishClue();
     const next = g.select();
     g.run({ type: "endAttempts", clueId: next });
-    g.reject({ type: "openBuzzers", clueId: next }, "wrongPhase");
+    g.reject({ type: "openBuzzers", clueId: next, leadMs: 0 }, "wrongPhase");
     g.finishClue();
   });
   it("limits wagers to the controller, handles negative scores, judging and cancel", () => {
@@ -531,7 +544,7 @@ describe("timers, pause, presence and recovery", () => {
     g.start();
     const id = g.select();
     expect(engine.nextDeadline(g.s)).toBeNull();
-    g.run({ type: "openBuzzers", clueId: id }, host, 1000);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 }, host, 1000);
     const buzz = engine.nextDeadline(g.s)!;
     expect(buzz.at).toBe(11000);
     expect(engine.displayView(g.s, 2000).timer!.remainingMs).toBe(9000);
@@ -539,8 +552,8 @@ describe("timers, pause, presence and recovery", () => {
     g.run({ type: "timerExpired", timerId: buzz.timerId }, system, 11000);
     expect(g.s.clue!.stage).toBe("closed");
     g.reject({ type: "timerExpired", timerId: buzz.timerId }, "staleTimer", system, 12000);
-    g.run({ type: "openBuzzers", clueId: id }, host, 12000);
-    g.run({ type: "buzz", clueId: id }, alice, 13000);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 }, host, 12000);
+    g.run(buzzCommand(id), alice, 13000);
     const answer = engine.nextDeadline(g.s)!;
     expect(answer.at).toBe(23000);
     g.reject({ type: "timerExpired", timerId: buzz.timerId }, "staleTimer", system, 23000);
@@ -554,12 +567,12 @@ describe("timers, pause, presence and recovery", () => {
     const g = game();
     g.start();
     const id = g.select();
-    g.run({ type: "openBuzzers", clueId: id }, host, 1000);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 }, host, 1000);
     const old = engine.nextDeadline(g.s)!;
     g.run({ type: "pause" }, host, 4000);
     expect(engine.nextDeadline(g.s)).toBeNull();
     expect(engine.displayView(g.s, 50000).timer).toMatchObject({ endsAt: null, remainingMs: 7000 });
-    g.reject({ type: "openBuzzers", clueId: id }, "paused");
+    g.reject({ type: "openBuzzers", clueId: id, leadMs: 0 }, "paused");
     g.reject({ type: "timerExpired", timerId: old.timerId }, "paused", system);
     expect(engine.playerView(g.s, "a", 100)!.can.buzz).toBe(false);
     g.run(
@@ -582,8 +595,8 @@ describe("timers, pause, presence and recovery", () => {
     const g = game();
     g.start();
     const id = g.select();
-    g.run({ type: "openBuzzers", clueId: id });
-    g.run({ type: "buzz", clueId: id }, alice);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
+    g.run(buzzCommand(id), alice);
     g.run({ type: "removeMember", playerId: "a" }, system);
     expect(g.s.players[0].connected).toBe(false);
     g.run({ type: "setPresence", target: { role: "host" }, connected: false }, system, 2000);
@@ -600,9 +613,9 @@ describe("timers, pause, presence and recovery", () => {
     const g = game();
     g.start(pack(), { timers: { enabled: false } });
     const id = g.select();
-    g.run({ type: "openBuzzers", clueId: id });
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
     expect(engine.nextDeadline(g.s)).toBeNull();
-    g.run({ type: "buzz", clueId: id }, alice);
+    g.run(buzzCommand(id), alice);
     expect(engine.nextDeadline(g.s)).toBeNull();
     const h = game();
     h.start();
@@ -623,7 +636,7 @@ describe("timers, pause, presence and recovery", () => {
     const g = game();
     g.start();
     const id = g.select();
-    g.run({ type: "openBuzzers", clueId: id }, host, 1000);
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 }, host, 1000);
     g.run({ type: "renamePlayer", playerId: "a", name: "A" }, system, 2500);
     const raw = JSON.parse(JSON.stringify(g.s));
     const restored = engine.restore(raw)!;
@@ -777,9 +790,9 @@ describe("privacy, views, and defensive input handling", () => {
     const id = g.select();
     expect(engine.hostView(g.s, 100).allowedCommands).toContain("openBuzzers");
     expect(engine.playerView(g.s, "a", 100)!.can.buzz).toBe(false);
-    g.run({ type: "openBuzzers", clueId: id });
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
     expect(engine.playerView(g.s, "a", 100)!.can.buzz).toBe(true);
-    g.run({ type: "buzz", clueId: id }, alice);
+    g.run(buzzCommand(id), alice);
     const v = engine.hostView(g.s, 100);
     expect(v.allowedCommands).toContain("judge");
     expect(v.allowedCommands).not.toContain("reveal");
@@ -788,7 +801,7 @@ describe("privacy, views, and defensive input handling", () => {
     expect(g.s.players[0].score).toBe(0);
     expect(g.s.clue!.attempts[0].playerId).toBe("a");
     g.judge(false);
-    g.run({ type: "openBuzzers", clueId: id });
+    g.run({ type: "openBuzzers", clueId: id, leadMs: 0 });
     expect(engine.playerView(g.s, "a", 100)!.can.buzz).toBe(false);
     expect(engine.playerView(g.s, "b", 100)!.can.buzz).toBe(true);
     expect(engine.displayView(g.s, 100).lastEvent).toMatchObject({

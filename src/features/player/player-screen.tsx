@@ -507,7 +507,7 @@ function PlayerClue({
       clue.stage !== "revealed" &&
       !answeringMe &&
       !(clue.stage === "closed" && lastAttempt?.result === "correct") ? (
-        <BuzzButton view={view} clue={clue} stale={stale} run={run} />
+        <BuzzButton view={view} clue={clue} stale={stale} run={run} clockOffsetMs={clockOffsetMs} />
       ) : null}
     </div>
   );
@@ -687,6 +687,8 @@ function FinalVerdict({ response }: { response: FinalResponseView }) {
 function finalAsClue(final: FinalView): ClueView {
   return {
     clueId: "final",
+    opensAt: null,
+    buzzResult: null,
     categoryTitle: final.categoryTitle,
     value: 0,
     kind: "standard",

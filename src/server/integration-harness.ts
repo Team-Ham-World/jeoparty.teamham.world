@@ -140,7 +140,7 @@ export async function start(a: Wire, packId: string, patch: SettingsPatch = {}) 
   await a.ok({ type: "choosePack", packId });
   await a.ok({
     type: "updateSettings",
-    patch: { wagerClues: [0, 0], timers: { enabled: false }, ...patch },
+    patch: { fairBuzzing: false, wagerClues: [0, 0], timers: { enabled: false }, ...patch },
   });
   await a.ok({ type: "startGame" });
   await a.ok({ type: "continue" });

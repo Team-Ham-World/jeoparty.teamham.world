@@ -272,6 +272,8 @@ type Draft = {
   wager1: number;
   wager2: number;
   finalRound: boolean;
+  fairBuzzing: boolean;
+  falseStartLockout: boolean;
   timersEnabled: boolean;
   buzzS: string;
   answerS: string;
@@ -285,6 +287,8 @@ function toDraft(s: GameSettings): Draft {
     wager1: s.wagerClues[0],
     wager2: s.wagerClues[1],
     finalRound: s.finalRound,
+    fairBuzzing: s.fairBuzzing,
+    falseStartLockout: s.falseStartLockout,
     timersEnabled: s.timers.enabled,
     buzzS: String(Math.round(s.timers.buzzWindowMs / 1000)),
     answerS: String(Math.round(s.timers.answerWindowMs / 1000)),
@@ -370,6 +374,8 @@ function SettingsEditor({
       categoriesPerRound: draft.categoriesPerRound,
       wagerClues: [draft.wager1, draft.wager2],
       finalRound: draft.finalRound,
+      fairBuzzing: draft.fairBuzzing,
+      falseStartLockout: draft.falseStartLockout,
       timers: {
         enabled: draft.timersEnabled,
         buzzWindowMs: ms("buzzS", settings.timers.buzzWindowMs),
@@ -484,6 +490,26 @@ function SettingsEditor({
         </label>
       </div>
 
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={draft.fairBuzzing}
+            disabled={disabled}
+            onChange={(event) => set("fairBuzzing", event.target.checked)}
+          />{" "}
+          Fair buzzing
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={draft.falseStartLockout}
+            disabled={disabled}
+            onChange={(event) => set("falseStartLockout", event.target.checked)}
+          />{" "}
+          False-start lockout
+        </label>
+      </div>
       {draft.timersEnabled ? (
         <div className="host-settings__grid">
           {SECONDS_KEYS.map((key) => (

@@ -21,7 +21,7 @@ export function describeEvent(
     case "clueSelected":
       return event.wager ? "Hot HAM! A wager clue." : "A new clue is up.";
     case "buzzersOpened":
-      return "Buzzers are open.";
+      return "Buzzers are opening.";
     case "buzzAccepted":
       return event.playerId === meId
         ? "You buzzed in first. You're up!"

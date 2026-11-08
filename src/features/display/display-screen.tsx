@@ -6,6 +6,7 @@ import type { RoomConnection } from "@/features/network/connection";
 import { BoardGrid } from "@/features/board/board-grid";
 import { HotHam, Lockup } from "@/features/ui/brand";
 import { closedCopy } from "@/features/ui/connection-status";
+import { useOpeningLit } from "@/features/ui/clock";
 import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
 import { formatDelta, formatScore, listNames, nameOf, ordinal, plural } from "@/features/ui/format";
@@ -289,6 +290,7 @@ function DisplayClue({
   clue: ClueView;
   clockOffsetMs: number;
 }) {
+  const lit = useOpeningLit(clue.opensAt, clockOffsetMs);
   const lastAttempt = clue.attempts[clue.attempts.length - 1] ?? null;
   const controller = nameOf(view.players, view.controllerId);
 
@@ -341,7 +343,7 @@ function DisplayClue({
       ) : null}
 
       <footer className="tv-clue__foot">
-        {clue.stage === "reading" ? (
+        {clue.stage === "reading" || (clue.stage === "open" && !lit) ? (
           <p className="tv-cue tv-cue--wait">Listen up. Buzzers open soon.</p>
         ) : clue.stage === "open" ? (
           <>

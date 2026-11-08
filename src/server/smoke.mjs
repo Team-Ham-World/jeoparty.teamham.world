@@ -234,8 +234,16 @@ try {
       publicView.board.categories.every((c) => c.cells.every((cell) => !("wager" in cell))),
     );
   }
-  await a.send({ type: "openBuzzers", clueId: cell.clueId });
-  await players[0].wire.send({ type: "buzz", clueId: cell.clueId });
+  const opened = await a.send({ type: "openBuzzers", clueId: cell.clueId });
+  await new Promise((resolve) =>
+    setTimeout(resolve, Math.max(0, opened.clue.opensAt - Date.now()) + 20),
+  );
+  await players[0].wire.send({
+    type: "buzz",
+    clueId: cell.clueId,
+    reactionMs: 20,
+    falseStart: false,
+  });
   const answering = await a.view((v) => v?.clue?.stage === "answering");
   assert.equal(answering.clue.answeringPlayerId, players[0].id);
   const judged = await a.send({

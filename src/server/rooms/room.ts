@@ -19,6 +19,7 @@ import type { SqlDatabase } from "../storage";
 import type { Packs } from "../packs";
 import { HttpError } from "../http";
 import { commandAllowed } from "../validation";
+import { Latency } from "./latency";
 
 export type Ack = Extract<ServerMessage, { t: "ack" }>;
 interface Recent {
@@ -57,6 +58,7 @@ export class Room {
   private queue: Promise<unknown> = Promise.resolve();
   private timer: ReturnType<typeof setTimeout> | undefined;
   private closed = false;
+  private latencies = new Map<Connection, Latency>();
   state: GameState;
   private recent: Recent[];
   private members = new Set<string>();
@@ -124,7 +126,7 @@ export class Room {
             if (!this.closed) this.timer = setTimeout(() => this.schedule(), 1000);
           });
         },
-        Math.max(0, deadline.at - this.deps.now()),
+        Math.max(0, Math.ceil(deadline.at - this.deps.now())),
       );
       this.timer.unref?.();
     }
@@ -266,11 +268,16 @@ export class Room {
         if (result.ok) this.commit(result.state);
       }
       this.connections.add(c);
+      if (c.role === "player") this.latencies.set(c, new Latency());
+      this.probe();
+      this.sendPings();
       this.broadcast();
     });
   }
   detach(c: Connection): Promise<void> {
+    this.latencies.delete(c);
     return this.run(() => {
+      this.sendPings();
       if (!this.connections.delete(c) || this.closed || c.role === "display") return;
       if (
         [...this.connections].some(
@@ -292,7 +299,56 @@ export class Room {
       }
     });
   }
-  command(c: Connection, id: string, cmd: ClientCommand): Promise<void> {
+  /** Called outside the room queue: a slow HAM check must not inflate RTT. */
+  probe(): void {
+    for (const [c, latency] of this.latencies) {
+      const probe = latency.probe(this.deps.now());
+      if (probe) c.send(probe);
+    }
+  }
+  probeAck(c: Connection, id: string, arrivalMs: number): void {
+    if (c.authorizedUntil <= this.deps.now()) return;
+    if (this.latencies.get(c)?.acknowledge(id, arrivalMs)) this.sendPings();
+  }
+  private sendPings(): void {
+    const players = this.deps.engine.displayView(this.state, this.deps.now()).players;
+    const pings = Object.fromEntries(
+      players.map((p) => {
+        const samples = [...this.latencies]
+          .filter(([c, l]) => c.publicId === p.id && l.median !== null)
+          .map(([, l]) => l.median!);
+        return [p.id, samples.length ? Math.min(...samples) : null];
+      }),
+    );
+    for (const c of this.connections) if (c.role === "host") c.send({ t: "pings", pings });
+  }
+  private eligibleLatencies(except?: string): Latency[] {
+    const view = this.deps.engine.displayView(this.state, this.deps.now());
+    return [...this.latencies]
+      .filter(
+        ([c]) =>
+          c.publicId !== except &&
+          view.players.some(
+            (p) =>
+              p.id === c.publicId &&
+              p.connected &&
+              !view.clue?.attempts.some((a) => a.playerId === p.id),
+          ),
+      )
+      .map(([, l]) => l);
+  }
+  command(
+    c: Connection,
+    id: string,
+    cmd: ClientCommand,
+    arrivalMs = this.deps.now(),
+  ): Promise<void> {
+    // Snapshot bounds before any queue work or authentication. The game only stores candidate times.
+    const uplinkBoundMs = this.latencies.get(c)?.uplinkBound ?? 150;
+    const maxOtherUplinkMs = Math.max(
+      0,
+      ...this.eligibleLatencies(c.publicId).map((l) => l.uplinkBound),
+    );
     return this.run(async () => {
       const identity = `${c.role}:${c.publicId}`;
       const cached = this.recent.find(
@@ -348,7 +404,15 @@ export class Room {
           } catch (error) {
             if (!(error instanceof HttpError)) throw error;
           }
-        } else command = cmd;
+        } else if (cmd.type === "openBuzzers") {
+          const leadMs = Math.min(
+            400,
+            Math.max(120, ...this.eligibleLatencies().map((l) => l.p90 / 2 + 60)),
+          );
+          command = { ...cmd, leadMs };
+        } else if (cmd.type === "buzz")
+          command = { ...cmd, arrivalMs, uplinkBoundMs, maxOtherUplinkMs };
+        else command = cmd;
         if (!command)
           ack = {
             t: "ack",
@@ -399,6 +463,7 @@ export class Room {
     this.closed = true;
     this.deps.onMembersChanged(this.code, this.members, new Set());
     clearTimeout(this.timer);
+    this.latencies.clear();
     this.closeWhere(() => true, "roomClosed");
     this.deps.onClosed(this.code);
   }
@@ -413,6 +478,7 @@ export class Room {
       if (result.ok) this.commit(result.state);
       this.closed = true;
       clearTimeout(this.timer);
+      this.latencies.clear();
       this.closeWhere(() => true, "serverShutdown");
     });
   }

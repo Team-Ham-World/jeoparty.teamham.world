@@ -50,6 +50,12 @@ export interface GameState {
         answer: string;
         attempts: AttemptView[];
         ended: boolean;
+        /** Private candidates, never spread into views. Order is socket arrival order. */
+        collection: {
+          id: string;
+          decidesAt: number;
+          candidates: { playerId: string; effectiveMs: number; arrivalMs: number }[];
+        } | null;
       })
     | null;
   final: FinalState | null;

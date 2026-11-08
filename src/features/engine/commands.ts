@@ -3,6 +3,8 @@ import type { Actor, Command, GameEvent, RejectionCode } from "./contract";
 import type { GameState } from "./state";
 import {
   advanceRound,
+  acceptBuzz,
+  decideBuzz,
   buildBoards,
   currentBoard,
   defaultSettings,
@@ -227,6 +229,9 @@ export function execute(
         attempts: [],
         lockedOutPlayerIds: [],
         ended: false,
+        opensAt: null,
+        buzzResult: null,
+        collection: null,
       };
       s.phase = "clue";
       event(s, events, { kind: "clueSelected", clueId: c.clueId, wager: cell.wager });
@@ -237,8 +242,11 @@ export function execute(
       if (clue.kind !== "standard" || !["reading", "closed"].includes(clue.stage) || clue.ended)
         return "wrongPhase";
       if (!eligibleBuzzers(s).length) return "noEligiblePlayers";
+      if (!Number.isFinite(c.leadMs) || c.leadMs < 0 || c.leadMs > 400) return "forbidden";
       clue.stage = "open";
-      startTimer(s, "buzz", now);
+      clue.opensAt = now + (s.settings.fairBuzzing ? c.leadMs : 0);
+      clue.buzzResult = null;
+      startTimer(s, "buzz", clue.opensAt);
       event(s, events, { kind: "buzzersOpened", clueId: clue.clueId });
       return null;
     }
@@ -246,17 +254,53 @@ export function execute(
       if (actor.kind !== "player") return "forbidden";
       const clue = s.clue!;
       if (clue.attempts.some((a) => a.playerId === actor.playerId)) return "alreadyAttempted";
-      clue.stage = "answering";
-      clue.answeringPlayerId = actor.playerId;
-      clue.attempts.push({
-        id: `attempt-${s.revision}`,
+      if (!s.settings.fairBuzzing) {
+        acceptBuzz(s, actor.playerId, now, events);
+        return null;
+      }
+      if (
+        ![c.reactionMs, c.arrivalMs, c.uplinkBoundMs, c.maxOtherUplinkMs].every(Number.isFinite) ||
+        c.reactionMs < 0 ||
+        typeof c.falseStart !== "boolean" ||
+        c.arrivalMs > now ||
+        c.uplinkBoundMs < 0 ||
+        c.maxOtherUplinkMs < 0
+      )
+        return "forbidden";
+      const opensAt = clue.opensAt!;
+      if (
+        c.arrivalMs < opensAt - 40 ||
+        (clue.collection && c.arrivalMs > clue.collection.decidesAt) ||
+        (s.timer?.endsAt != null && c.arrivalMs > s.timer.endsAt)
+      )
+        return "buzzersClosed";
+      if (clue.collection?.candidates.some((p) => p.playerId === actor.playerId))
+        return "alreadyAttempted";
+      const floor = opensAt + (s.settings.falseStartLockout && c.falseStart ? 250 : -40);
+      if (c.arrivalMs < floor) return "buzzersClosed";
+      const effectiveMs = Math.max(
+        floor,
+        Math.min(
+          c.arrivalMs,
+          Math.max(opensAt + c.reactionMs, c.arrivalMs - Math.min(250, c.uplinkBoundMs) - 40),
+        ),
+      );
+      if (!clue.collection) {
+        clue.collection = {
+          id: `collection-${s.revision}`,
+          decidesAt: Math.max(
+            c.arrivalMs,
+            Math.min(c.arrivalMs + 250, effectiveMs + Math.min(250, c.maxOtherUplinkMs) + 40),
+          ),
+          candidates: [],
+        };
+        s.timer = null;
+      }
+      clue.collection.candidates.push({
         playerId: actor.playerId,
-        result: "pending",
-        timedOut: false,
-        delta: null,
+        effectiveMs,
+        arrivalMs: c.arrivalMs,
       });
-      startTimer(s, "answer", now);
-      event(s, events, { kind: "buzzAccepted", clueId: clue.clueId, playerId: actor.playerId });
       return null;
     }
     case "submitWager": {
@@ -319,7 +363,7 @@ export function execute(
     case "endAttempts":
     case "reveal": {
       const clue = s.clue!;
-      if (clue.stage === "answering") return "mustJudgeFirst";
+      if (clue.stage === "answering" || clue.collection) return "mustJudgeFirst";
       const stages =
         c.type === "endAttempts"
           ? ["wager", "reading", "open", "closed"]
@@ -433,15 +477,22 @@ export function execute(
       if (s.phase === "lobby") return "wrongPhase";
       pause(s, "host", now, events);
       return null;
-    case "resume":
+    case "resume": {
       if (!s.paused) return "notPaused";
+      const lead =
+        s.clue?.stage === "open" && s.clue.opensAt !== null
+          ? Math.max(0, s.clue.opensAt - s.paused.since)
+          : 0;
       s.paused = null;
+      if (s.clue?.collection) decideBuzz(s, now, events);
+      else if (s.clue?.stage === "open") s.clue.opensAt = now + lead;
       if (s.timer) {
         s.timer.id = `timer-${s.revision}`;
-        s.timer.endsAt = now + s.timer.remainingMs;
+        s.timer.endsAt = now + (s.timer.kind === "buzz" ? lead : 0) + s.timer.remainingMs;
       }
       event(s, events, { kind: "resumed" });
       return null;
+    }
     case "endGame":
       if (s.phase === "lobby") return "wrongPhase";
       results(s, events);
@@ -465,6 +516,12 @@ export function execute(
       s.lastEvent = null;
       return null;
     case "timerExpired": {
+      if (s.clue?.collection) {
+        if (c.timerId !== s.clue.collection.id || now < s.clue.collection.decidesAt)
+          return "staleTimer";
+        decideBuzz(s, now, events);
+        return null;
+      }
       if (!s.timer || c.timerId !== s.timer.id || s.timer.endsAt === null || now < s.timer.endsAt)
         return "staleTimer";
       const kind = s.timer.kind;
@@ -482,10 +539,16 @@ export function execute(
       });
       if (inPlay(s)) {
         if (s.timer && s.timer.endsAt !== null) {
-          s.timer.remainingMs = Math.max(0, s.timer.endsAt - s.updatedAt);
+          s.timer.remainingMs = Math.min(
+            s.timer.durationMs,
+            Math.max(0, s.timer.endsAt - s.updatedAt),
+          );
           s.timer.endsAt = null;
         }
-        pause(s, "restored", now, events);
+        if (s.paused) {
+          s.paused.reason = "restored";
+          event(s, events, { kind: "paused", reason: "restored" });
+        } else pause(s, "restored", s.updatedAt, events);
       }
       return null;
     default: {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ClientCommand } from "@/features/network/protocol";
 import { SPECS, playerOf, type Spec } from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
+import { BuzzButton } from "./buzz-button";
 import { PlayerScreen } from "./player-screen";
 
 function renderPlayer(
@@ -21,21 +22,26 @@ function renderPlayer(
 describe("buzz button", () => {
   it("sends { type: 'buzz', clueId } on press when the view allows it", async () => {
     const { sent } = renderPlayer(true);
-    const button = screen.getByRole("button", { name: "Buzz!" });
+    const button = await screen.findByRole("button", { name: "Buzz!" });
     expect(button).toBeEnabled();
     await act(async () => {
       fireEvent.pointerDown(button, { button: 0 });
     });
-    expect(sent).toEqual([{ type: "buzz", clueId: "clue-0-3-2" }]);
+    expect(sent).toEqual([
+      { type: "buzz", clueId: "clue-0-3-2", reactionMs: expect.any(Number), falseStart: false },
+    ]);
     expect(screen.getByRole("button", { name: "Sent!" })).toBeInTheDocument();
   });
 
   it("works from the keyboard (Enter/Space click) without double-sending pointer presses", async () => {
     const { sent } = renderPlayer(true);
+    const button = await screen.findByRole("button", { name: "Buzz!" });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Buzz!" }), { detail: 0 });
+      fireEvent.click(button, { detail: 0 });
     });
-    expect(sent).toEqual([{ type: "buzz", clueId: "clue-0-3-2" }]);
+    expect(sent).toEqual([
+      { type: "buzz", clueId: "clue-0-3-2", reactionMs: expect.any(Number), falseStart: false },
+    ]);
   });
 
   it("is disabled and sends nothing when can.buzz is false", async () => {
@@ -67,4 +73,36 @@ describe("buzz button", () => {
     expect(screen.getByRole("button", { name: "Locked" })).toBeDisabled();
     expect(screen.getByText("You already had a go at this clue.")).toBeVisible();
   });
+});
+
+it("captures early button taps, lights while locked, and sends the penalty with a measured reaction", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(1000);
+  try {
+    const reading = playerOf(SPECS.reading, "p-medchu");
+    const open = playerOf(SPECS.open, "p-medchu", { can: { buzz: true } });
+    open.clue!.opensAt = 1200;
+    const run = vi.fn().mockResolvedValue({ ok: true, revision: 1 });
+    const { rerender } = render(
+      <BuzzButton view={reading} clue={reading.clue!} stale={false} run={run} />,
+    );
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Wait" }), { button: 0 });
+    rerender(<BuzzButton view={open} clue={open.clue!} stale={false} run={run} />);
+    act(() => vi.advanceTimersByTime(200));
+    const locked = screen.getByRole("button", { name: "Too early!" });
+    expect(locked).toBeDisabled();
+    expect(locked).toHaveClass("buzz--live");
+    act(() => vi.advanceTimersByTime(249));
+    expect(run).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    await act(async () =>
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Buzz!" }), { button: 0 }),
+    );
+    expect(run).toHaveBeenCalledWith(
+      { type: "buzz", clueId: open.clue!.clueId, reactionMs: 250, falseStart: true },
+      expect.anything(),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
 });

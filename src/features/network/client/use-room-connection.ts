@@ -37,6 +37,8 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
     view: AnyView | null;
     closeReason: CloseReason | null;
     clockOffsetMs: number;
+    rttMs: number | null;
+    pings: Record<string, number | null>;
     identity: string;
   }>({
     identity: `${role}:${code}`,
@@ -44,6 +46,8 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
     view: null,
     closeReason: null,
     clockOffsetMs: 0,
+    rttMs: null,
+    pings: {},
   });
   const sendRef = useRef<(command: ClientCommand) => Promise<CommandOutcome>>(() =>
     Promise.resolve({
@@ -81,6 +85,8 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           view: null,
           closeReason: null,
           clockOffsetMs: 0,
+          rttMs: null,
+          pings: {},
         });
     });
     /** The socket is gone (closed, dead or offline): go stale and retry with backoff. */
@@ -138,7 +144,9 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       url.searchParams.set("role", role);
       const ws = new WebSocket(url);
       socket = ws;
+      setState((previous) => ({ ...previous, rttMs: null, pings: {} }));
       let hello = false;
+      const clockSamples: { rttMs: number; offsetMs: number }[] = [];
       const active = () => !disposed && socket === ws;
       connectTimer = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) drop(ws);
@@ -151,6 +159,14 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           message = JSON.parse(String(event.data)) as ServerMessage;
         } catch {
           ws.close();
+          return;
+        }
+        if (message.t === "probe") {
+          ws.send(JSON.stringify({ t: "probeAck", id: message.id }));
+          return;
+        }
+        if (message.t === "pings" && role === "host") {
+          setState((previous) => ({ ...previous, pings: message.pings }));
           return;
         }
         if (message.t === "closing") {
@@ -212,9 +228,15 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           }
         } else if (message.t === "pong") {
           const received = Date.now();
+          const rttMs = received - message.at;
+          if (rttMs < 0 || !Number.isFinite(rttMs)) return;
+          clockSamples.push({ rttMs, offsetMs: message.serverNow - (message.at + received) / 2 });
+          if (clockSamples.length > 10) clockSamples.shift();
+          const best = clockSamples.reduce((a, b) => (a.rttMs <= b.rttMs ? a : b));
           setState((previous) => ({
             ...previous,
-            clockOffsetMs: message.serverNow - (message.at + received) / 2,
+            clockOffsetMs: best.offsetMs,
+            rttMs: best.rttMs,
           }));
         }
       };
@@ -299,6 +321,8 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           view: null,
           closeReason: null,
           clockOffsetMs: 0,
+          rttMs: null,
+          pings: {},
         };
   return {
     ...current,

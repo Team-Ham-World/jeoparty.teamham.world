@@ -55,7 +55,7 @@ const timer = object({
   kind: oneOf("buzz", "answer", "finalAnswer"),
   durationMs: nonnegative,
   endsAt: nullable(number),
-  remainingMs: nonnegative,
+  remainingMs: (v) => number(v) && Number(v) >= 0,
 });
 const pause = object({ reason: oneOf("host", "hostOffline", "restored"), since: number });
 const cell = object({
@@ -82,6 +82,21 @@ const clue = object({
   attempts: array(attempt),
   lockedOutPlayerIds: array(string),
   ended: bool,
+  opensAt: nullable(number),
+  buzzResult: nullable(
+    object({
+      winnerId: string,
+      marginMs: nullable((v) => number(v) && Number(v) >= 0),
+      contenderCount: nonnegative,
+    }),
+  ),
+  collection: nullable(
+    object({
+      id: string,
+      decidesAt: number,
+      candidates: array(object({ playerId: string, effectiveMs: number, arrivalMs: number })),
+    }),
+  ),
 });
 const final = object({
   stage: oneOf("wagers", "answering", "judging", "done"),
@@ -131,6 +146,8 @@ const stateShape = object({
     categoriesPerRound: nonnegative,
     wagerClues: (v) => Array.isArray(v) && v.length === 2 && v.every(nonnegative),
     finalRound: bool,
+    fairBuzzing: bool,
+    falseStartLockout: bool,
     timers: object({
       enabled: bool,
       buzzWindowMs: nonnegative,
@@ -179,6 +196,29 @@ export function restore(raw: unknown): GameState | null {
         return value;
       }),
     );
+    // Additive migration for games saved before fair buzzing. Invalid present fields still fail validation.
+    if (
+      json &&
+      typeof json === "object" &&
+      "settings" in json &&
+      json.settings &&
+      typeof json.settings === "object"
+    ) {
+      if (!("fairBuzzing" in json.settings)) Object.assign(json.settings, { fairBuzzing: true });
+      if (!("falseStartLockout" in json.settings))
+        Object.assign(json.settings, { falseStartLockout: true });
+      if ("clue" in json && json.clue && typeof json.clue === "object") {
+        if (!("opensAt" in json.clue))
+          Object.assign(json.clue, {
+            opensAt:
+              "stage" in json.clue && json.clue.stage === "open" && "updatedAt" in json
+                ? json.updatedAt
+                : null,
+          });
+        if (!("collection" in json.clue)) Object.assign(json.clue, { collection: null });
+        if (!("buzzResult" in json.clue)) Object.assign(json.clue, { buzzResult: null });
+      }
+    }
     if (!stateShape(json)) return null;
     const s = json as GameState; // All fields checked above; relations checked below.
     if (s.pack && !validSettings(s.settings, s.pack)) return null;
@@ -242,6 +282,41 @@ export function restore(raw: unknown): GameState | null {
         new Set(c.attempts.map((a) => a.playerId)).size !== c.attempts.length
       )
         return null;
+      if (c.stage === "open" && c.opensAt === null) return null;
+      if (
+        c.buzzResult &&
+        (!playing.has(c.buzzResult.winnerId) ||
+          !c.attempts.some((a) => a.playerId === c.buzzResult!.winnerId) ||
+          c.buzzResult.contenderCount < 1 ||
+          c.buzzResult.contenderCount > s.players.length ||
+          (c.buzzResult.contenderCount === 1) !== (c.buzzResult.marginMs === null))
+      )
+        return null;
+      if (c.collection) {
+        const entries = c.collection.candidates;
+        if (
+          !s.settings.fairBuzzing ||
+          c.stage !== "open" ||
+          c.kind !== "standard" ||
+          c.opensAt === null ||
+          s.timer ||
+          !entries.length ||
+          entries.length > s.players.length ||
+          new Set(entries.map((e) => e.playerId)).size !== entries.length ||
+          entries.some(
+            (e, i) =>
+              !playing.has(e.playerId) ||
+              e.effectiveMs < c.opensAt! - 40 ||
+              e.effectiveMs > e.arrivalMs ||
+              e.arrivalMs > c.collection!.decidesAt ||
+              c.attempts.some((a) => a.playerId === e.playerId) ||
+              (i > 0 && e.arrivalMs < entries[i - 1].arrivalMs),
+          ) ||
+          c.collection.decidesAt < entries[0].arrivalMs ||
+          c.collection.decidesAt > entries[0].arrivalMs + 250
+        )
+          return null;
+      }
       const pending = c.attempts.filter((a) => a.result === "pending");
       if (
         pending.length !== (c.stage === "answering" ? 1 : 0) ||
@@ -315,10 +390,13 @@ export function restore(raw: unknown): GameState | null {
     });
     if (s.phase !== "lobby" && s.phase !== "results") {
       if (s.timer?.endsAt !== null && s.timer) {
-        s.timer.remainingMs = Math.max(0, s.timer.endsAt! - s.updatedAt);
+        s.timer.remainingMs = Math.min(
+          s.timer.durationMs,
+          Math.max(0, s.timer.endsAt! - s.updatedAt),
+        );
         s.timer.endsAt = null;
       }
-      s.paused = { reason: "restored", since: s.updatedAt };
+      s.paused = { reason: "restored", since: s.paused?.since ?? s.updatedAt };
     }
     return s;
   } catch {

@@ -21,6 +21,8 @@ const patch = z
     categoriesPerRound: integer.optional(),
     wagerClues: z.tuple([integer, integer]).optional(),
     finalRound: z.boolean().optional(),
+    fairBuzzing: z.boolean().optional(),
+    falseStartLockout: z.boolean().optional(),
     timers: z
       .object({
         enabled: z.boolean().optional(),
@@ -44,12 +46,20 @@ export const commandSchema = z.union([
     "endGame",
     "playAgain",
   ].map(empty),
-  ...["selectClue", "openBuzzers", "endAttempts", "reveal", "returnToBoard", "buzz"].map((type) =>
+  ...["selectClue", "openBuzzers", "endAttempts", "reveal", "returnToBoard"].map((type) =>
     z.object({ type: z.literal(type), ...clue }).strict(),
   ),
   ...["removePlayer", "revealFinalResponse"].map((type) =>
     z.object({ type: z.literal(type), ...player }).strict(),
   ),
+  z
+    .object({
+      type: z.literal("buzz"),
+      ...clue,
+      reactionMs: z.number().finite().min(0).max(86_400_000),
+      falseStart: z.boolean(),
+    })
+    .strict(),
   z.object({ type: z.literal("choosePack"), packId: id }).strict(),
   z.object({ type: z.literal("updateSettings"), patch }).strict(),
   z
@@ -76,6 +86,7 @@ export const commandSchema = z.union([
 const messageSchema = z.union([
   z.object({ t: z.literal("cmd"), id: z.uuid(), cmd: commandSchema }).strict(),
   z.object({ t: z.literal("resync") }).strict(),
+  z.object({ t: z.literal("probeAck"), id }).strict(),
   z.object({ t: z.literal("ping"), at: z.number().finite() }).strict(),
 ]);
 export function parseClientMessage(raw: unknown): ClientMessage | null {

@@ -6,6 +6,7 @@ import type { CommandOutcome } from "@/features/network/connection";
 import type { ClientCommand } from "@/features/network/protocol";
 import { nameOf } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
+import { useBuzzerTiming } from "./use-buzzer-timing";
 import type { RunOptions } from "@/features/ui/use-command";
 
 /** What the big button says and why, from the view alone. */
@@ -16,7 +17,13 @@ export function buzzCopy(
 ): { label: string; help: string } {
   if (stale) return { label: "Offline", help: "Reconnecting. Buzzing is off until we catch up." };
   if (view.paused) return { label: "Paused", help: "The game is paused." };
-  if (view.can.buzz) return { label: "Buzz!", help: "First buzz the server gets wins." };
+  if (view.can.buzz)
+    return {
+      label: "Buzz!",
+      help: view.buzzing.fairBuzzing
+        ? "Fastest reaction wins."
+        : "First buzz the server gets wins.",
+    };
   if (clue.lockedOutPlayerIds.includes(view.me.id))
     return { label: "Locked", help: "You already had a go at this clue." };
   switch (clue.stage) {
@@ -46,24 +53,48 @@ export function BuzzButton({
   clue,
   stale,
   run,
+  clockOffsetMs = 0,
 }: {
   view: PlayerView;
   clue: ClueView;
   stale: boolean;
+  clockOffsetMs?: number;
   run: (cmd: ClientCommand, options?: RunOptions) => Promise<CommandOutcome | null>;
 }) {
   const [sentFor, setSentFor] = useState<string | null>(null);
-  const enabled = view.can.buzz && !stale;
-  const sent = sentFor === clue.clueId && clue.stage === "open";
-  const copy = buzzCopy(view, clue, stale);
+  const timing = useBuzzerTiming({
+    opensAt: clue.opensAt,
+    active: clue.stage === "open" && !view.paused && !stale,
+    clockOffsetMs,
+    fairBuzzing: view.buzzing.fairBuzzing,
+    lockoutEnabled: view.buzzing.falseStartLockout,
+    clueId: clue.clueId,
+  });
+  const visiblyLit = view.can.buzz && !stale && timing.lit;
+  const enabled = visiblyLit && !timing.lockedOut;
+  const openingKey = `${clue.clueId}:${clue.opensAt}`;
+  const sent = sentFor === openingKey && clue.stage === "open";
+  const copy =
+    stale || view.paused
+      ? buzzCopy(view, clue, stale)
+      : timing.lockedOut
+        ? { label: "Too early!", help: "Wait 250 ms after the light." }
+        : view.can.buzz && !timing.lit
+          ? { label: "Wait", help: "Buzzers are about to open." }
+          : buzzCopy(view, clue, stale);
 
   function buzz() {
     if (!enabled || sent) return;
-    setSentFor(clue.clueId);
+    setSentFor(openingKey);
     vibrate(35);
     // Losing the race is normal: the button already says who got there first, so no error toast.
     void run(
-      { type: "buzz", clueId: clue.clueId },
+      {
+        type: "buzz",
+        clueId: clue.clueId,
+        reactionMs: timing.reactionMs(),
+        falseStart: timing.falseStart,
+      },
       { quiet: ["buzzersClosed", "alreadyAttempted"] },
     ).then((outcome) => {
       if (outcome && !outcome.ok) setSentFor(null);
@@ -81,14 +112,19 @@ export function BuzzButton({
   }
 
   return (
-    <div className="buzz-zone">
+    <div
+      className="buzz-zone"
+      onPointerDownCapture={() => {
+        if (!stale && !view.paused) timing.recordEarlyTap();
+      }}
+    >
       {/* The base under the live button; it glows while buzzing is open. Decoration only. */}
-      {enabled ? (
+      {visiblyLit ? (
         <span className={`buzz-halo ${sent ? "buzz-halo--still" : ""}`} aria-hidden="true" />
       ) : null}
       <button
         type="button"
-        className={`buzz ${enabled ? "buzz--live" : ""} ${sent ? "buzz--sent" : ""}`}
+        className={`buzz ${visiblyLit ? "buzz--live" : ""} ${sent ? "buzz--sent" : ""}`}
         disabled={!enabled}
         aria-disabled={sent || undefined}
         onPointerDown={onPointerDown}

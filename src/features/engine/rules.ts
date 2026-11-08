@@ -11,6 +11,8 @@ export function defaultSettings(pack: QuestionPack): GameSettings {
     rounds,
     wagerClues: [Math.min(1, cells), Math.min(2, cells)],
     finalRound: true,
+    fairBuzzing: true,
+    falseStartLockout: true,
     timers: { enabled: true, buzzWindowMs: 10_000, answerWindowMs: 10_000, finalAnswerMs: 45_000 },
   };
 }
@@ -27,6 +29,8 @@ export function validSettings(settings: GameSettings, pack: QuestionPack): boole
     w.length === 2 &&
     w.every((n) => integer(n, 0, Math.min(3, c * pack.dimensions.cluesPerCategory))) &&
     typeof settings.finalRound === "boolean" &&
+    typeof settings.fairBuzzing === "boolean" &&
+    typeof settings.falseStartLockout === "boolean" &&
     !!t &&
     typeof t.enabled === "boolean" &&
     integer(t.buzzWindowMs, 3000, 60_000) &&
@@ -121,7 +125,11 @@ export function startTimer(state: GameState, kind: TimerKind, now: number) {
 }
 export function pause(state: GameState, reason: PauseReason, now: number, events: GameEvent[]) {
   if (state.timer?.endsAt !== null && state.timer) {
-    state.timer.remainingMs = Math.max(0, state.timer.endsAt! - now);
+    state.timer.remainingMs = Math.max(
+      0,
+      state.timer.endsAt! -
+        Math.max(now, state.timer.kind === "buzz" ? (state.clue?.opensAt ?? now) : now),
+    );
     state.timer.endsAt = null;
   }
   state.paused = { reason, since: now };
@@ -215,4 +223,31 @@ export function score(
 ) {
   state.players.find((p) => p.id === playerId)!.score += delta;
   state.scoreLog.push({ revision: state.revision, at: now, playerId, delta, kind, reason });
+}
+
+/** Both immediate buzzing and collected decisions use the same answer transition. */
+export function acceptBuzz(state: GameState, playerId: string, now: number, events: GameEvent[]) {
+  const clue = state.clue!;
+  clue.collection = null;
+  clue.stage = "answering";
+  clue.answeringPlayerId = playerId;
+  clue.attempts.push({
+    id: `attempt-${state.revision}`,
+    playerId,
+    result: "pending",
+    timedOut: false,
+    delta: null,
+  });
+  startTimer(state, "answer", now);
+  event(state, events, { kind: "buzzAccepted", clueId: clue.clueId, playerId });
+}
+export function decideBuzz(state: GameState, now: number, events: GameEvent[]) {
+  const clue = state.clue!;
+  const candidates = [...clue.collection!.candidates].sort((a, b) => a.effectiveMs - b.effectiveMs);
+  clue.buzzResult = {
+    winnerId: candidates[0].playerId,
+    marginMs: candidates.length > 1 ? candidates[1].effectiveMs - candidates[0].effectiveMs : null,
+    contenderCount: candidates.length,
+  };
+  acceptBuzz(state, candidates[0].playerId, now, events);
 }

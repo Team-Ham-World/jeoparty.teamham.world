@@ -27,6 +27,8 @@ export function mockConnection<V extends { revision: number } | null>(
     stale: status !== "live",
     closeReason: options.closeReason ?? null,
     clockOffsetMs: options.clockOffsetMs ?? 0,
+    rttMs: null,
+    pings: {},
     async send(cmd): Promise<CommandOutcome> {
       options.onSend?.(cmd);
       if (options.reject) return { ok: false, error: "wrongPhase", message: options.reject };

@@ -32,6 +32,8 @@ export function fakeEngine() {
     categoriesPerRound: 1,
     wagerClues: [0, 0],
     finalRound: false,
+    fairBuzzing: true,
+    falseStartLockout: true,
     timers: {
       enabled: false,
       buzzWindowMs: 10000,
@@ -50,6 +52,7 @@ export function fakeEngine() {
       phase: s.phase,
       paused: null,
       hostConnected: s.hostConnected,
+      buzzing: { fairBuzzing: true, falseStartLockout: true },
       players: s.players,
       waitingPlayers: s.waitingPlayers,
       controllerId: null,

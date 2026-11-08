@@ -156,7 +156,7 @@ describe("WebSocket and room actor", () => {
     expect(a.messages[0]).toMatchObject({
       t: "hello",
       role: "host",
-      protocol: 1,
+      protocol: 2,
     });
     expect(
       b.messages

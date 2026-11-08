@@ -131,13 +131,24 @@ describe("real engine through HTTP and WebSocket", () => {
     const expected = scores(a.host);
     const first = cells(a)[0];
     await a.ok({ type: "selectClue", clueId: first.clueId });
-    expect(await players[0].send({ type: "buzz", clueId: first.clueId })).toMatchObject({
+    expect(
+      await players[0].send({
+        type: "buzz",
+        clueId: first.clueId,
+        reactionMs: 0,
+        falseStart: false,
+      }),
+    ).toMatchObject({
       ok: false,
       error: "buzzersClosed",
     });
     await a.ok({ type: "openBuzzers", clueId: first.clueId });
     const buzzes = await Promise.all(
-      players.slice(0, 2).map((p) => p.send({ type: "buzz", clueId: first.clueId })),
+      players
+        .slice(0, 2)
+        .map((p) =>
+          p.send({ type: "buzz", clueId: first.clueId, reactionMs: 0, falseStart: false }),
+        ),
     );
     expect(buzzes.filter((ack) => ack.ok)).toHaveLength(1);
     expect(buzzes.find((ack) => !ack.ok)).toMatchObject({ error: "buzzersClosed" });
@@ -150,11 +161,13 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(a.host.controllerId).toBe(controller);
     await a.ok({ type: "openBuzzers", clueId: first.clueId });
     const winner = players.find((p) => p.player.me.id === winnerId)!;
-    expect(await winner.send({ type: "buzz", clueId: first.clueId })).toMatchObject({
+    expect(
+      await winner.send({ type: "buzz", clueId: first.clueId, reactionMs: 0, falseStart: false }),
+    ).toMatchObject({
       error: "alreadyAttempted",
     });
     const next = players.find((p) => p.player.me.id !== winnerId)!;
-    await next.ok({ type: "buzz", clueId: first.clueId });
+    await next.ok({ type: "buzz", clueId: first.clueId, reactionMs: 0, falseStart: false });
     await a.waitView((v) => v.clue?.attempts.length === 2);
     await judge(a, true);
     expected[next.player.me.id] += first.value;
@@ -171,7 +184,7 @@ describe("real engine through HTTP and WebSocket", () => {
       await a.ok({ type: "selectClue", clueId: cell.clueId });
       await a.ok({ type: "openBuzzers", clueId: cell.clueId });
       const player = players[i % players.length];
-      await player.ok({ type: "buzz", clueId: cell.clueId });
+      await player.ok({ type: "buzz", clueId: cell.clueId, reactionMs: 0, falseStart: false });
       await a.waitView((v) => v.clue?.stage === "answering");
       await judge(a, true);
       expected[player.player.me.id] += cell.value;
@@ -282,7 +295,12 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(a.host.settings).toMatchObject({ categoriesPerRound: 6, rounds: 2, wagerClues: [1, 2] });
     await a.ok({
       type: "updateSettings",
-      patch: { wagerClues: [0, 0], finalRound: false, timers: { enabled: false } },
+      patch: {
+        fairBuzzing: false,
+        wagerClues: [0, 0],
+        finalRound: false,
+        timers: { enabled: false },
+      },
     });
     await a.ok({ type: "startGame" });
     await a.ok({ type: "continue" });
@@ -308,7 +326,12 @@ describe("real engine through HTTP and WebSocket", () => {
         await a.ok({ type: "selectClue", clueId: cell.clueId });
         if (i === 0) {
           await a.ok({ type: "openBuzzers", clueId: cell.clueId });
-          await players[2].ok({ type: "buzz", clueId: cell.clueId });
+          await players[2].ok({
+            type: "buzz",
+            clueId: cell.clueId,
+            reactionMs: 0,
+            falseStart: false,
+          });
           await a.waitView((v) => v.clue?.stage === "answering");
           await judge(a, true);
           expected[players[2].player.me.id] += cell.value;
@@ -437,7 +460,14 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(waiting.player.me.status).toBe("waiting");
     await a.ok({ type: "selectClue", clueId: cells(a)[0].clueId });
     await a.ok({ type: "openBuzzers", clueId: a.host.clue!.clueId });
-    expect(await waiting.send({ type: "buzz", clueId: a.host.clue!.clueId })).toMatchObject({
+    expect(
+      await waiting.send({
+        type: "buzz",
+        clueId: a.host.clue!.clueId,
+        reactionMs: 0,
+        falseStart: false,
+      }),
+    ).toMatchObject({
       error: "unknownPlayer",
     });
     await a.ok({ type: "endGame" });
@@ -476,11 +506,18 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(a.host.clue?.stage).toBe("open");
     await advance(1);
     await a.waitView((v) => v.clue?.stage === "closed");
-    expect(await players[0].send({ type: "buzz", clueId: first.clueId })).toMatchObject({
+    expect(
+      await players[0].send({
+        type: "buzz",
+        clueId: first.clueId,
+        reactionMs: 0,
+        falseStart: false,
+      }),
+    ).toMatchObject({
       error: "buzzersClosed",
     });
     await a.ok({ type: "openBuzzers", clueId: first.clueId });
-    await players[0].ok({ type: "buzz", clueId: first.clueId });
+    await players[0].ok({ type: "buzz", clueId: first.clueId, reactionMs: 0, falseStart: false });
     await a.waitView((v) => v.clue?.stage === "answering");
     await advance(3000);
     await a.waitView((v) => v.clue?.attempts[0].timedOut === true);
@@ -514,7 +551,7 @@ describe("real engine through HTTP and WebSocket", () => {
       const cell = cells(a)[0];
       await a.ok({ type: "selectClue", clueId: cell.clueId });
       await a.ok({ type: "openBuzzers", clueId: cell.clueId });
-      await players[0].ok({ type: "buzz", clueId: cell.clueId });
+      await players[0].ok({ type: "buzz", clueId: cell.clueId, reactionMs: 0, falseStart: false });
       await a.waitView((v) => v.clue?.stage === "answering");
       await judge(a, true);
       await finishClue(a);
@@ -552,7 +589,12 @@ describe("real engine through HTTP and WebSocket", () => {
       }
       await restored.ok({ type: "resume" });
       expect(restored.host.timer?.endsAt).toBe(time + 7500);
-      await reconnected[1].ok({ type: "buzz", clueId: next.clueId });
+      await reconnected[1].ok({
+        type: "buzz",
+        clueId: next.clueId,
+        reactionMs: 0,
+        falseStart: false,
+      });
       await restored.waitView((v) => v.clue?.stage === "answering");
       await judge(restored, true);
       expect(scores(restored.host)[ids[1]]).toBe(111 + next.value);

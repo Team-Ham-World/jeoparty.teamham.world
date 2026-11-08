@@ -29,8 +29,12 @@ export interface RoomConnection<V> {
   /** True whenever status is not "live". Screens disable game actions while stale. */
   stale: boolean;
   closeReason: CloseReason | null;
-  /** Estimated `serverNow - Date.now()` for countdowns. */
+  /** Estimated `serverNow - Date.now()` from the best recent ping, for opening and countdowns. */
   clockOffsetMs: number;
+  /** RTT of the lowest-RTT sample among the last ten client pings; null before sampling. */
+  rttMs: number | null;
+  /** Host only; empty for players and displays. Values are server-measured median RTTs. */
+  pings: Record<string, number | null>;
   /** Resolves with the server's ack. Retries reuse the same command id. */
   send(cmd: ClientCommand): Promise<CommandOutcome>;
 }

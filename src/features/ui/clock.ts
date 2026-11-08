@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { TimerView } from "@/features/engine/contract";
 
 /*
@@ -54,4 +54,18 @@ export function useRemaining(timer: TimerView | null, clockOffsetMs: number): nu
   const localNow = useNow();
   if (!timer) return null;
   return remainingMs(timer, localNow, clockOffsetMs);
+}
+
+/** Schedule a single render at the opening, rather than waiting for the countdown tick. */
+export function useOpeningLit(opensAt: number | null, clockOffsetMs: number): boolean {
+  const [litOpening, setLitOpening] = useState<number | null>(null);
+  useEffect(() => {
+    if (opensAt === null) return;
+    const timer = setTimeout(
+      () => setLitOpening(opensAt),
+      Math.max(0, opensAt - Date.now() - clockOffsetMs),
+    );
+    return () => clearTimeout(timer);
+  }, [opensAt, clockOffsetMs]);
+  return opensAt !== null && litOpening === opensAt;
 }

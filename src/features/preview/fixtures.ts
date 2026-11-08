@@ -127,6 +127,8 @@ function clue(stage: ClueView["stage"], extra: Partial<ClueView> = {}): ClueView
     prompt: PROMPT,
     wager: null,
     answeringPlayerId: null,
+    opensAt: stage === "open" ? 0 : null,
+    buzzResult: null,
     attempts: [],
     lockedOutPlayerIds: [],
     answer: ANSWER,
@@ -192,6 +194,8 @@ export const SETTINGS: GameSettings = {
   categoriesPerRound: 6,
   wagerClues: [1, 2],
   finalRound: true,
+  fairBuzzing: true,
+  falseStartLockout: true,
   timers: { enabled: true, buzzWindowMs: 10_000, answerWindowMs: 10_000, finalAnswerMs: 45_000 },
 };
 
@@ -262,6 +266,7 @@ function common(spec: Spec) {
     phase: spec.phase,
     paused: spec.paused ?? null,
     hostConnected: spec.hostConnected ?? true,
+    buzzing: { fairBuzzing: true, falseStartLockout: true },
     players: spec.players ?? PLAYERS,
     waitingPlayers: spec.waitingPlayers ?? [],
     controllerId: spec.controllerId ?? null,

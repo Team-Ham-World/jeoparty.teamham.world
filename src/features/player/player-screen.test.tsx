@@ -107,11 +107,12 @@ describe("player screen", () => {
       playerOf(SPECS.open, "p-medchu", { can: { buzz: true } }),
       onSend,
     );
+    const button = await screen.findByRole("button", { name: "Buzz!" });
     const halo = container.querySelector(".buzz-halo");
     expect(halo).toHaveAttribute("aria-hidden", "true");
     expect(halo).not.toHaveClass("buzz-halo--still");
     await act(async () => {
-      fireEvent.pointerDown(screen.getByRole("button", { name: "Buzz!" }), { button: 0 });
+      fireEvent.pointerDown(button, { button: 0 });
     });
     expect(onSend).toHaveBeenCalledTimes(1);
     expect(container.querySelector(".buzz-halo")).toHaveClass("buzz-halo--still");

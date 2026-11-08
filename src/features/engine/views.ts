@@ -43,6 +43,10 @@ function common(s: GameState, now: number, host: boolean): ViewCommon {
     phase: s.phase,
     paused: s.paused,
     hostConnected: s.hostConnected,
+    buzzing: {
+      fairBuzzing: s.settings.fairBuzzing,
+      falseStartLockout: s.settings.falseStartLockout,
+    },
     players: s.players,
     waitingPlayers: s.waitingPlayers.map((p) => ({ id: p.id, name: p.name })),
     controllerId: s.controllerId,
@@ -53,7 +57,9 @@ function common(s: GameState, now: number, host: boolean): ViewCommon {
       ? {
           ...s.timer,
           remainingMs:
-            s.timer.endsAt === null ? s.timer.remainingMs : Math.max(0, s.timer.endsAt - now),
+            s.timer.endsAt === null
+              ? s.timer.remainingMs
+              : Math.min(s.timer.durationMs, Math.max(0, s.timer.endsAt - now)),
         }
       : null,
     clue: clue
@@ -66,6 +72,8 @@ function common(s: GameState, now: number, host: boolean): ViewCommon {
           prompt: host || clue.stage !== "wager" ? clue.prompt : null,
           wager: clue.wager,
           answeringPlayerId: clue.answeringPlayerId,
+          opensAt: clue.opensAt,
+          buzzResult: clue.buzzResult,
           attempts: clue.attempts,
           lockedOutPlayerIds: clue.lockedOutPlayerIds,
           answer: host || clue.stage === "revealed" ? clue.answer : null,
@@ -118,7 +126,7 @@ function allowedCommands(s: GameState, now: number) {
           ?.categories.flatMap((c) => c.cells)
           .find((c) => c.state === "available")?.clueId ?? "",
     },
-    { type: "openBuzzers", clueId: id },
+    { type: "openBuzzers", clueId: id, leadMs: 0 },
     { type: "judge", clueId: id, attemptId: s.clue?.attempts.at(-1)?.id ?? "", correct: true },
     { type: "endAttempts", clueId: id },
     { type: "reveal", clueId: id },
@@ -180,7 +188,11 @@ export function playerView(s: GameState, playerId: string, now: number): PlayerV
       status: playing ? "playing" : "waiting",
     },
     can: {
-      buzz: active && s.clue?.stage === "open" && eligibleBuzzers(s).some((p) => p.id === playerId),
+      buzz:
+        active &&
+        s.clue?.stage === "open" &&
+        !s.clue.collection?.candidates.some((p) => p.playerId === playerId) &&
+        eligibleBuzzers(s).some((p) => p.id === playerId),
       wager: active && s.controllerId === playerId ? wagerBounds(s) : null,
       finalWager:
         finalEligible && s.final?.stage === "wagers"

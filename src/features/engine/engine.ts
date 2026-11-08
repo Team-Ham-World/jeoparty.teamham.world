@@ -17,6 +17,8 @@ export const engine: EngineApi = {
       rounds: 1,
       wagerClues: [1, 2],
       finalRound: true,
+      fairBuzzing: true,
+      falseStartLockout: true,
       timers: {
         enabled: true,
         buzzWindowMs: 10_000,
@@ -52,14 +54,19 @@ export const engine: EngineApi = {
       return { ok: false, rejection: rejection("forbidden") };
     }
     if (draft.timer?.endsAt !== null && draft.timer)
-      draft.timer.remainingMs = Math.max(0, draft.timer.endsAt! - now);
+      draft.timer.remainingMs = Math.min(
+        draft.timer.durationMs,
+        Math.max(0, draft.timer.endsAt! - now),
+      );
     draft.updatedAt = now;
     return { ok: true, state: draft, events };
   },
-  nextDeadline: (state) =>
-    state.paused || !state.timer || state.timer.endsAt === null
-      ? null
-      : { timerId: state.timer.id, at: state.timer.endsAt },
+  nextDeadline: (state) => {
+    if (state.paused) return null;
+    if (state.clue?.collection)
+      return { timerId: state.clue.collection.id, at: state.clue.collection.decidesAt };
+    return state.timer?.endsAt == null ? null : { timerId: state.timer.id, at: state.timer.endsAt };
+  },
   hostView,
   playerView,
   displayView,
