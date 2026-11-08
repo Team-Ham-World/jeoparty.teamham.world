@@ -126,6 +126,8 @@
   }
 
   .ed-table-wrap {
+    /* Containing block for the visually hidden "Remove" header, so it scrolls with the table. */
+    position: relative;
     overflow-x: auto;
     margin-inline: -0.25rem;
     padding: 0.25rem;
