@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { QuestionPack } from "@/features/content";
 import type { PlayerId, PlayerView } from "@/features/engine/contract";
 import type { ConnectionStatus } from "@/features/network/connection";
@@ -12,12 +12,15 @@ import { PACK_SCHEMA_VERSION, finalCluePath, withFinalClue } from "@/features/ed
 import { PacksList } from "@/features/editor/packs-list";
 import { HostScreen } from "@/features/host/host-screen";
 import { HomeScreen } from "@/features/lobby/home-screen";
+import { PinnedBuzzerTiming } from "@/features/player/buzz-button";
 import { PlayerScreen } from "@/features/player/player-screen";
 import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
 import { ToastProvider } from "@/features/ui/toasts";
 import {
   FIXTURE_NOW,
   PACKS,
+  PINGS,
+  PINGS_MIXED,
   ROOM,
   SESSION_SIGNED_IN,
   SESSION_SIGNED_OUT,
@@ -46,7 +49,12 @@ const CLOCK_OFFSET = typeof window === "undefined" ? 0 : FIXTURE_NOW - Date.now(
 const JOIN_URL = `https://quiz.teamham.world/r/${ROOM}`;
 const log = (label: string) => (cmd: unknown) => console.info(`[preview ${label}] send`, cmd);
 
-type ConnOpts = { status?: ConnectionStatus; closeReason?: CloseReason; reject?: string };
+type ConnOpts = {
+  status?: ConnectionStatus;
+  closeReason?: CloseReason;
+  reject?: string;
+  pings?: Record<PlayerId, number | null>;
+};
 
 function player(
   id: string,
@@ -90,6 +98,7 @@ function host(id: string, title: string, spec: SpecId, conn: ConnOpts = {}): Pre
         code={ROOM}
         connection={mockConnection(conn.status === "connecting" ? null : hostFixture(spec), {
           ...conn,
+          pings: conn.pings ?? PINGS,
           clockOffsetMs: CLOCK_OFFSET,
           onSend: log("host"),
         })}
@@ -119,6 +128,56 @@ function display(id: string, title: string, spec: SpecId, conn: ConnOpts = {}): 
       />
     ),
   };
+}
+
+/**
+ * A phone buzzer held in a state that only lasts a moment in play (see
+ * PinnedBuzzerTiming): the 250 ms "Too early!" lockout, or just after it.
+ */
+function pinnedBuzzer(
+  id: string,
+  title: string,
+  timing: { lit: boolean; lockedOut: boolean; falseStart: boolean },
+): PreviewEntry {
+  return {
+    id: `player-${id}`,
+    group: "Player",
+    title,
+    viewport: "phone",
+    render: () => (
+      <PinnedBuzzerTiming.Provider value={timing}>
+        <PlayerScreen
+          code={ROOM}
+          connection={mockConnection(playerOf(SPECS.open, ME, { can: { buzz: true } }), {
+            clockOffsetMs: CLOCK_OFFSET,
+            onSend: log("player"),
+          })}
+        />
+      </PinnedBuzzerTiming.Provider>
+    ),
+  };
+}
+
+/**
+ * A real opening, played once: the clue is read, then buzzers are scheduled
+ * to light two seconds later. Tap during "Wait" to trigger a false start.
+ */
+function LightUpPreview() {
+  const [view, setView] = useState(() => playerOf(SPECS.reading, ME));
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const open = playerOf(SPECS.open, ME, { can: { buzz: true } });
+      const opensAt = Date.now() + CLOCK_OFFSET + 2000;
+      setView(atRevision({ ...open, clue: { ...open.clue!, opensAt } }, 61));
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <PlayerScreen
+      code={ROOM}
+      connection={mockConnection(view, { clockOffsetMs: CLOCK_OFFSET, onSend: log("player") })}
+    />
+  );
 }
 
 function samplePack(): QuestionPack {
@@ -216,9 +275,28 @@ export const PREVIEWS: PreviewEntry[] = [
   player("board-you-pick", "Board: you pick", SPECS.board, "p-ivvy"),
   player("reading", "Clue: reading", SPECS.reading, ME),
   player("open", "Clue: buzz now", SPECS.open, ME, { can: { buzz: true } }),
+  {
+    id: "player-light-up",
+    group: "Player",
+    title: "Clue: buzzer lights up (plays it; tap early to false-start)",
+    viewport: "phone",
+    render: () => <LightUpPreview />,
+  },
+  pinnedBuzzer("too-early", "Clue: too early (250 ms lockout, held)", {
+    lit: true,
+    lockedOut: true,
+    falseStart: true,
+  }),
+  pinnedBuzzer("after-early", "Clue: buzz after a false start", {
+    lit: true,
+    lockedOut: false,
+    falseStart: true,
+  }),
   player("open-locked", "Clue: locked out", SPECS.closed, "p-scarlet"),
   player("answering-you", "Clue: you're up", SPECS.answering, ME),
   player("answering-other", "Clue: someone else answering", SPECS.answering, "p-ivvy"),
+  player("answering-you-race", "Clue: you won the race by 0.04 s", SPECS.answeringRace, ME),
+  player("answering-other-race", "Clue: someone else won by 0.04 s", SPECS.answeringRace, "p-ivvy"),
   player("closed", "Clue: buzzers closed", SPECS.closed, ME),
   player("revealed", "Clue: answer revealed", SPECS.revealed, ME),
   {
@@ -357,11 +435,14 @@ export const PREVIEWS: PreviewEntry[] = [
   // ---------------------------------------------------------------- host
   host("lobby", "Lobby: ready to start", "lobby"),
   host("lobby-blocked", "Lobby: start blocked", "lobbyAlone"),
+  host("lobby-pings", "Lobby: pings, one slow, one measuring", "lobby", { pings: PINGS_MIXED }),
   host("round-intro", "Round intro", "roundIntro"),
   host("board", "Board (wager cell marked)", "board"),
+  host("board-pings", "Board: pings, one slow, one measuring", "board", { pings: PINGS_MIXED }),
   host("reading", "Clue: reading", "reading"),
   host("open", "Clue: buzzers open", "open"),
   host("answering", "Clue: judge the answer", "answering"),
+  host("answering-race", "Clue: judge, won the race by 0.04 s", "answeringRace"),
   host("closed", "Clue: closed after a miss", "closed"),
   host("judged", "Clue: judged correct", "judgedCorrect"),
   host("revealed", "Clue: revealed", "revealed"),
@@ -403,6 +484,8 @@ export const PREVIEWS: PreviewEntry[] = [
   display("reading", "Clue: reading", "reading"),
   display("open", "Clue: buzzers open", "open"),
   display("answering", "Clue: someone buzzed", "answering"),
+  display("answering-race", "Clue: buzzed in, won by 0.04 s", "answeringRace"),
+  display("answering-race-close", "Clue: buzzed in, won by a hair", "answeringRaceClose"),
   {
     id: "display-judged",
     group: "Display",
