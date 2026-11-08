@@ -29,6 +29,16 @@
     font-size: 1.3rem;
   }
 
+  /* The logo only links home in the lobby and on results (see PlayerBody).
+     On touch the link reaches 44 px tall into the bar's padding, like the
+     paper top bar, so the bar keeps its height. */
+  @media (pointer: coarse) {
+    .pl-top a.lockup {
+      padding-block: 0.6rem;
+      margin-block: -0.6rem;
+    }
+  }
+
   .pl-top .room-code {
     margin-left: auto;
     font-size: var(--fs-sm);
@@ -54,11 +64,23 @@
     flex: 1;
   }
 
+  /* Long HAM usernames get two lines instead of an early "…". */
   .pl-me__who strong {
+    display: -webkit-box;
     overflow: hidden;
     font-size: var(--fs-lg);
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* During a clue every pixel goes to the buzzer, so the name keeps one line. */
+  .pl--clue .pl-me__who strong {
+    -webkit-line-clamp: 1;
+  }
+
+  .pl-me__who .stamp {
+    justify-self: start;
+    margin-top: 0.35rem;
   }
 
   .pl-me__score {

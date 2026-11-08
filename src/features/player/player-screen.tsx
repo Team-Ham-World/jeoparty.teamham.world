@@ -79,11 +79,15 @@ function PlayerBody({
 
   const announcement = fresh ? describeEvent(fresh.event, view.players, view.me.id) : null;
   const isController = view.controllerId === view.me.id;
+  // Leaving is safe only when you're not mid-game: the lobby, results, or the bench.
+  // During play the logo isn't a link, so a stray tap can't leave the buzzer.
+  const canLeave =
+    view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting";
 
   return (
     <div className={`pl pl--${view.phase}`}>
       <header className="pl-top">
-        <Lockup href="/" />
+        <Lockup href={canLeave ? "/" : undefined} />
         <span className="room-code" aria-label={`Room ${view.roomCode.split("").join(" ")}`}>
           {view.roomCode}
         </span>
@@ -94,10 +98,10 @@ function PlayerBody({
         <div className="pl-me__who">
           <span className="eyebrow">You</span>
           <strong className="name">{view.me.name}</strong>
+          {isController && (view.phase === "board" || view.phase === "roundIntro") ? (
+            <span className="stamp stamp--blue">Your pick</span>
+          ) : null}
         </div>
-        {isController && (view.phase === "board" || view.phase === "roundIntro") ? (
-          <span className="stamp stamp--blue">Your pick</span>
-        ) : null}
         <div className="pl-me__score">
           <span className="eyebrow">Score</span>
           <strong className={`score ${view.me.score < 0 ? "score--neg" : ""}`}>
@@ -131,8 +135,7 @@ function PlayerBody({
         />
       </main>
 
-      {onLeave &&
-      (view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting") ? (
+      {onLeave && canLeave ? (
         <footer className="pl-foot">
           <button type="button" className="btn btn--quiet btn--small" onClick={onLeave}>
             Leave room
