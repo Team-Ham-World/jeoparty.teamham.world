@@ -28,6 +28,8 @@ A room code alone never grants host powers. Identity is the HAM account (server-
 | `rounds` | 2 if the pack has ≥ 2 × categoriesPerRound categories, else 1 | 1–2 |
 | `wagerClues` | `[1, 2]`, clamped to available cells | each 0–3, ≤ cells in that round |
 | `finalRound` | `true` | — |
+| `fairBuzzing` | `true` | boolean, independent of lockout |
+| `falseStartLockout` | `true` | boolean, independent of fair buzzing |
 | `timers.enabled` | `true` | — |
 | `timers.buzzWindowMs` | 10 000 | 3 000–60 000 |
 | `timers.answerWindowMs` | 10 000 | 3 000–60 000 |
@@ -52,12 +54,17 @@ The **controller** picks the next clue; the host clicks it for them and the disp
 Stages: `reading → open → answering → closed ⇄ open → revealed`.
 
 1. **Select** (host, board, available clue) → `reading`. The prompt is public; the answer is host-only; buzzers are closed.
-2. **Open buzzers** (host, `reading`, or `closed` when eligible players remain) → `open`. Starts the buzz timer when timers are enabled.
-3. **Buzz** (player, `open`, no earlier attempt on this clue): the first buzz the server processes wins → `answering`, and the answer timer starts. Buzzes in any other stage are rejected (`buzzersClosed`) with **no penalty**. Server processing order decides; phone timestamps are ignored.
+2. **Open buzzers** (host, `reading`, or `closed` when eligible players remain) → `open`. With Fair buzzing on, the server schedules `opensAt` in server time. The lead is the largest connected eligible player's one-way p90 RTT estimate plus 60 ms, clamped to 120–400 ms. No samples means 300 ms RTT. Phones and the TV light at `opensAt` using their clock offset, or immediately if the view arrives late. The buzz timer starts at `opensAt`.
+3. **Buzz** (player, `open`, no earlier attempt on this clue):
+   - With Fair buzzing off, the first buzz the server processes wins immediately → `answering`, as before.
+   - With Fair buzzing on, the phone sends `reactionMs` measured with its monotonic clock from when its buzzer actually lit, plus `falseStart`. The server records arrival at the start of the socket handler, before authentication or room queuing. Effective press time is `opensAt + reactionMs`, clamped between `arrival − uplinkBound − 40 ms` and `arrival`. The uplink bound is half that connection's p90 RTT, capped at 250 ms. Slower connections receive compensation only up to that cap. A buzz arriving earlier than `opensAt − 40 ms` is rejected. Arrivals within 40 ms before opening are tolerated, with effective time clamped to arrival.
+   - The first valid buzz starts collection while the stage stays `open`. The decision deadline is `max(firstArrival, min(firstArrival + 250 ms, firstEffective + largest other eligible connected uplink bound + 40 ms))`. Bounds come from the server when the first buzz arrives. Each player gets one candidate. Arrivals through the deadline may join, even if authentication finishes later; later arrivals are rejected. Lowest effective time wins; equal times use socket arrival order. The answer timer starts when the decision runs. Views show the winner, runner-up margin in ms or null with one contender, and contender count, never raw reaction times.
+   - With False-start lockout on, tapping in the 1 second before the buzzer lights locks that phone for 250 ms after lighting. The eventual buzz carries `falseStart: true`. Fair mode also enforces an effective time of at least `opensAt + 250 ms`; arrivals before that point are rejected. Without Fair buzzing, the phone alone enforces lockout. Early taps during reading are remembered for 1 second; taps before a scheduled opening only count in its final second. This is a friends-only rule: a modified client can hide false starts or lie about reaction time within the server's physical bounds. RTT assumes roughly symmetric travel and cannot prove honesty.
+   - Buzzes in other stages are rejected (`buzzersClosed`). Disconnection does not remove a collected candidate; no new bound is needed to decide it. Disconnected players are excluded from lead and collection-bound calculations. A player with no samples uses the default bound.
 4. **Judge** (host, `answering`, must name the current clue and attempt): correct adds the value, makes the player controller, and closes buzzing (`closed`). Incorrect subtracts the value, locks the player out of this clue, and moves to `closed`; the host may reopen while eligible players remain. Negative scores are allowed.
 5. Timers: buzz-window expiry moves `open → closed`. Answer-window expiry marks the attempt **timed out** for display; the host still judges it.
-6. **End attempts** (host, `reading`/`open`/`closed`) → `closed` with no more buzzes. Not allowed while `answering` (judge first).
-7. **Reveal** (host, `reading`/`open`/`closed`) → `revealed`; the answer becomes public. Not allowed while `answering`.
+6. **End attempts** (host, `reading`/`open`/`closed`) → `closed` with no more buzzes. Not allowed while `answering` or collecting (judge first).
+7. **Reveal** (host, `reading`/`open`/`closed`) → `revealed`; the answer becomes public. Not allowed while `answering` or collecting.
 8. **Return to board** (host, `revealed`) marks the clue completed. When the round has no available clues, play moves to the next round's intro, the final round, or results.
 
 ## Wager clue
@@ -86,6 +93,7 @@ Standings sort by score. Every player with the top score wins (shared win), even
 ## Pause, presence and recovery
 
 - Host **pause/resume** any time after start. While paused, timers freeze with their remaining time, and every gameplay command except resume, score correction, and end game is rejected (`paused`). Server-only presence, membership, rename, and recovery commands still run; timer expiry is rejected while paused.
+- Pausing during collection freezes the candidates and decides the winner immediately on resume, with a fresh answer timer. No candidates are added while paused. Pausing before `opensAt` preserves the remaining lead. Resuming an open window without candidates schedules a fresh opening after that remaining lead, restarts phone reaction measurement, and preserves the remaining buzz time. A restart follows the same rules, frozen at the last saved command time; transport latency samples start fresh. Older saved games receive the two default-on settings.
 - If the host's last connection drops during a game, the game auto-pauses (`hostOffline`). Resuming is always the host's explicit action.
 - Player disconnects are shown but do not change the game; the host decides whether to wait, judge, or end attempts. Voluntary departure removes lobby and waiting members immediately. During play, retain the player's scores and attempts through results, mark them disconnected, and free their seat on play again. Reconnecting before then cancels the departure.
 - After a backend restart, games in progress are restored **paused** (`restored`), with scores, clue progress, and remaining timer time intact. Acknowledged actions are saved before they are acknowledged or broadcast.
