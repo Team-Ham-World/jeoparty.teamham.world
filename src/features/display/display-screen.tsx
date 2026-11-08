@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import type { ClueView, DisplayView, FinalView, PublicPlayer } from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
 import { BoardGrid } from "@/features/board/board-grid";
@@ -89,11 +90,12 @@ export function DisplayScreen({
             <span className="tv-conn" role="status">
               {status === "connecting" ? "Connecting…" : "Reconnecting… this screen may be behind"}
             </span>
-          ) : (
+          ) : view.phase !== "lobby" ? (
+            // Not in the lobby: its step 1 already shows the join URL.
             <>
               <span className="tv-head__label">Join at</span> <strong>{shortUrl(joinUrl)}</strong>
             </>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -148,6 +150,25 @@ function shortUrl(url: string): string {
   return url.replace(/^https?:\/\//, "");
 }
 
+/**
+ * A player name with line-break chances after ".", "_" and "-", so a long
+ * username like "bartholomew.featherstonehaugh" wraps between its parts
+ * instead of mid-word. The text itself is unchanged.
+ */
+export function Name({ name }: { name: string }) {
+  const parts = name.match(/[^._-]*[._-]|[^._-]+$/g) ?? [name];
+  return (
+    <>
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {i > 0 ? <wbr /> : null}
+          {part}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
 function DisplayPhase({
   view,
   joinUrl,
@@ -178,7 +199,10 @@ function DisplayPhase({
       return (
         <section className="tv-board" aria-label="Board">
           <p className="tv-picks">
-            <strong className="name">{nameOf(view.players, view.controllerId)}</strong> picks
+            <strong className="name">
+              <Name name={nameOf(view.players, view.controllerId)} />
+            </strong>{" "}
+            picks
           </p>
           {view.board ? <BoardGrid board={view.board} variant="stage" /> : null}
         </section>
@@ -295,9 +319,13 @@ function DisplayClue({
         </h1>
         <span className="tv-clue__value num">
           {clue.kind === "wager" ? (
-            <span className="stamp stamp--hot stamp--flat">
-              {clue.wager !== null ? `Wager ${formatScore(clue.wager)}` : "Wager clue"}
-            </span>
+            <>
+              {/* The stake is the drama: it gets the same size as a normal clue value. */}
+              <span className="stamp stamp--hot stamp--flat">
+                {clue.wager !== null ? "Wager" : "Wager clue"}
+              </span>
+              {clue.wager !== null ? <span>{formatScore(clue.wager)}</span> : null}
+            </>
           ) : (
             formatScore(clue.value)
           )}
@@ -402,15 +430,25 @@ function DisplayFinal({
     );
   }
 
+  // Judging and done fit every response on screen: up to three per row, so
+  // four make two rows of two and five or six make two rows of three.
+  // Two rows ("dense") get tighter type.
+  const count = final.responses.length;
+  const columns = count <= 3 ? Math.max(count, 1) : Math.ceil(count / 2);
+  const dense = final.stage !== "answering" && count >= 4;
+
   return (
-    <section className={`tv-clue tv-final tv-final--${final.stage}`} aria-labelledby="tv-final-cat">
+    <section
+      className={`tv-clue tv-final tv-final--${final.stage} ${dense ? "tv-final--dense" : ""}`}
+      aria-labelledby="tv-final-cat"
+    >
       <header className="tv-clue__head">
         <h1 id="tv-final-cat" className="name">
           Final round · {final.categoryTitle}
         </h1>
       </header>
       <p
-        className={`tv-prompt ${final.stage === "answering" ? promptSize(final.prompt ?? "") : "tv-prompt--s"}`}
+        className={`tv-prompt ${final.stage === "answering" ? promptSize(final.prompt ?? "") : "tv-prompt--recap"}`}
       >
         {final.prompt}
       </p>
@@ -429,23 +467,35 @@ function DisplayFinal({
         </footer>
       ) : (
         <>
-          <ol className="tv-responses">
+          <ol className="tv-responses" style={{ "--cols": columns } as React.CSSProperties}>
             {final.responses.map((r) => (
               <li
                 key={r.playerId}
                 className={`tv-response tv-response--${r.status} ${r.status === "judged" ? (r.correct ? "is-good" : "is-bad") : ""}`}
               >
-                <span className="tv-response__who name">{nameOf(view.players, r.playerId)}</span>
+                <span className="tv-response__who name">
+                  <Name name={nameOf(view.players, r.playerId)} />
+                </span>
                 <span className="tv-response__said">
                   {r.status === "hidden" ? "?" : r.answer ? `“${r.answer}”` : "(no answer)"}
                 </span>
-                <span className="tv-response__result">
-                  {r.status === "judged"
-                    ? `${r.correct ? "Correct" : "Incorrect"} · wager ${formatScore(r.wager ?? 0)} · ${formatDelta(r.delta ?? 0)}`
-                    : r.status === "revealed"
-                      ? "Judging…"
-                      : "Not yet revealed"}
-                </span>
+                {r.status === "judged" ? (
+                  <span className="tv-response__result">
+                    <span
+                      className={`stamp stamp--flat ${r.correct ? "stamp--good" : "stamp--bad"}`}
+                    >
+                      {r.correct ? "Correct" : "Incorrect"}
+                    </span>{" "}
+                    <span className="tv-response__delta num">{formatDelta(r.delta ?? 0)}</span>{" "}
+                    <span className="tv-response__wager">
+                      wager <span className="num">{formatScore(r.wager ?? 0)}</span>
+                    </span>
+                  </span>
+                ) : (
+                  <span className="tv-response__result">
+                    {r.status === "revealed" ? "Judging…" : "Not yet revealed"}
+                  </span>
+                )}
               </li>
             ))}
           </ol>
@@ -490,11 +540,32 @@ function Progress({
   );
 }
 
+/** The longest run of characters in a name that has no space or break chance. */
+function longestPart(name: string): number {
+  return Math.max(0, ...name.split(/[\s._-]+/).map((part) => part.length));
+}
+
+/**
+ * Winner names step down in size so they fit the slip: long names, or names
+ * with a long unbroken part (usernames like "bartholomew.featherstonehaugh"),
+ * get smaller type instead of running off the edge. Long names may take two
+ * or three lines; only an unbroken part too wide for one line at 2.1em gets
+ * the smallest size. Co-winners share the size their longest name needs, so
+ * nobody's slip looks like second place.
+ */
+export function podiumNameSize(names: string[]): string {
+  if (names.some((name) => longestPart(name) > 18)) return "tv-podium__name--xlong";
+  if (names.some((name) => name.length > 14 || longestPart(name) > 12))
+    return "tv-podium__name--long";
+  return "";
+}
+
 function DisplayResults({ view }: { view: DisplayView }) {
   const results = view.results;
   if (!results) return null;
   const winners = results.standings.filter((s) => results.winnerIds.includes(s.playerId));
   const rest = results.standings.filter((s) => !results.winnerIds.includes(s.playerId));
+  const nameSize = podiumNameSize(winners.map((w) => w.name));
   return (
     <section className="tv-results" aria-labelledby="tv-results-title">
       <span className="stamp stamp--red tv-stamp">
@@ -505,7 +576,10 @@ function DisplayResults({ view }: { view: DisplayView }) {
           ? `Shared win: ${listNames(winners.map((w) => w.name))}`
           : `Winner: ${winners[0]?.name ?? "nobody"}`}
       </h1>
-      <ul className="tv-podium" aria-hidden="true">
+      <ul
+        className={`tv-podium ${winners.length >= 3 ? "tv-podium--crowd" : ""}`}
+        aria-hidden="true"
+      >
         {winners.map((w, i) => (
           <li
             key={w.playerId}
@@ -513,10 +587,8 @@ function DisplayResults({ view }: { view: DisplayView }) {
             style={{ "--tilt": `${i % 2 === 0 ? -1.5 : 1.5}deg` } as React.CSSProperties}
           >
             <span className="tv-podium__rank">{ordinal(w.rank)}</span>
-            <span
-              className={`tv-podium__name ${w.name.length > 14 ? "tv-podium__name--long" : ""}`}
-            >
-              {w.name}
+            <span className={`tv-podium__name ${nameSize}`}>
+              <Name name={w.name} />
             </span>
             <span className="tv-podium__score num">{formatScore(w.score)}</span>
           </li>
@@ -527,7 +599,9 @@ function DisplayResults({ view }: { view: DisplayView }) {
           {rest.map((s) => (
             <li key={s.playerId}>
               <span className="num">{ordinal(s.rank)}</span>
-              <span className="name">{s.name}</span>
+              <span className="name">
+                <Name name={s.name} />
+              </span>
               <span className="num">{formatScore(s.score)}</span>
             </li>
           ))}
@@ -552,7 +626,10 @@ function ScoreStrip({
   const locked =
     view.clue && view.clue.stage !== "revealed" && !solved ? view.clue.lockedOutPlayerIds : [];
   return (
-    <footer className="tv-scores" aria-label="Scores">
+    <footer
+      className={`tv-scores ${view.players.length >= 5 ? "tv-scores--dense" : ""}`}
+      aria-label="Scores"
+    >
       <ul style={{ "--n": view.players.length } as React.CSSProperties}>
         {view.players.map((player) => {
           const isAnswering = player.id === answering;
@@ -564,7 +641,9 @@ function ScoreStrip({
               key={player.id === pulseId ? `${player.id}-${pulseKey}` : player.id}
               className={`tv-score ${isAnswering ? "tv-score--answering" : ""} ${picks ? "tv-score--picks" : ""} ${!player.connected ? "tv-score--away" : ""} ${locked.includes(player.id) ? "tv-score--locked" : ""} ${player.id === pulseId ? "tv-score--pulse" : ""}`}
             >
-              <span className="tv-score__name name">{player.name}</span>
+              <span className="tv-score__name name">
+                <Name name={player.name} />
+              </span>
               <span className={`tv-score__pts num ${player.score < 0 ? "is-neg" : ""}`}>
                 {formatScore(player.score)}
               </span>

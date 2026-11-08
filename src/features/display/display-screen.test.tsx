@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { DisplayView, FinalView, PublicPlayer } from "@/features/engine/contract";
 import { SPECS, displayFixture, hostFixture, type SpecId } from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
-import { DisplayScreen } from "./display-screen";
+import { DisplayScreen, Name, podiumNameSize } from "./display-screen";
 
 const ids = Object.keys(SPECS) as SpecId[];
 
@@ -70,5 +71,130 @@ describe("display privacy", () => {
     );
     expect(screen.getByLabelText("Room code B C D F G")).toBeVisible();
     expect(screen.getByRole("img", { name: /join room BCDFG/ })).toBeVisible();
+  });
+});
+
+// Six players with the long, unbroken usernames HAM sign-in can return.
+const SIX: PublicPlayer[] = [
+  { id: "p1", name: "maximiliana.delacruz-santos_jr", score: 0, connected: true },
+  { id: "p2", name: "bartholomew.featherstonehaugh", score: 400, connected: true },
+  { id: "p3", name: "scarlet_the_magnificent", score: 600, connected: true },
+  { id: "p4", name: "ivvy", score: 300, connected: true },
+  { id: "p5", name: "medchu", score: 800, connected: true },
+  { id: "p6", name: "x", score: 600, connected: true },
+];
+
+/** The final round with `count` judged responses (alternately right and wrong). */
+function finalWith(stage: "judging" | "done", count: number): DisplayView {
+  const base = displayFixture(stage === "done" ? "finalDone" : "finalJudging");
+  const players = SIX.slice(0, count);
+  const final: FinalView = {
+    ...base.final!,
+    eligiblePlayerIds: players.map((p) => p.id),
+    responses: players.map((p, i) => ({
+      playerId: p.id,
+      status: "judged",
+      answer: `answer ${i}`,
+      wager: 200,
+      correct: i % 2 === 0,
+      delta: i % 2 === 0 ? 200 : -200,
+    })),
+  };
+  return { ...base, players, final };
+}
+
+function renderView(view: DisplayView) {
+  return render(
+    <DisplayScreen connection={mockConnection(view)} joinUrl="https://quiz.example/r/BCDFG" />,
+  );
+}
+
+describe("display layout", () => {
+  it("lets long usernames break between their parts without changing the text", () => {
+    const { container } = render(
+      <span>
+        <Name name="maximiliana.delacruz-santos_jr" />
+      </span>,
+    );
+    expect(container.textContent).toBe("maximiliana.delacruz-santos_jr");
+    expect(container.querySelectorAll("wbr")).toHaveLength(3);
+  });
+
+  it("sizes podium names by length and longest unbroken part, shared by co-winners", () => {
+    expect(podiumNameSize(["Ivvy"])).toBe("");
+    expect(podiumNameSize(["Scarlet the Great"])).toBe("tv-podium__name--long");
+    expect(podiumNameSize(["featherstonehau"])).toBe("tv-podium__name--long");
+    expect(podiumNameSize(["abcdefghijklm"])).toBe("tv-podium__name--long");
+    expect(podiumNameSize(["bartholomew.featherstonehaugh"])).toBe("tv-podium__name--long");
+    expect(podiumNameSize(["maximilianfeatherstonehaugh"])).toBe("tv-podium__name--xlong");
+    expect(podiumNameSize(["Medchu", "maximilianfeatherstonehaugh"])).toBe(
+      "tv-podium__name--xlong",
+    );
+  });
+
+  it("gives co-winners the same name size on the podium", () => {
+    const { container } = renderView(displayFixture("results"));
+    const names = [...container.querySelectorAll(".tv-podium__name")];
+    expect(names).toHaveLength(2);
+    for (const name of names) expect(name).toHaveClass("tv-podium__name--long");
+  });
+
+  it("uses the dense score strip for five or six players", () => {
+    const board = displayFixture("board");
+    expect(renderView(board).container.querySelector(".tv-scores")).not.toHaveClass(
+      "tv-scores--dense",
+    );
+    const { container } = renderView({ ...board, players: SIX, controllerId: "p1" });
+    expect(container.querySelector(".tv-scores")).toHaveClass("tv-scores--dense");
+    const names = [...container.querySelectorAll(".tv-score__name")].map((n) => n.textContent);
+    expect(names).toEqual(SIX.map((p) => p.name));
+  });
+
+  it("marks a locked-out player's tile, not only its tag", () => {
+    const { container } = renderView(displayFixture("closed"));
+    const locked = container.querySelector(".tv-score--locked");
+    expect(locked).toHaveTextContent("Scarlet");
+    expect(locked?.querySelector(".tv-score__tag")).toHaveTextContent("Locked out");
+  });
+
+  it.each([
+    [2, "2", false],
+    [3, "3", false],
+    [4, "2", true],
+    [5, "3", true],
+    [6, "3", true],
+  ])("lays out %i final responses in %s columns (dense: %s)", (count, columns, dense) => {
+    const { container } = renderView(finalWith("done", count));
+    const list = container.querySelector<HTMLElement>(".tv-responses");
+    expect(list?.style.getPropertyValue("--cols")).toBe(columns);
+    expect(container.querySelector(".tv-final")?.classList.contains("tv-final--dense")).toBe(dense);
+    expect(container.querySelectorAll(".tv-response")).toHaveLength(count);
+  });
+
+  it("stamps each final verdict and keeps the correct answer on screen", () => {
+    const { container } = renderView(finalWith("done", 6));
+    const good = [...container.querySelectorAll(".tv-response .stamp--good")];
+    const bad = [...container.querySelectorAll(".tv-response .stamp--bad")];
+    expect(good.map((s) => s.textContent)).toEqual(["Correct", "Correct", "Correct"]);
+    expect(bad.map((s) => s.textContent)).toEqual(["Incorrect", "Incorrect", "Incorrect"]);
+    const first = container.querySelector(".tv-response__result");
+    expect(first).toHaveTextContent("Correct +200 wager 200");
+    expect(container.querySelector(".tv-answer")).toHaveTextContent("What is Deep Blue?");
+  });
+
+  it("shows the wager stake at full value size beside a Wager stamp", () => {
+    const { container } = renderView(displayFixture("wagerAnswering"));
+    const value = container.querySelector(".tv-clue__value");
+    expect(value?.querySelector(".stamp")).toHaveTextContent(/^Wager$/);
+    expect(value).toHaveTextContent("Wager1,000");
+  });
+
+  it("drops the header join URL in the lobby, where step 1 already shows it", () => {
+    expect(
+      renderView(displayFixture("lobby")).container.querySelector(".tv-head"),
+    ).not.toHaveTextContent("Join at");
+    expect(
+      renderView(displayFixture("board")).container.querySelector(".tv-head"),
+    ).toHaveTextContent("Join at quiz.example/r/BCDFG");
   });
 });
