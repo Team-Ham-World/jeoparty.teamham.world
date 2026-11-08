@@ -37,6 +37,13 @@ describe("pack drafts", () => {
   });
 });
 
+/** The editor's save-state live region (the toast region is a status too). */
+function saveStatus() {
+  const region = screen.getAllByRole("status").find((el) => el.closest(".ed-bar"));
+  if (!region) throw new Error("No save status in the editor bar");
+  return region;
+}
+
 describe("pack editor", () => {
   it("maps server validation errors to their fields by path", async () => {
     const onSave = vi.fn(async () => {
@@ -62,6 +69,38 @@ describe("pack editor", () => {
     const finalAnswer = document.getElementById(fieldId(`${finalCluePath(0)}.answer`));
     expect(finalAnswer).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("2 problems to fix")).toBeVisible();
+  });
+
+  it("never says Saved while problems are listed", () => {
+    render(
+      <ToastProvider>
+        <PackEditor
+          initial={filledPack()}
+          isNew={false}
+          onSave={async () => {}}
+          onNavigate={() => {}}
+          initialErrors={[{ path: "title", message: "Title is already used by another pack." }]}
+        />
+      </ToastProvider>,
+    );
+    expect(saveStatus()).toHaveTextContent("Needs fixes");
+    expect(screen.getByText("1 problem to fix")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Renamed pack" } });
+    expect(saveStatus()).toHaveTextContent("Unsaved changes");
+  });
+
+  it("says Saved for a stored pack with no problems", () => {
+    render(
+      <ToastProvider>
+        <PackEditor
+          initial={filledPack()}
+          isNew={false}
+          onSave={async () => {}}
+          onNavigate={() => {}}
+        />
+      </ToastProvider>,
+    );
+    expect(saveStatus()).toHaveTextContent(/^Saved$/);
   });
 
   it("validates locally before calling the server", async () => {

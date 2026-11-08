@@ -39,10 +39,14 @@ describe("home", () => {
       />,
     );
     const input = screen.getByLabelText("Room code");
+    // A hint, not a placeholder, so the empty field never looks filled in.
+    expect(input).not.toHaveAttribute("placeholder");
+    expect(input).toHaveAccessibleDescription("5 letters, no vowels.");
     fireEvent.change(input, { target: { value: "bcd" } });
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(onJoin).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent("5 letters");
+    expect(input).toHaveAccessibleDescription(/no vowels\. Room codes are 5 letters/);
     fireEvent.change(input, { target: { value: "bcdfg" } });
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(onJoin).toHaveBeenCalledWith("BCDFG");

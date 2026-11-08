@@ -24,8 +24,18 @@
 
   .home-hero__title {
     font-size: clamp(2.25rem, 6.5vw, 4rem);
-    line-height: 1.04;
+    line-height: 1.1;
     letter-spacing: -0.02em;
+  }
+
+  /* A slimmer stroke that sits just under the baseline, clear of the next line. */
+  .home-hero__title .marker {
+    padding-bottom: 0.08em;
+    background-size: 100% 0.22em;
+  }
+
+  .nowrap {
+    white-space: nowrap;
   }
 
   .home-hero__lede {
@@ -50,24 +60,27 @@
     justify-self: start;
   }
 
-  .input--code::placeholder {
-    opacity: 0.45;
-  }
-
   .home-card h2 {
     font-size: var(--fs-2xl);
   }
 
-  .home-card:nth-child(1) {
+  .home-card--host {
     transform: rotate(-0.4deg);
   }
 
-  .home-card:nth-child(2) {
+  .home-card--join {
     transform: rotate(0.5deg);
   }
 
+  /* Stacked (one column): most people on a phone are joining, so Join goes first. */
+  @media (max-width: 47.99rem) {
+    .home-card--join {
+      order: -1;
+    }
+  }
+
   @media (max-width: 400px) {
-    .home-card:nth-child(n) {
+    .home-card {
       transform: none;
     }
   }

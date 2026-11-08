@@ -79,14 +79,47 @@
     border-bottom: 2px solid var(--ink);
   }
 
+  /* Zero basis: the bar stays one row while the stamp's longest word still fits. */
   .ed-bar__status {
-    flex: 1;
+    flex: 1 1 0;
+  }
+
+  /* On a phone a long state ("Unsaved changes") stacks into a two-line stamp. */
+  .ed-bar__status .stamp {
+    white-space: normal;
+    text-align: center;
+  }
+
+  @media (max-width: 30rem) {
+    .ed-bar {
+      gap: 0.5rem;
+    }
+
+    .ed-bar > .btn--quiet {
+      padding-inline: 0.35rem;
+    }
+
+    .ed-bar > .btn--primary {
+      padding-inline: 0.75rem;
+    }
+  }
+
+  /* Title with the file actions beside it; they wrap under it on narrow screens. */
+  .ed-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
   }
 
   .ed-title {
-    justify-self: start;
     font-size: var(--fs-3xl);
     overflow-wrap: anywhere;
+  }
+
+  .ed-file {
+    gap: 0.5rem;
   }
 
   .ed-errors {
@@ -126,6 +159,8 @@
   }
 
   .ed-table-wrap {
+    /* Containing block for the visually hidden "Remove" header, so it scrolls with the table. */
+    position: relative;
     overflow-x: auto;
     margin-inline: -0.25rem;
     padding: 0.25rem;
@@ -146,6 +181,11 @@
   .ed-table td {
     padding: 0.25rem 0.35rem;
     vertical-align: middle;
+  }
+
+  .ed-table th:first-child,
+  .ed-table td:first-child {
+    min-width: 9rem;
   }
 
   .ed-center {
@@ -183,8 +223,10 @@
     gap: 1rem;
   }
 
+  /* Centred on the title input, not on the label + input block: (44 px input − 22 px chip) / 2. */
   .ed-cat__num {
-    align-self: center;
+    align-self: end;
+    margin-bottom: 0.6875rem;
     padding: 0.2rem 0.6rem;
     font-size: var(--fs-sm);
     color: var(--surface);
@@ -192,8 +234,10 @@
     white-space: nowrap;
   }
 
+  /* As tall as the title input, so the buttons centre on its line at any button height. */
   .ed-cat__tools {
     gap: 0.4rem;
+    min-height: 44px;
   }
 
   @media (max-width: 640px) {
@@ -203,6 +247,7 @@
 
     .ed-cat__num {
       justify-self: start;
+      margin-bottom: 0;
     }
   }
 
@@ -268,7 +313,6 @@
 
   .ed-add-cat {
     justify-self: start;
-    border-style: dashed;
   }
 
   .ed-foot {

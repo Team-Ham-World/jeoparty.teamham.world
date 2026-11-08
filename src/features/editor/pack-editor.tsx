@@ -146,22 +146,40 @@ export function PackEditor({
 
   return (
     <div className="ed">
+      {/* Sticky: only what you need while scrolling a long pack. */}
       <div className="ed-bar">
         <Link className="btn btn--quiet btn--small" href="/packs">
           ← My packs
         </Link>
         <div className="ed-bar__status" role="status">
           {saving ? (
-            "Saving…"
+            <span className="stamp stamp--dashed stamp--flat">Saving…</span>
           ) : dirty ? (
             <span className="stamp stamp--warn stamp--flat">Unsaved changes</span>
+          ) : errors.length > 0 ? (
+            <span className="stamp stamp--bad stamp--flat">Needs fixes</span>
           ) : isNew ? (
             <span className="stamp stamp--dashed stamp--flat">Not saved yet</span>
           ) : (
             <span className="stamp stamp--good stamp--flat">Saved</span>
           )}
         </div>
-        <div className="row">
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={save}
+          disabled={!canSave}
+          aria-busy={saving || undefined}
+        >
+          {isNew ? "Save pack" : "Save changes"}
+        </button>
+      </div>
+
+      <div className="ed-head">
+        <h1 className="ed-title marker">
+          {isNew ? "New pack" : pack.title.trim() || "Untitled pack"}
+        </h1>
+        <div className="row ed-file">
           <input
             ref={fileInput}
             type="file"
@@ -181,21 +199,8 @@ export function PackEditor({
           <button type="button" className="btn btn--small" onClick={exportFile}>
             Export JSON
           </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={save}
-            disabled={!canSave}
-            aria-busy={saving || undefined}
-          >
-            {isNew ? "Save pack" : "Save changes"}
-          </button>
         </div>
       </div>
-
-      <h1 className="ed-title marker">
-        {isNew ? "New pack" : pack.title.trim() || "Untitled pack"}
-      </h1>
 
       {errors.length > 0 ? (
         <section
