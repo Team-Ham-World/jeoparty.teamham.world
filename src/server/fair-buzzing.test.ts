@@ -233,3 +233,25 @@ it("fires fractional reaction deadlines without rounding the timer early and get
   await a.waitView((v) => v.clue?.stage === "answering");
   expect(a.host.clue?.answeringPlayerId).toBe(players[0].player.me.id);
 });
+
+it("re-arms a deadline when the timer fires before the clock reaches it", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  h = await harness(":memory:", { engine });
+  const { a, players } = await table(h, 2);
+  await start(a, pack.id, { fairBuzzing: true });
+  const clueId = a.host.board!.categories[0].cells[0].clueId;
+  await a.ok({ type: "selectClue", clueId });
+  await a.ok({ type: "openBuzzers", clueId });
+  h.advance(430);
+  await vi.advanceTimersByTimeAsync(430);
+  await players[0].ok({ type: "buzz", clueId, reactionMs: 200.25, falseStart: false });
+  // The decision is due in 170.25 ms, so the timer is set for 171 ms. It fires with the clock
+  // still at 170 ms: the engine refuses it, and without a re-arm the clue would hang.
+  h.advance(170);
+  await vi.advanceTimersByTimeAsync(171);
+  expect(a.host.clue?.stage).toBe("open");
+  h.advance(1);
+  await vi.advanceTimersByTimeAsync(1);
+  await a.waitView((v) => v.clue?.stage === "answering");
+  expect(a.host.clue?.answeringPlayerId).toBe(players[0].player.me.id);
+});

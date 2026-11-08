@@ -121,10 +121,16 @@ export class Room {
           void this.system({
             type: "timerExpired",
             timerId: deadline.timerId,
-          }).catch(() => {
-            // Save failures must not drop the deadline. Retry without acknowledging an unsaved change.
-            if (!this.closed) this.timer = setTimeout(() => this.schedule(), 1000);
-          });
+          })
+            .then((result) => {
+              // Node can fire about 1 ms before Date.now() reaches the deadline, and the engine
+              // refuses that as stale. Re-arm, or the deadline is lost and the clue hangs.
+              if (!result.ok) this.schedule();
+            })
+            .catch(() => {
+              // Save failures must not drop the deadline. Retry without acknowledging an unsaved change.
+              if (!this.closed) this.timer = setTimeout(() => this.schedule(), 1000);
+            });
         },
         Math.max(0, Math.ceil(deadline.at - this.deps.now())),
       );
