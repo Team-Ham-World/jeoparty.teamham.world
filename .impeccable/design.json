@@ -521,7 +521,7 @@
       "refersTo": "button-primary",
       "description": "The single main action of a screen.",
       "html": "<button class=\"ds-btn-primary\">Start game</button>",
-      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:.75rem 1.4rem;font-family:var(--font-body);font-size:1.125rem;font-weight:700;color:var(--surface);background:var(--blue);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);cursor:pointer;transition:transform 80ms cubic-bezier(.2,.8,.2,1),box-shadow 80ms cubic-bezier(.2,.8,.2,1)}.ds-btn-primary:hover{background:#173fb0}.ds-btn-primary:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}.ds-btn-primary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}"
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:.75rem 1.4rem;font-family:var(--font-body);font-size:1.125rem;font-weight:700;color:var(--surface);background:var(--blue);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);cursor:pointer;transition:transform 80ms cubic-bezier(.2,.8,.2,1),box-shadow 80ms cubic-bezier(.2,.8,.2,1)}.ds-btn-primary:hover{background:var(--blue-press)}.ds-btn-primary:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}.ds-btn-primary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}"
     },
     {
       "name": "Judge Buttons",
@@ -529,7 +529,7 @@
       "refersTo": "button-good",
       "description": "Host Correct / Incorrect with keyboard hints.",
       "html": "<div style=\"display:flex;gap:.75rem\"><button class=\"ds-judge ds-judge--good\">Correct +600 <kbd class=\"ds-kbd\">C</kbd></button><button class=\"ds-judge ds-judge--bad\">Incorrect −600 <kbd class=\"ds-kbd\">X</kbd></button></div>",
-      "css": ".ds-judge{display:inline-flex;align-items:center;gap:.5em;min-height:56px;padding:.75rem 1.4rem;font-family:var(--font-body);font-size:1.125rem;font-weight:700;color:var(--surface);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);cursor:pointer}.ds-judge--good{background:var(--good)}.ds-judge--good:hover{background:#17562e}.ds-judge--bad{background:var(--bad)}.ds-judge--bad:hover{background:#8a1f15}.ds-judge:active{transform:translate(2px,2px);box-shadow:none}.ds-judge:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.ds-kbd{min-width:1.5em;padding:0 .35em;font-size:.75em;border:1.5px solid currentColor;border-bottom-width:3px;border-radius:2px;opacity:.85}"
+      "css": ".ds-judge{display:inline-flex;align-items:center;gap:.5em;min-height:56px;padding:.75rem 1.4rem;font-family:var(--font-body);font-size:1.125rem;font-weight:700;color:var(--surface);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);cursor:pointer}.ds-judge--good{background:var(--good)}.ds-judge--good:hover{background:var(--good-press)}.ds-judge--bad{background:var(--bad)}.ds-judge--bad:hover{background:var(--bad-press)}.ds-judge:active{transform:translate(2px,2px);box-shadow:none}.ds-judge:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.ds-kbd{min-width:1.5em;padding:0 .35em;font-size:.75em;border:1.5px solid currentColor;border-bottom-width:3px;border-radius:2px;opacity:.85}"
     },
     {
       "name": "Text Field",

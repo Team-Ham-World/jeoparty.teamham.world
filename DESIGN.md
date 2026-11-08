@@ -17,6 +17,12 @@ colors:
   highlight: "#fce38a"
   shade: "#e9e1cf"
   rule: "#cfc5ae"
+  hot-tint: "#fde4ea"
+  blue-press: "#173fb0"
+  good-press: "#17562e"
+  bad-press: "#8a1f15"
+  tape: "#e6d8b0b8"
+  tape-edge: "#b9a87a"
   stage: "#1c1a17"
   stage-raise: "#2b2824"
   stage-text: "#f6f1e5"
@@ -100,17 +106,17 @@ components:
     padding: "0.5rem 1rem"
     height: "44px"
   button-primary-hover:
-    backgroundColor: "#173fb0"
+    backgroundColor: "{colors.blue-press}"
   button-good:
     backgroundColor: "{colors.good}"
     textColor: "{colors.surface}"
   button-good-hover:
-    backgroundColor: "#17562e"
+    backgroundColor: "{colors.good-press}"
   button-bad:
     backgroundColor: "{colors.bad}"
     textColor: "{colors.surface}"
   button-bad-hover:
-    backgroundColor: "#8a1f15"
+    backgroundColor: "{colors.bad-press}"
   button-quiet:
     backgroundColor: "transparent"
     textColor: "{colors.blue}"
@@ -120,6 +126,9 @@ components:
   button-small:
     padding: "0.3rem 0.7rem"
     height: "36px"
+  button-small-touch:
+    padding: "0.45rem 0.7rem"
+    height: "44px"
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -195,7 +204,7 @@ components:
     textColor: "{colors.ink}"
     height: "3.25rem"
   board-cell-host-wager:
-    backgroundColor: "#fde4ea"
+    backgroundColor: "{colors.hot-tint}"
     textColor: "{colors.ink}"
   tv-score:
     backgroundColor: "{colors.stage-raise}"
@@ -231,7 +240,7 @@ Motion is short and paper-like: slips drop in, stamps thud down at a slight angl
 A warm, papery neutral base with five functional accents, each paired with a word, and one decorative red that never carries meaning.
 
 ### Primary
-- **Press Blue** (blue): the only interactive color. Primary buttons, links, the live buzzer, focus rings (3 px outline, 3 px offset), the active board cell, the "you pick" slip, and the answering player's TV tile. Hover darkens it to #173fb0.
+- **Press Blue** (blue): the only interactive color. Primary buttons, links, the live buzzer, focus rings (3 px outline, 3 px offset), the active board cell, the "you pick" slip, and the answering player's TV tile. Hover darkens it to blue-press (#173fb0).
 - **Press Tint** (blue-tint): hover fill for ordinary buttons, the info banner, the "answering" attempt row and the revealed final response on the host.
 
 ### Secondary
@@ -239,7 +248,7 @@ A warm, papery neutral base with five functional accents, each paired with a wor
 - **Incorrect Rust** (bad): "Incorrect" buttons and stamps, negative scores, field errors, the low-time countdown fill. Always paired with the word or a minus sign. Tint (bad-tint) for incorrect rows and the error banner.
 
 ### Tertiary
-- **Ham Pink** (hot): the "Hot HAM!" wager brand and wager stamps. The host board uses a lighter pink (#fde4ea) for hidden wager cells.
+- **Ham Pink** (hot): the "Hot HAM!" wager brand and wager stamps. The host board uses a lighter pink (hot-tint, #fde4ea) for hidden wager cells.
 - **Highlighter Yellow** (highlight): answers, warnings, the stale/paused banner, the "you" row highlight strip and text selection.
 - **Marker Red** (red): decorative only. Marker underline, red stamp double outline, TV category-slip shadow, TV room-code letter shadow, podium shadow, the Hot HAM! starburst. Never text, never a state signal.
 
@@ -250,6 +259,7 @@ A warm, papery neutral base with five functional accents, each paired with a wor
 - **Muted Ink** (muted): secondary text, disabled buttons (dashed outline), idle buzzer label. 6.47:1 on paper.
 - **Shade** (shade): sunken paper: the idle buzzer, the empty-state panel.
 - **Rule** (rule): dashed hairlines between list rows and section dividers. Decorative; never text.
+- **Tape** (tape, tape-edge): the translucent masking-tape strip and its dashed ends. Decorative only.
 
 ### Stage (TV)
 - **Stage** (stage) and **Stage Raise** (stage-raise): the TV background and score tiles.
@@ -277,9 +287,9 @@ A warm, papery neutral base with five functional accents, each paired with a wor
 - **Numeral** (800, 1.25–2.05em, 1, −0.03em, tabular): scores, board values, clue values, room codes (with +0.08–0.2em tracking).
 - **Body** (400, 1rem / 16 px, 1.5): sentences. Clue prompts are body font at 700: 1.375rem on the phone, 1.75rem on the host, 1.4–2.6em on the TV by prompt length.
 - **Label** (700, 0.8125rem / 13 px, 0.12em, uppercase): eyebrows above fields and sections. Field labels are 0.875rem 700, not uppercase.
-- **Stamp** (700, 0.8125rem, 0.08em, uppercase): state stamps; 0.6875rem inside host roster tags.
+- **Stamp** (700, 0.8125rem, 0.08em, uppercase): state stamps; `--fs-2xs` (0.75rem) for tags inside board cells and host roster rows.
 
-The type scale is `--fs-xs` 0.8125 · `--fs-sm` 0.875 · `--fs-md` 1 · `--fs-lg` 1.125 · `--fs-xl` 1.375 · `--fs-2xl` 1.75 · `--fs-3xl` 2.25 · `--fs-4xl` 3 rem. The TV uses its own em scale off a root of min(1.5625vw, 2.78vh) (30 px at 1920×1080, about 21 px at 1366×768, fixed 15 px below 900×520).
+The type scale is `--fs-2xs` 0.75 (the floor: tags and labels inside dense board cells and rows) · `--fs-xs` 0.8125 · `--fs-sm` 0.875 · `--fs-md` 1 · `--fs-lg` 1.125 · `--fs-xl` 1.375 · `--fs-2xl` 1.75 · `--fs-3xl` 2.25 · `--fs-4xl` 3 rem. The TV uses its own em scale off a root of min(1.5625vw, 2.78vh) (30 px at 1920×1080, about 21 px at 1366×768, fixed 15 px below 900×520).
 
 ### Named Rules
 **The Wordmark Is Not Type Rule.** "HAM" is always the traced wordmark SVG (currentColor fill). It is never set in Bricolage or any font, including inside "Hot HAM!".
@@ -288,11 +298,11 @@ The type scale is `--fs-xs` 0.8125 · `--fs-sm` 0.875 · `--fs-md` 1 · `--fs-lg
 
 ## Layout
 
-- **Paper pages** (home, packs, editor, notices): a 60 px top bar with a 2 px ink bottom rule, then a centred `.page` column, max 72rem (44rem narrow), padding 2rem top and 4rem bottom, with 16 px safe-area-aware side gutters.
+- **Paper pages** (home, packs, editor, notices): a 60 px top bar with a 2 px ink bottom rule, then a centred `.page` column, max 72rem (44rem narrow), padding 2rem top and 4rem bottom, with 16 px safe-area-aware side gutters. Notices (loading, sign-in, errors, closed rooms) use `NoticeShell`: the same top bar with the lockup only, then a 34rem column that starts 12vh down (padding, so the page never scrolls).
 - **Host console:** lobby is a 12-column grid (players 4 · invite 4 · big screen 4 · setup 12), collapsing to 6+6+12 below 1180 px and one column below 720 px, with a sticky "Start game" bar at the bottom. In game, a main column plus a 17–21rem sticky score sidebar, collapsing to one column below 960 px. The clue card's action row is sticky at the bottom of the viewport.
 - **Player phone:** one column, max 34rem, full dynamic height: top bar (lockup, room code, connection), a "you" strip (name and score), banners, then a flex main area where the buzzer pins to the bottom (`margin-top: auto`). Above 600 px the column gets 2 px ink side borders.
 - **TV stage:** a full-viewport three-row grid (header, main, score strip) with overflow hidden and everything in em, so 1366×768 and 1920×1080 have the same composition. Below 900 px wide or 520 px tall it becomes a scrolling page at 15 px.
-- **Board:** CSS grid, one column per category, header row plus one row per value via subgrid. Gaps: 0.45em TV, 0.4rem host, 0.25rem phone.
+- **Board:** CSS grid, one column per category, header row plus one row per value via subgrid. Gaps: 0.45em TV, 0.4rem host (0.25rem up to 480 px), 0.25rem phone.
 - **Rhythm:** spacing uses literal rem steps rather than tokens: 0.25, 0.35, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5 rem. Stacks default to 1rem gaps (0.5rem tight); rows to 0.75rem.
 - **Breakpoints in use:** 400, 420, 560, 600, 640, 720, 760, 900 (TV), 960, 1180 px, plus a 30rem container query for the display-link panel.
 
@@ -317,7 +327,7 @@ Depth is printed, not lit. Slips lift off the page with hard offset ink shadows 
 
 Near-square everywhere: `--radius` is 2 px on buttons, inputs, panels, stamps, dialogs and board cells. The buzzer is the one circle. Borders are 2 px solid ink by default; 1.5 px on phone board cells, kbd keys and small tags; 3 px on the buzzer; 8 px left borders on banners, toasts and the host picker slip as a colored spine. Dashed borders mean "not active": disabled buttons, completed board cells, waiting tags, sunk panels, the final-clue editor box, hairline row dividers.
 
-Small rotations make it feel pasted: stamps −2°, home cards −0.4°/+0.5°, TV category headers ±0.7–0.8°, TV code letters ±1.5–2°, the QR slip +1.5°, the TV answer −1°, Hot HAM! −2°. Card and panel rotation turns off below 400 px; stamps keep theirs. Masking tape (a translucent 5.5rem strip with dashed ends, rotated −3°) sits on the top edge of a few hero slips.
+Small rotations make it feel pasted: stamps −2°, home cards −0.4°/+0.5°, TV category headers ±0.7–0.8°, TV code letters ±1.5–2°, the QR slip +1.5°, the TV answer −1°, Hot HAM! −2°. Card and panel rotation turns off below 400 px; stamps keep theirs. Masking tape (a translucent 5.5rem `tape` strip with dashed `tape-edge` ends, rotated −3°) sits on the top edge of a few hero slips.
 
 ## Components
 
@@ -325,9 +335,9 @@ Small rotations make it feel pasted: stamps −2°, home cards −0.4°/+0.5°, 
 Tactile slips you press down into their shadow.
 - **Shape:** near-square (2 px), 2 px ink border, small slip shadow.
 - **Default:** surface face, ink text, Atkinson 700, min height 44 px, padding 0.5rem 1rem. Hover fills blue-tint.
-- **Primary / Good / Bad:** blue, green or rust face with surface text; hover darkens to #173fb0, #17562e, #8a1f15.
+- **Primary / Good / Bad:** blue, green or rust face with surface text; hover darkens to blue-press, good-press or bad-press.
 - **Quiet:** no border or shadow, blue underlined text, blue-tint on hover. Used for "Go home", "My packs", "Leave room", secondary links.
-- **Big:** min height 56 px, 1.125rem text, 4 px slip shadow. Used for the one primary action of a screen. **Small:** min height 36 px, 0.875rem text.
+- **Big:** min height 56 px, 1.125rem text, 4 px slip shadow. Used for the one primary action of a screen. **Small:** min height 36 px with a mouse or trackpad and 44 px on touch screens (`pointer: coarse`), 0.875rem text.
 - **Disabled:** transparent, dashed muted border, muted text, no shadow, not-allowed cursor.
 - **Shortcut hint:** a `kbd` chip (1.5 px border, 3 px bottom border) inside host action buttons.
 
@@ -346,8 +356,8 @@ Rubber stamps for state.
 - **Focus:** the global 3 px blue outline at 3 px offset.
 - **Error:** rust border plus 1 px inset rust ring; message in 0.875rem 700 rust, prefixed "! ".
 - **Disabled:** dashed border, transparent, muted text.
-- **Wager input:** 56 px tall with a Bricolage 1.75rem numeral; quick-amount small buttons below.
-- **Segmented control:** a 2 px bordered strip of 40 px buttons; pressed = ink fill.
+- **Wager input:** 56 px tall with a Bricolage 1.75rem numeral; quick-amount small buttons below, each naming its amount ("Min 5", "Half 600", "All in 1,200").
+- **Segmented control:** a 2 px bordered strip of 40 px buttons (44 px on touch); pressed = ink fill.
 
 ### Navigation
 - **Top bar:** lockup (HAM wordmark + "Quiz" in Bricolage) at 1.5rem left, a flexible middle slot, account and sign-out on the right; wraps on narrow screens. The phone top bar is lighter: lockup 1.3rem, room code, connection pill.
@@ -355,13 +365,14 @@ Rubber stamps for state.
 
 ### Dialogs and Toasts
 - **Dialog:** native `<dialog>` with showModal, 32rem max, 6 px slip shadow, dashed rule above the footer, ink backdrop at 65%. Below 560 px it becomes a full-width bottom sheet with only a top border.
-- **Toast:** ink slip at the bottom centre, 8 px left spine (stage-bad for errors, stage-blue for info), dismiss button, auto-dismiss after 6 s, at most three.
+- **Toast:** ink slip at the bottom centre (top centre on screens up to 600 px wide, so it stays clear of the buzzer and its help sentence), 8 px left spine (stage-bad for errors, stage-blue for info), a drawn-cross dismiss button (32 px, 44 px on touch), auto-dismiss after 6 s, at most three.
+- **Countdown:** a label and the time left over a 0.6rem bar: whole seconds under a minute ("7s"), `m:ss` from a minute up ("2:59"). Screen readers hear "2 minutes 59 seconds left".
 
 ### The Buzzer (signature)
 A round arcade button, `min(70vw, 17rem, 32dvh)` across. Idle: shade face, dashed muted ring, a state word (Wait, Locked, Hold, Closed, Offline, Paused). Live: blue face, ink ring, a paper halo and an 8 px ink drop shadow that breathes every 1.4 s. Fires on pointer-down; on press it drops 7 px, turns ink and reads "Sent!". A helper sentence under it explains every state.
 
 ### The Board (signature)
-One grid component in three skins. TV: paper slips on ink with tilted category headers shadowed in red, completed cells dashed and struck through, the active cell blue with a paper outline and a 1.04 scale. Host: surface buttons with small slip shadows; hover turns blue; hidden wager cells pink with a tilted "Hot" tag. Phone: a compact read-only board with 0.6875rem category labels.
+One grid component in three skins, under a visually hidden h2 so headings never skip a level. TV: paper slips on ink with tilted category headers shadowed in red, completed cells dashed with the value struck through (no visible "done" word; screen readers still hear it), the active cell blue with a paper outline and a 1.04 scale. Host: surface buttons with small slip shadows; hover turns blue; hidden wager cells hot-tint with a tilted "Hot" tag; completed cells read "done". One cell is in the tab order and the arrow keys move between open cells (Home/End jump to the first and last). Phone: a compact read-only board with `--fs-2xs` category labels; completed cells are empty dashed slots. Category titles wrap between words; browsers don't hyphenate capitalised words, so a Title Case word wider than a phone column still breaks without a hyphen.
 
 ### Hot HAM! (signature)
 "Hot" in Bricolage, the HAM wordmark graphic, "!" in Bricolage, on a ham-pink slip with a red offset shadow, tilted −2°. On the TV it sits on a red 16-point starburst.

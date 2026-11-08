@@ -36,6 +36,16 @@
   --highlight: #fce38a; /* yellow highlighter for warnings and "you" */
   --shade: #e9e1cf; /* pressed / sunken paper */
   --rule: #cfc5ae; /* hairlines; decorative, never text */
+  --hot-tint: #fde4ea; /* host only: hidden wager cells on the host board */
+
+  /* Hover shades of the filled buttons */
+  --blue-press: #173fb0;
+  --good-press: #17562e;
+  --bad-press: #8a1f15;
+
+  /* Masking tape on a few hero slips (decorative) */
+  --tape: #e6d8b0b8;
+  --tape-edge: #b9a87a;
 
   /* TV stage (ink) */
   --stage: #1c1a17;
@@ -51,6 +61,7 @@
   --font-display:
     "Bricolage Grotesque Variable", "Bricolage Fallback", system-ui, "Arial Black", sans-serif;
   --font-body: "Atkinson Hyperlegible", "Atkinson Fallback", Verdana, system-ui, sans-serif;
+  --fs-2xs: 0.75rem; /* floor for tags and labels inside dense board cells and rows */
   --fs-xs: 0.8125rem;
   --fs-sm: 0.875rem;
   --fs-md: 1rem;
@@ -151,6 +162,13 @@
 
   p {
     margin: 0;
+  }
+
+  /* No lone last word in short sentences ("…the big screen." → "screen."). */
+  p,
+  li,
+  .field__hint {
+    text-wrap: pretty;
   }
 
   a {
@@ -358,7 +376,7 @@
   }
 
   .btn--primary:hover:not(:disabled) {
-    background: #173fb0;
+    background: var(--blue-press);
   }
 
   .btn--good {
@@ -367,7 +385,7 @@
   }
 
   .btn--good:hover:not(:disabled) {
-    background: #17562e;
+    background: var(--good-press);
   }
 
   .btn--bad {
@@ -376,7 +394,7 @@
   }
 
   .btn--bad:hover:not(:disabled) {
-    background: #8a1f15;
+    background: var(--bad-press);
   }
 
   .btn--quiet {
@@ -407,6 +425,15 @@
     min-height: 36px;
     padding: 0.3rem 0.7rem;
     font-size: var(--fs-sm);
+  }
+
+  /* Touch screens keep the 44 px tap floor; mouse and trackpad keep the
+     denser 36 px for the host's laptop. */
+  @media (pointer: coarse) {
+    .btn--small {
+      min-height: 44px;
+      padding-block: 0.45rem;
+    }
   }
 
   .btn--block {
@@ -515,6 +542,12 @@
     cursor: pointer;
   }
 
+  @media (pointer: coarse) {
+    .segmented button {
+      min-height: 44px;
+    }
+  }
+
   .segmented button + button {
     border-left: 2px solid var(--ink);
   }
@@ -553,9 +586,9 @@
     left: 50%;
     width: 5.5rem;
     height: 1.3rem;
-    background: #e6d8b0b8;
-    border-left: 1px dashed #b9a87a;
-    border-right: 1px dashed #b9a87a;
+    background: var(--tape);
+    border-left: 1px dashed var(--tape-edge);
+    border-right: 1px dashed var(--tape-edge);
     transform: translateX(-50%) rotate(-3deg);
     pointer-events: none;
   }
@@ -712,8 +745,11 @@
 
   .toast button {
     flex: none;
+    display: inline-grid;
+    place-items: center;
+    min-width: 32px;
     min-height: 32px;
-    padding: 0 0.5rem;
+    padding: 0;
     color: var(--stage-text);
     background: transparent;
     border: 1.5px solid var(--stage-muted);
@@ -721,10 +757,44 @@
     cursor: pointer;
   }
 
+  .toast button:hover {
+    border-color: var(--stage-text);
+  }
+
+  /* 44 px to tap; the negative margin tucks it into the toast's padding so
+     the toast itself doesn't grow. */
+  @media (pointer: coarse) {
+    .toast button {
+      min-width: 44px;
+      min-height: 44px;
+      margin: -0.35rem -0.4rem -0.35rem 0;
+    }
+  }
+
   @keyframes toast-in {
     from {
       opacity: 0;
       transform: translateY(0.75rem);
+    }
+  }
+
+  /* On phones the bottom of the screen is the buzzer and its help sentence,
+     right under the thumb, so toasts drop in from the top instead. */
+  @media (max-width: 600px) {
+    .toasts {
+      top: calc(0.75rem + env(safe-area-inset-top, 0px));
+      bottom: auto;
+    }
+
+    .toast {
+      animation-name: toast-in-top;
+    }
+  }
+
+  @keyframes toast-in-top {
+    from {
+      opacity: 0;
+      transform: translateY(-0.75rem);
     }
   }
 
@@ -804,6 +874,15 @@
 
   .topbar .lockup {
     font-size: 1.5rem;
+  }
+
+  /* On touch, the home link reaches 44 px tall into the bar's own padding,
+     so the bar keeps its height. */
+  @media (pointer: coarse) {
+    .topbar a.lockup {
+      padding-block: 0.6rem;
+      margin-block: -0.6rem;
+    }
   }
 
   .topbar__mid {
@@ -913,14 +992,16 @@
     image-rendering: pixelated;
   }
 
-  /* ------------------------------------------------------------- loaders */
+  /* ------------------------------------------------------------- notices */
+  /* The drop below the top bar is padding, not margin: a top margin would
+     collapse through <body> and make every notice page scroll by 12vh. */
   .notice {
     display: grid;
     justify-items: start;
     gap: 1rem;
     max-width: 34rem;
-    margin: 12vh auto 0;
-    padding-inline: var(--gutter-l) var(--gutter-r);
+    margin: 0 auto;
+    padding: 12vh var(--gutter-r) 2rem var(--gutter-l);
   }
 
   .notice h1 {

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { ConnectionStatus } from "@/features/network/connection";
 import type { CloseReason } from "@/features/network/protocol";
+import { loginUrl } from "@/features/network/client/api";
+import { NoticeShell } from "./page-chrome";
 
 const STATUS_TEXT: Record<ConnectionStatus, string> = {
   connecting: "Connecting",
@@ -127,7 +129,7 @@ export function ClosedNotice({
 }) {
   const copy = closedCopy(reason, role);
   return (
-    <main id="main-content" className={`notice ${tone === "stage" ? "notice--stage" : ""}`}>
+    <NoticeShell tone={tone}>
       <span className="stamp stamp--ink">Room disconnected</span>
       <h1>{copy.title}</h1>
       <p className="muted">{copy.body}</p>
@@ -137,10 +139,7 @@ export function ClosedNotice({
             {copy.actionLabel}
           </Link>
         ) : copy.action === "signIn" ? (
-          <a
-            className="btn btn--primary"
-            href={`/api/auth/login?return_to=${encodeURIComponent(returnTo)}`}
-          >
+          <a className="btn btn--primary" href={loginUrl(returnTo)}>
             {copy.actionLabel}
           </a>
         ) : (
@@ -158,6 +157,6 @@ export function ClosedNotice({
           </Link>
         ) : null}
       </div>
-    </main>
+    </NoticeShell>
   );
 }
