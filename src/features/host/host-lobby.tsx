@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import {
   MAX_PLAYERS,
   type GameSettings,
@@ -29,7 +29,11 @@ export function HostLobby({
   onCreateDisplayLink: () => Promise<string>;
 }) {
   const [removing, setRemoving] = useState<{ id: PlayerId; name: string } | null>(null);
-  const canStart = actions.can("startGame");
+  // Unsaved settings would be dropped by Start, so they block it until saved or undone.
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const settingsFormId = useId();
+  const canStart = actions.can("startGame") && !settingsDirty;
+  const blocked = settingsDirty || view.startBlockers.length > 0;
 
   return (
     <>
@@ -104,6 +108,8 @@ export function HostLobby({
           <PackChooser view={view} packs={packs} actions={actions} />
           <SettingsEditor
             key={JSON.stringify(view.settings) + (view.pack?.id ?? "")}
+            formId={settingsFormId}
+            onDirtyChange={setSettingsDirty}
             settings={view.settings}
             packCategories={packs.find((p) => p.id === view.pack?.id)?.categories ?? null}
             disabled={!actions.can("updateSettings")}
@@ -117,8 +123,22 @@ export function HostLobby({
         <h2 id="lobby-start" className="sr-only">
           Start
         </h2>
-        {view.startBlockers.length > 0 ? (
+        {blocked ? (
           <ul className="host-blockers" aria-label="Before you can start">
+            {settingsDirty ? (
+              <li className="host-blockers__unsaved">
+                Save or undo your settings changes first.{" "}
+                <button
+                  type="submit"
+                  form={settingsFormId}
+                  className="btn btn--small"
+                  disabled={!actions.can("updateSettings")}
+                  aria-busy={actions.pending === "updateSettings" || undefined}
+                >
+                  Save changes
+                </button>
+              </li>
+            ) : null}
             {view.startBlockers.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
@@ -166,10 +186,15 @@ function PackChooser({
   actions: HostActions;
 }) {
   const id = useId();
-  const [choice, setChoice] = useState(view.pack?.id ?? packs[0]?.id ?? "");
-  const changed = choice !== "" && choice !== view.pack?.id;
+  // With no pack in use, the select starts on a placeholder rather than
+  // showing a pack that isn't actually chosen.
+  const [choice, setChoice] = useState(view.pack?.id ?? "");
+  const chosen = packs.find((p) => p.id === choice) ?? null;
+  const changed = chosen !== null && chosen.id !== view.pack?.id;
   const builtIn = packs.filter((p) => p.source === "builtIn");
   const mine = packs.filter((p) => p.source === "mine");
+  // The pack in use can be missing from the list (still loading, or it failed to load).
+  const inUseUnlisted = view.pack !== null && !packs.some((p) => p.id === view.pack?.id);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -189,7 +214,14 @@ function PackChooser({
           onChange={(event) => setChoice(event.target.value)}
           disabled={!actions.can("setPack")}
         >
-          {packs.length === 0 ? <option value="">No packs available</option> : null}
+          {view.pack === null ? (
+            <option value="" disabled>
+              {packs.length === 0 ? "No packs available" : "Choose a pack…"}
+            </option>
+          ) : null}
+          {inUseUnlisted && view.pack ? (
+            <option value={view.pack.id}>{view.pack.title}</option>
+          ) : null}
           {builtIn.length > 0 ? (
             <optgroup label="Built in">
               {builtIn.map((pack) => (
@@ -220,14 +252,16 @@ function PackChooser({
           Changing the pack resets the settings to its defaults.
         </span>
       </div>
-      <button
-        type="submit"
-        className="btn"
-        disabled={!changed || !actions.can("setPack")}
-        aria-busy={actions.pending === "choosePack" || undefined}
-      >
-        Use this pack
-      </button>
+      {changed ? (
+        <button
+          type="submit"
+          className="btn"
+          disabled={!actions.can("setPack")}
+          aria-busy={actions.pending === "choosePack" || undefined}
+        >
+          Use “{chosen.title}”
+        </button>
+      ) : null}
     </form>
   );
 }
@@ -263,18 +297,31 @@ const SECONDS = {
   answerS: { min: 3, max: 60, label: "Answer time" },
   finalS: { min: 10, max: 180, label: "Final answer time" },
 } as const;
+type SecondsKey = keyof typeof SECONDS;
+const SECONDS_KEYS = Object.keys(SECONDS) as SecondsKey[];
+
+function validSeconds(key: SecondsKey, value: string): boolean {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= SECONDS[key].min && n <= SECONDS[key].max;
+}
 
 /**
  * Lobby settings within the bounds in docs/RULES.md. The inputs limit the
  * obvious ranges; the server validates the patch and explains any rejection.
  */
 function SettingsEditor({
+  formId,
+  onDirtyChange,
   settings,
   packCategories,
   disabled,
   busy,
   onSave,
 }: {
+  /** Lets the start bar's "Save changes" button submit this form. */
+  formId: string;
+  /** Tells the lobby whether there are unsaved changes. */
+  onDirtyChange: (dirty: boolean) => void;
   settings: GameSettings;
   packCategories: number | null;
   disabled: boolean;
@@ -283,8 +330,12 @@ function SettingsEditor({
 }) {
   const id = useId();
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings));
-  const [errors, setErrors] = useState<Partial<Record<keyof typeof SECONDS, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<SecondsKey, string>>>({});
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(settings));
+
+  useEffect(() => {
+    onDirtyChange(dirty);
+  }, [dirty, onDirtyChange]);
   const maxCategories = Math.max(
     1,
     Math.min(6, packCategories ? Math.floor(packCategories / draft.rounds) : 6),
@@ -297,14 +348,23 @@ function SettingsEditor({
   function submit(event: FormEvent) {
     event.preventDefault();
     const nextErrors: typeof errors = {};
-    for (const key of Object.keys(SECONDS) as (keyof typeof SECONDS)[]) {
-      const n = Number(draft[key]);
-      const { min, max } = SECONDS[key];
-      if (!Number.isInteger(n) || n < min || n > max)
-        nextErrors[key] = `Use ${min}–${max} seconds.`;
+    // With timers off the fields are hidden, so they aren't checked; an
+    // invalid hidden value keeps its saved setting instead (see `ms` below).
+    if (draft.timersEnabled) {
+      for (const key of SECONDS_KEYS) {
+        if (!validSeconds(key, draft[key]))
+          nextErrors[key] = `Use ${SECONDS[key].min}–${SECONDS[key].max} seconds.`;
+      }
     }
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const firstInvalid = SECONDS_KEYS.find((key) => nextErrors[key]);
+    if (firstInvalid) {
+      // The save may have come from the start bar, far from the field.
+      document.getElementById(`${id}-${firstInvalid}`)?.focus();
+      return;
+    }
+    const ms = (key: SecondsKey, savedMs: number) =>
+      validSeconds(key, draft[key]) ? Number(draft[key]) * 1000 : savedMs;
     onSave({
       rounds: draft.rounds,
       categoriesPerRound: draft.categoriesPerRound,
@@ -312,15 +372,21 @@ function SettingsEditor({
       finalRound: draft.finalRound,
       timers: {
         enabled: draft.timersEnabled,
-        buzzWindowMs: Number(draft.buzzS) * 1000,
-        answerWindowMs: Number(draft.answerS) * 1000,
-        finalAnswerMs: Number(draft.finalS) * 1000,
+        buzzWindowMs: ms("buzzS", settings.timers.buzzWindowMs),
+        answerWindowMs: ms("answerS", settings.timers.answerWindowMs),
+        finalAnswerMs: ms("finalS", settings.timers.finalAnswerMs),
       },
     });
   }
 
   return (
-    <form className="host-settings" onSubmit={submit} aria-label="Game settings" noValidate>
+    <form
+      id={formId}
+      className="host-settings"
+      onSubmit={submit}
+      aria-label="Game settings"
+      noValidate
+    >
       <fieldset className="host-settings__group" disabled={disabled}>
         <legend className="field__label">Rounds</legend>
         <div className="segmented" role="group" aria-label="Rounds">
@@ -420,7 +486,7 @@ function SettingsEditor({
 
       {draft.timersEnabled ? (
         <div className="host-settings__grid">
-          {(Object.keys(SECONDS) as (keyof typeof SECONDS)[]).map((key) => (
+          {SECONDS_KEYS.map((key) => (
             <div className="field" key={key}>
               <label className="field__label" htmlFor={`${id}-${key}`}>
                 {SECONDS[key].label} (s)
