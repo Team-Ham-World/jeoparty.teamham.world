@@ -151,8 +151,8 @@ test("host, TV and three phones play a full game with wagers, a final round and 
       player.page.getByRole("heading", { name: "Place your final wager" }),
     ).toBeVisible();
     await player.page.getByRole("button", { name: "Half" }).click();
-    await player.page.getByRole("button", { name: "Lock in wager" }).click();
-    await expect(player.page.getByText("Locked in")).toBeVisible();
+    await player.page.getByRole("button", { name: "Save wager" }).click();
+    await expect(player.page.getByText("Wager saved")).toBeVisible();
   }
   await expect(tv.page.getByText("Wagers in: 3 of 3")).toBeVisible();
   await expect(tv.page.locator(".tv-final")).not.toContainText(/wager \d/i); // Amounts stay private.

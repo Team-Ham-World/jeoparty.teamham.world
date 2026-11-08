@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import {
   MAX_PLAYERS,
   type ClueView,
+  type FinalResponseView,
   type FinalView,
   type PlayerView,
   type PublicPlayer,
@@ -567,9 +568,10 @@ function PlayerFinal({
           {plural(final.eligiblePlayerIds.length, "player")}{" "}
           {final.wagerSubmittedIds.length === 1 ? "has" : "have"} wagered.
         </p>
+        {/* "Saved", not "locked": the wager can still change until the clue shows. */}
         {submitted !== null ? (
           <p className="final-status" role="status">
-            <span className="stamp stamp--good stamp--flat">Locked in</span>
+            <span className="stamp stamp--good stamp--flat">Wager saved</span>
             <span>
               Your wager: <strong className="num">{formatScore(submitted)}</strong>. You can change
               it until the host shows the clue.
@@ -588,7 +590,7 @@ function PlayerFinal({
               initial={submitted}
               disabled={stale}
               busy={pending === "submitFinalWager"}
-              submitLabel={submitted === null ? "Lock in wager" : "Update wager"}
+              submitLabel={submitted === null ? "Save wager" : "Change wager"}
               onSubmit={(amount) => void run({ type: "submitFinalWager", amount })}
             />
           </section>
@@ -657,18 +659,28 @@ function PlayerFinal({
                   <span className="pl-said">“{response.answer}”</span>
                 ) : null}
               </span>
-              <span>
-                {response.status === "hidden"
-                  ? "…"
-                  : response.status === "revealed"
-                    ? "judging"
-                    : `${response.correct ? "Correct" : "Incorrect"} ${response.delta !== null ? formatDelta(response.delta) : ""}`}
-              </span>
+              <FinalVerdict response={response} />
             </li>
           ))}
         </ol>
       </section>
     </div>
+  );
+}
+
+/** Where one final response stands: waiting, being judged, or judged with its score change. */
+function FinalVerdict({ response }: { response: FinalResponseView }) {
+  if (response.status === "hidden") return <span className="pl-verdict muted">Waiting</span>;
+  if (response.status === "revealed") return <span className="pl-verdict">Judging…</span>;
+  return (
+    <span className="pl-verdict">
+      <span className={`stamp stamp--flat ${response.correct ? "stamp--good" : "stamp--bad"}`}>
+        {response.correct ? "Correct" : "Incorrect"}
+      </span>
+      {response.delta !== null ? (
+        <strong className="score">{formatDelta(response.delta)}</strong>
+      ) : null}
+    </span>
   );
 }
 

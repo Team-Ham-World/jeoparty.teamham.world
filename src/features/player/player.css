@@ -212,6 +212,21 @@
     color: var(--muted);
   }
 
+  /* Final reveal list: Waiting → Judging… → a Correct/Incorrect stamp and the score change. */
+  .pl-verdict {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .pl-verdict.muted {
+    font-weight: 400;
+  }
+
   .pl-scores--results li {
     gap: 0.75rem;
     font-size: var(--fs-lg);
