@@ -153,9 +153,11 @@ export function PackEditor({
         </Link>
         <div className="ed-bar__status" role="status">
           {saving ? (
-            "Saving…"
+            <span className="stamp stamp--dashed stamp--flat">Saving…</span>
           ) : dirty ? (
             <span className="stamp stamp--warn stamp--flat">Unsaved changes</span>
+          ) : errors.length > 0 ? (
+            <span className="stamp stamp--bad stamp--flat">Needs fixes</span>
           ) : isNew ? (
             <span className="stamp stamp--dashed stamp--flat">Not saved yet</span>
           ) : (
