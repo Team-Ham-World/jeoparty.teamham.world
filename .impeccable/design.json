@@ -1,0 +1,650 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-08T01:56:12.244Z",
+  "title": "Design System: HAM Quiz",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(95.9% 0.017 88)",
+        "tonalRamp": [
+          "oklch(15% 0.004 88)",
+          "oklch(26% 0.008 88)",
+          "oklch(38% 0.015 88)",
+          "oklch(49% 0.017 88)",
+          "oklch(61% 0.017 88)",
+          "oklch(72% 0.015 88)",
+          "oklch(84% 0.008 88)",
+          "oklch(95% 0.004 88)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "oklch(99.4% 0.009 94)",
+        "tonalRamp": [
+          "oklch(15% 0.002 94)",
+          "oklch(26% 0.004 94)",
+          "oklch(38% 0.009 94)",
+          "oklch(49% 0.009 94)",
+          "oklch(61% 0.009 94)",
+          "oklch(72% 0.009 94)",
+          "oklch(84% 0.004 94)",
+          "oklch(95% 0.002 94)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(21.9% 0.007 78)",
+        "tonalRamp": [
+          "oklch(15% 0.002 78)",
+          "oklch(26% 0.003 78)",
+          "oklch(38% 0.006 78)",
+          "oklch(49% 0.007 78)",
+          "oklch(61% 0.007 78)",
+          "oklch(72% 0.006 78)",
+          "oklch(84% 0.003 78)",
+          "oklch(95% 0.002 78)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "oklch(45.5% 0.023 88)",
+        "tonalRamp": [
+          "oklch(15% 0.006 88)",
+          "oklch(26% 0.011 88)",
+          "oklch(38% 0.021 88)",
+          "oklch(49% 0.023 88)",
+          "oklch(61% 0.023 88)",
+          "oklch(72% 0.021 88)",
+          "oklch(84% 0.011 88)",
+          "oklch(95% 0.006 88)"
+        ]
+      },
+      "red": {
+        "role": "tertiary",
+        "displayName": "Marker Red (decorative only)",
+        "canonical": "oklch(58.3% 0.202 30)",
+        "tonalRamp": [
+          "oklch(15% 0.050 30)",
+          "oklch(26% 0.092 30)",
+          "oklch(38% 0.185 30)",
+          "oklch(49% 0.202 30)",
+          "oklch(61% 0.202 30)",
+          "oklch(72% 0.185 30)",
+          "oklch(84% 0.092 30)",
+          "oklch(95% 0.050 30)"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Press Blue",
+        "canonical": "oklch(48.8% 0.217 264)",
+        "tonalRamp": [
+          "oklch(15% 0.054 264)",
+          "oklch(26% 0.099 264)",
+          "oklch(38% 0.199 264)",
+          "oklch(49% 0.217 264)",
+          "oklch(61% 0.217 264)",
+          "oklch(72% 0.199 264)",
+          "oklch(84% 0.099 264)",
+          "oklch(95% 0.054 264)"
+        ]
+      },
+      "blue-tint": {
+        "role": "primary",
+        "displayName": "Press Tint",
+        "canonical": "oklch(92.2% 0.031 268)",
+        "tonalRamp": [
+          "oklch(15% 0.008 268)",
+          "oklch(26% 0.014 268)",
+          "oklch(38% 0.029 268)",
+          "oklch(49% 0.031 268)",
+          "oklch(61% 0.031 268)",
+          "oklch(72% 0.029 268)",
+          "oklch(84% 0.014 268)",
+          "oklch(95% 0.008 268)"
+        ]
+      },
+      "good": {
+        "role": "secondary",
+        "displayName": "Correct Green",
+        "canonical": "oklch(46.9% 0.108 152)",
+        "tonalRamp": [
+          "oklch(15% 0.027 152)",
+          "oklch(26% 0.049 152)",
+          "oklch(38% 0.099 152)",
+          "oklch(49% 0.108 152)",
+          "oklch(61% 0.108 152)",
+          "oklch(72% 0.099 152)",
+          "oklch(84% 0.049 152)",
+          "oklch(95% 0.027 152)"
+        ]
+      },
+      "good-tint": {
+        "role": "secondary",
+        "displayName": "Correct Tint",
+        "canonical": "oklch(93.3% 0.035 140)",
+        "tonalRamp": [
+          "oklch(15% 0.009 140)",
+          "oklch(26% 0.016 140)",
+          "oklch(38% 0.032 140)",
+          "oklch(49% 0.035 140)",
+          "oklch(61% 0.035 140)",
+          "oklch(72% 0.032 140)",
+          "oklch(84% 0.016 140)",
+          "oklch(95% 0.009 140)"
+        ]
+      },
+      "bad": {
+        "role": "secondary",
+        "displayName": "Incorrect Rust",
+        "canonical": "oklch(47.4% 0.163 30)",
+        "tonalRamp": [
+          "oklch(15% 0.041 30)",
+          "oklch(26% 0.075 30)",
+          "oklch(38% 0.149 30)",
+          "oklch(49% 0.163 30)",
+          "oklch(61% 0.163 30)",
+          "oklch(72% 0.149 30)",
+          "oklch(84% 0.075 30)",
+          "oklch(95% 0.041 30)"
+        ]
+      },
+      "bad-tint": {
+        "role": "secondary",
+        "displayName": "Incorrect Tint",
+        "canonical": "oklch(91.6% 0.033 34)",
+        "tonalRamp": [
+          "oklch(15% 0.008 34)",
+          "oklch(26% 0.015 34)",
+          "oklch(38% 0.030 34)",
+          "oklch(49% 0.033 34)",
+          "oklch(61% 0.033 34)",
+          "oklch(72% 0.030 34)",
+          "oklch(84% 0.015 34)",
+          "oklch(95% 0.008 34)"
+        ]
+      },
+      "hot": {
+        "role": "tertiary",
+        "displayName": "Ham Pink",
+        "canonical": "oklch(80.6% 0.094 4)",
+        "tonalRamp": [
+          "oklch(15% 0.024 4)",
+          "oklch(26% 0.043 4)",
+          "oklch(38% 0.086 4)",
+          "oklch(49% 0.094 4)",
+          "oklch(61% 0.094 4)",
+          "oklch(72% 0.086 4)",
+          "oklch(84% 0.043 4)",
+          "oklch(95% 0.024 4)"
+        ]
+      },
+      "highlight": {
+        "role": "tertiary",
+        "displayName": "Highlighter Yellow",
+        "canonical": "oklch(91.7% 0.112 94)",
+        "tonalRamp": [
+          "oklch(15% 0.028 94)",
+          "oklch(26% 0.051 94)",
+          "oklch(38% 0.103 94)",
+          "oklch(49% 0.112 94)",
+          "oklch(61% 0.112 94)",
+          "oklch(72% 0.103 94)",
+          "oklch(84% 0.051 94)",
+          "oklch(95% 0.028 94)"
+        ]
+      },
+      "shade": {
+        "role": "neutral",
+        "displayName": "Shade",
+        "canonical": "oklch(91.1% 0.026 87)",
+        "tonalRamp": [
+          "oklch(15% 0.006 87)",
+          "oklch(26% 0.012 87)",
+          "oklch(38% 0.023 87)",
+          "oklch(49% 0.026 87)",
+          "oklch(61% 0.026 87)",
+          "oklch(72% 0.023 87)",
+          "oklch(84% 0.012 87)",
+          "oklch(95% 0.006 87)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule (decorative hairline)",
+        "canonical": "oklch(82.5% 0.033 87)",
+        "tonalRamp": [
+          "oklch(15% 0.008 87)",
+          "oklch(26% 0.015 87)",
+          "oklch(38% 0.030 87)",
+          "oklch(49% 0.033 87)",
+          "oklch(61% 0.033 87)",
+          "oklch(72% 0.030 87)",
+          "oklch(84% 0.015 87)",
+          "oklch(95% 0.008 87)"
+        ]
+      },
+      "stage": {
+        "role": "neutral",
+        "displayName": "Stage",
+        "canonical": "oklch(21.9% 0.007 78)",
+        "tonalRamp": [
+          "oklch(15% 0.002 78)",
+          "oklch(26% 0.003 78)",
+          "oklch(38% 0.006 78)",
+          "oklch(49% 0.007 78)",
+          "oklch(61% 0.007 78)",
+          "oklch(72% 0.006 78)",
+          "oklch(84% 0.003 78)",
+          "oklch(95% 0.002 78)"
+        ]
+      },
+      "stage-raise": {
+        "role": "neutral",
+        "displayName": "Stage Raise",
+        "canonical": "oklch(27.9% 0.008 75)",
+        "tonalRamp": [
+          "oklch(15% 0.002 75)",
+          "oklch(26% 0.004 75)",
+          "oklch(38% 0.008 75)",
+          "oklch(49% 0.008 75)",
+          "oklch(61% 0.008 75)",
+          "oklch(72% 0.008 75)",
+          "oklch(84% 0.004 75)",
+          "oklch(95% 0.002 75)"
+        ]
+      },
+      "stage-text": {
+        "role": "neutral",
+        "displayName": "Stage Text",
+        "canonical": "oklch(95.9% 0.017 88)",
+        "tonalRamp": [
+          "oklch(15% 0.004 88)",
+          "oklch(26% 0.008 88)",
+          "oklch(38% 0.015 88)",
+          "oklch(49% 0.017 88)",
+          "oklch(61% 0.017 88)",
+          "oklch(72% 0.015 88)",
+          "oklch(84% 0.008 88)",
+          "oklch(95% 0.004 88)"
+        ]
+      },
+      "stage-muted": {
+        "role": "neutral",
+        "displayName": "Stage Muted",
+        "canonical": "oklch(75.9% 0.030 87)",
+        "tonalRamp": [
+          "oklch(15% 0.007 87)",
+          "oklch(26% 0.014 87)",
+          "oklch(38% 0.027 87)",
+          "oklch(49% 0.030 87)",
+          "oklch(61% 0.030 87)",
+          "oklch(72% 0.027 87)",
+          "oklch(84% 0.014 87)",
+          "oklch(95% 0.007 87)"
+        ]
+      },
+      "stage-faint": {
+        "role": "neutral",
+        "displayName": "Stage Faint",
+        "canonical": "oklch(68.8% 0.030 87)",
+        "tonalRamp": [
+          "oklch(15% 0.008 87)",
+          "oklch(26% 0.014 87)",
+          "oklch(38% 0.028 87)",
+          "oklch(49% 0.030 87)",
+          "oklch(61% 0.030 87)",
+          "oklch(72% 0.028 87)",
+          "oklch(84% 0.014 87)",
+          "oklch(95% 0.008 87)"
+        ]
+      },
+      "stage-blue": {
+        "role": "primary",
+        "displayName": "Stage Blue",
+        "canonical": "oklch(75.9% 0.122 267)",
+        "tonalRamp": [
+          "oklch(15% 0.031 267)",
+          "oklch(26% 0.056 267)",
+          "oklch(38% 0.112 267)",
+          "oklch(49% 0.122 267)",
+          "oklch(61% 0.122 267)",
+          "oklch(72% 0.112 267)",
+          "oklch(84% 0.056 267)",
+          "oklch(95% 0.031 267)"
+        ]
+      },
+      "stage-good": {
+        "role": "secondary",
+        "displayName": "Stage Good",
+        "canonical": "oklch(83.3% 0.086 153)",
+        "tonalRamp": [
+          "oklch(15% 0.021 153)",
+          "oklch(26% 0.039 153)",
+          "oklch(38% 0.079 153)",
+          "oklch(49% 0.086 153)",
+          "oklch(61% 0.086 153)",
+          "oklch(72% 0.079 153)",
+          "oklch(84% 0.039 153)",
+          "oklch(95% 0.021 153)"
+        ]
+      },
+      "stage-bad": {
+        "role": "secondary",
+        "displayName": "Stage Bad",
+        "canonical": "oklch(78.7% 0.124 30)",
+        "tonalRamp": [
+          "oklch(15% 0.031 30)",
+          "oklch(26% 0.057 30)",
+          "oklch(38% 0.113 30)",
+          "oklch(49% 0.124 30)",
+          "oklch(61% 0.124 30)",
+          "oklch(72% 0.113 30)",
+          "oklch(84% 0.057 30)",
+          "oklch(95% 0.031 30)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Home hero only; phone big headings use a smaller clamp."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page h1: packs, editor, host lobby, host results."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel and section h2."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Scores, board values, clue values, room codes. Tabular."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Sentences and hints."
+      },
+      "body-strong": {
+        "displayName": "Body strong",
+        "purpose": "Buttons, field labels, clue prompts (larger sizes)."
+      },
+      "label": {
+        "displayName": "Eyebrow",
+        "purpose": "Uppercase section and field eyebrows."
+      },
+      "stamp": {
+        "displayName": "Stamp",
+        "purpose": "Uppercase state stamps."
+      }
+    },
+    "shadows": [
+      {
+        "name": "slip-sm",
+        "value": "2px 2px 0 var(--ink)",
+        "purpose": "Buttons, host board cells, picker slip."
+      },
+      {
+        "name": "slip",
+        "value": "4px 4px 0 var(--ink)",
+        "purpose": "Panels, clue cards, big buttons, start bar."
+      },
+      {
+        "name": "dialog",
+        "value": "6px 6px 0 var(--ink)",
+        "purpose": "Modal dialogs on desktop."
+      },
+      {
+        "name": "toast",
+        "value": "4px 4px 0 #1c1a1740",
+        "purpose": "Toasts; the only translucent shadow."
+      },
+      {
+        "name": "buzzer",
+        "value": "0 8px 0 var(--ink), 0 0 0 6px var(--paper), 0 8px 0 6px var(--ink)",
+        "purpose": "Live buzzer: arcade button with paper halo."
+      },
+      {
+        "name": "tv-slip",
+        "value": "0.3em 0.3em 0 #000",
+        "purpose": "TV clue card, overlay card, judged stamp."
+      },
+      {
+        "name": "tv-red",
+        "value": "0.12em 0.12em 0 var(--red)",
+        "purpose": "TV category headers, code letters, Hot HAM! slip, podium (0.25em)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "purpose": "Every transition and keyframe."
+      },
+      {
+        "name": "press",
+        "value": "80ms",
+        "purpose": "Button press translate and shadow."
+      },
+      {
+        "name": "buzz-press",
+        "value": "60ms",
+        "purpose": "Buzzer drop."
+      },
+      {
+        "name": "buzz-ready",
+        "value": "1.4s infinite",
+        "purpose": "Live buzzer halo breathing."
+      },
+      {
+        "name": "toast-in",
+        "value": "180ms",
+        "purpose": "Toast rise."
+      },
+      {
+        "name": "dialog-in",
+        "value": "160ms",
+        "purpose": "Dialog drop with a 0.5deg tilt."
+      },
+      {
+        "name": "stamp-in",
+        "value": "260–480ms",
+        "purpose": "TV stamps, answer, podium: scale 1.25 and -6deg to rest."
+      },
+      {
+        "name": "judged",
+        "value": "2.4s",
+        "purpose": "One-shot Correct!/Incorrect on TV and phone; held still under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "rotation-off",
+        "value": "400px"
+      },
+      {
+        "name": "host-narrow",
+        "value": "420px"
+      },
+      {
+        "name": "sheet-dialog",
+        "value": "560px"
+      },
+      {
+        "name": "phone-frame",
+        "value": "600px"
+      },
+      {
+        "name": "editor-stack",
+        "value": "640px"
+      },
+      {
+        "name": "host-lobby-stack",
+        "value": "720px"
+      },
+      {
+        "name": "editor-clue-stack",
+        "value": "760px"
+      },
+      {
+        "name": "tv-scroll",
+        "value": "900px wide or 520px tall"
+      },
+      {
+        "name": "host-sidebar",
+        "value": "960px"
+      },
+      {
+        "name": "host-lobby-6col",
+        "value": "1180px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default paper slip button; presses into its shadow.",
+      "html": "<button class=\"ds-btn\">Copy link</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.5rem 1rem;font-family:var(--font-body);font-weight:700;line-height:1.2;color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:2px;box-shadow:2px 2px 0 var(--ink);cursor:pointer;transition:transform 80ms cubic-bezier(.2,.8,.2,1),box-shadow 80ms cubic-bezier(.2,.8,.2,1),background-color 120ms}.ds-btn:hover{background:var(--blue-tint)}.ds-btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}.ds-btn:focus-visible{outline:3px solid var(--blue);outline-offset:3px}"
+    },
+    {
+      "name": "Primary Button (big)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single main action of a screen.",
+      "html": "<button class=\"ds-btn-primary\">Start game</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:56px;padding:.75rem 1.4rem;font-family:var(--font-body);font-size:1.125rem;font-weight:700;color:var(--surface);background:var(--blue);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);cursor:pointer;transition:transform 80ms cubic-bezier(.2,.8,.2,1),box-shadow 80ms cubic-bezier(.2,.8,.2,1)}.ds-btn-primary:hover{background:#173fb0}.ds-btn-primary:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}.ds-btn-primary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}"
+    },
+    {
+      "name": "Judge Buttons",
+      "kind": "button",
+      "refersTo": "button-good",
+      "description": "Host Correct / Incorrect with keyboard hints.",
+      "html": "<div style=\"display:flex;gap:.75rem\"><button class=\"ds-judge ds-judge--good\">Correct +600 <kbd class=\"ds-kbd\">C</kbd></button><button class=\"ds-judge ds-judge--bad\">Incorrect −600 <kbd class=\"ds-kbd\">X</kbd></button></div>",
+      "css": ".ds-judge{display:inline-flex;align-items:center;gap:.5em;min-height:56px;padding:.75rem 1.4rem;font-family:var(--font-body);font-size:1.125rem;font-weight:700;color:var(--surface);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);cursor:pointer}.ds-judge--good{background:var(--good)}.ds-judge--good:hover{background:#17562e}.ds-judge--bad{background:var(--bad)}.ds-judge--bad:hover{background:#8a1f15}.ds-judge:active{transform:translate(2px,2px);box-shadow:none}.ds-judge:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.ds-kbd{min-width:1.5em;padding:0 .35em;font-size:.75em;border:1.5px solid currentColor;border-bottom-width:3px;border-radius:2px;opacity:.85}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled input with hint.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">Room code</span><input class=\"ds-input\" placeholder=\"BCDFG\"><span class=\"ds-field__hint\">5 letters, no vowels</span></label>",
+      "css": ".ds-field{display:grid;gap:.35rem;font-family:var(--font-body)}.ds-field__label{font-size:.875rem;font-weight:700}.ds-field__hint{font-size:.8125rem;color:var(--muted)}.ds-input{min-height:44px;padding:.5rem .7rem;color:var(--ink);background:var(--surface);border:2px solid var(--ink);border-radius:2px;font:inherit}.ds-input:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.ds-input[aria-invalid=true]{border-color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)}"
+    },
+    {
+      "name": "Stamps",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "State words, tilted -2deg unless flat.",
+      "html": "<span class=\"ds-stamp ds-stamp--red\">Game over</span> <span class=\"ds-stamp ds-stamp--good\">Correct</span> <span class=\"ds-stamp ds-stamp--hot\">Wager clue</span> <span class=\"ds-stamp ds-stamp--dashed\">On the bench</span>",
+      "css": ".ds-stamp{display:inline-flex;align-items:center;padding:.12em .55em;font-family:var(--font-body);font-size:.8125rem;font-weight:700;line-height:1.35;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);border:2px solid currentColor;border-radius:2px;transform:rotate(-2deg)}.ds-stamp--good{color:var(--surface);background:var(--good);border-color:var(--good)}.ds-stamp--hot{background:var(--hot);border-color:var(--ink)}.ds-stamp--dashed{border-style:dashed;color:var(--muted)}.ds-stamp--red{border-color:var(--red);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--red);margin:4px}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A pasted paper slip.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel__title\">Invite players</h2><p>Players sign in with HAM, then scan the code.</p></section>",
+      "css": ".ds-panel{padding:1.25rem;background:var(--surface);border:2px solid var(--ink);border-radius:2px;box-shadow:4px 4px 0 var(--ink);font-family:var(--font-body);color:var(--ink)}.ds-panel__title{margin:0 0 .9rem;font-family:var(--font-display);font-weight:800;font-size:1.375rem;letter-spacing:-.02em}"
+    },
+    {
+      "name": "Top Bar",
+      "kind": "nav",
+      "refersTo": "topbar",
+      "description": "Lockup, middle slot, account.",
+      "html": "<header class=\"ds-topbar\"><strong class=\"ds-lockup\">HAM Quiz</strong><span class=\"ds-topbar__mid\">Room <b>BCDFG</b></span><span class=\"ds-topbar__end\"><a class=\"ds-quiet\" href=\"#\">My packs</a></span></header>",
+      "css": ".ds-topbar{display:flex;align-items:center;gap:1.25rem;min-height:60px;padding:.6rem 16px;background:var(--paper);border-bottom:2px solid var(--ink);font-family:var(--font-body)}.ds-lockup{font-family:var(--font-display);font-weight:800;font-size:1.5rem;letter-spacing:-.03em}.ds-topbar__mid{flex:1;font-weight:700}.ds-quiet{color:var(--blue);text-decoration:underline;text-underline-offset:3px;font-weight:700;padding:.3rem .7rem}.ds-quiet:hover{background:var(--blue-tint)}.ds-quiet:focus-visible{outline:3px solid var(--blue);outline-offset:3px}"
+    },
+    {
+      "name": "Buzzer",
+      "kind": "custom",
+      "refersTo": "buzz-live",
+      "description": "The phone's round arcade buzzer, live state.",
+      "html": "<button class=\"ds-buzz\"><span>Buzz!</span></button>",
+      "css": ".ds-buzz{display:grid;place-items:center;width:12rem;aspect-ratio:1;color:var(--surface);background:var(--blue);border:3px solid var(--ink);border-radius:50%;box-shadow:0 8px 0 var(--ink),0 0 0 6px var(--paper),0 8px 0 6px var(--ink);font-family:var(--font-display);font-weight:800;font-size:2.5rem;letter-spacing:-.02em;cursor:pointer;transition:transform 60ms cubic-bezier(.2,.8,.2,1),box-shadow 60ms}.ds-buzz:active{transform:translateY(7px);box-shadow:0 1px 0 var(--ink),0 0 0 6px var(--paper),0 1px 0 6px var(--ink)}.ds-buzz:focus-visible{outline:3px solid var(--blue);outline-offset:10px}"
+    },
+    {
+      "name": "TV Board Cell",
+      "kind": "custom",
+      "refersTo": "board-cell-stage",
+      "description": "Paper value slip on the ink stage.",
+      "html": "<div class=\"ds-stage\"><div class=\"ds-cat\">Internet Lore</div><div class=\"ds-cell\">400</div><div class=\"ds-cell ds-cell--active\">600</div></div>",
+      "css": ".ds-stage{display:grid;gap:.5rem;padding:1rem;background:var(--stage);width:12rem;font-size:20px}.ds-cat{padding:.45em .4em .5em;text-align:center;font-family:var(--font-display);font-weight:800;color:var(--ink);background:var(--surface);border:2px solid var(--ink);box-shadow:.12em .12em 0 var(--red);transform:rotate(-.8deg)}.ds-cell{display:grid;place-items:center;min-height:3em;font-family:var(--font-display);font-weight:800;font-size:1.6em;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:2px;box-shadow:.14em .14em 0 #00000080}.ds-cell--active{color:var(--surface);background:var(--blue);outline:.18em solid var(--stage-text);outline-offset:.12em}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pasted-Up Game Show",
+    "overview": "Every surface is a set of paper slips cut out and pasted down. On the phone, the host laptop and the pack editor the slips sit on warm paper; on the TV they sit on a dark ink stage so they pop from across a room. Slips have hard 2–4 px ink outlines, hard offset shadows with no blur, and corners that are almost square. State is shown the way a zine would show it: rubber stamps with a word on them, a yellow highlighter pass behind \"you\", a ham-pink highlighter for wager clues, and one hand-drawn red marker stroke under a single heading per screen.\n\nThe system is HAM's organisation-wide System A (organization-docs/BRAND.md), specialised for a party game. It is dense where people operate (host console, editor), loud and sparse where people react (TV, buzzer), and always readable first: Atkinson Hyperlegible carries every word of UI, and Bricolage Grotesque at weight 800 is reserved for headings, scores and clue values. Decoration is cheap and physical (tape, tilt, a dot grid on the TV), never glossy: no gradients except the highlighter strips, no blur shadows, no glassmorphism, no rounded cards.\n\nMotion is short and paper-like: slips drop in, stamps thud down at a slight angle, the buzzer breathes while live. Nothing moves under reduced motion, and the one-shot \"Correct!\"/\"Incorrect\" feedback then holds still for its usual 2.4 s.",
+    "keyCharacteristics": [
+      "Warm paper (#f6f1e5) and surface (#fffdf6) grounds with near-black ink (#1c1a17) for text and 2 px borders.",
+      "Hard offset shadows (2 px, 4 px, 6 px) in ink; on the TV, pure black or decorative red.",
+      "Near-zero 2 px radius everywhere; only the buzzer is round.",
+      "Stamps (uppercase, tracked, bordered, tilted −2°) carry state words.",
+      "One accent each for meaning: blue = you can press it, green = correct, rust = incorrect, pink = Hot HAM!, yellow = attention or \"you\".",
+      "Decorative red only as marker strokes, red stamp outlines, the TV starburst and shadow accents.",
+      "The TV is a dark ink stage with a faint dot grid; everything on it scales in em from one root size."
+    ],
+    "rules": [
+      {
+        "name": "The Word-With-Color Rule",
+        "body": "No color carries state alone. Every green has \"Correct\", every rust has \"Incorrect\" or a minus, every pink has \"Hot HAM!\" or \"Wager\", every yellow has a sentence.",
+        "section": "colors"
+      },
+      {
+        "name": "The Red Is Paint Rule",
+        "body": "Marker red (#d93625) is 4.14:1 on paper. It decorates shapes and outlines only. If removing it would lose information, it was used wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Measured Pair Rule",
+        "body": "Every text/background pair is listed in src/features/ui/contrast.ts and tested at 4.5:1 (text) or 3:1 (non-text). A new pair is added there before it ships.",
+        "section": "colors"
+      },
+      {
+        "name": "The Wordmark Is Not Type Rule",
+        "body": "\"HAM\" is always the traced wordmark SVG (currentColor fill). It is never set in Bricolage or any font, including inside \"Hot HAM!\".",
+        "section": "typography"
+      },
+      {
+        "name": "The Display Face Earns Its Size Rule",
+        "body": "Bricolage appears only at 1.375rem and up, or in numerals. Controls, labels and stamps stay in Atkinson.",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Blur Rule",
+        "body": "Shadows have zero blur radius. A soft shadow is a different brand.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Press-Into-Shadow Rule",
+        "body": "Pressable slips translate by their shadow offset on :active and lose the shadow. Nothing scales on press except the buzzer, which drops.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do put every color in :root in src/app/globals.css and add each new text/background pair to src/features/ui/contrast.ts.",
+      "Do use a stamp with a word for every state, and keep stamp rotation within ±4°.",
+      "Do use .btn--big for the single primary action on a screen and keep every phone tap target at least 44 px.",
+      "Do size everything on the TV in em off .tv so 1366×768 and 1920×1080 keep the same composition.",
+      "Do keep one red marker stroke per screen at most.",
+      "Do stop all movement under prefers-reduced-motion, but keep one-shot judged feedback visible and still."
+    ],
+    "donts": [
+      "Don't use marker red (#d93625) for text, links or any state signal.",
+      "Don't add blurred shadows, gradients (other than the highlighter strip), glass effects or radii above 2 px (the buzzer excepted).",
+      "Don't typeset \"HAM\" in a font; use the wordmark component.",
+      "Don't use Bricolage for controls, labels, stamps or body text.",
+      "Don't rotate cards or panels below 400 px wide.",
+      "Don't let animation delay or gate a game action.",
+      "Don't write \"Jeopardy\", \"Daily Double\" or \"Final Jeopardy\" anywhere."
+    ]
+  }
+}
