@@ -23,6 +23,7 @@ Evidence: `npm run check` (engine, content, server, security and UI tests), `npm
 2. ~~Deploy~~: live at https://quiz.teamham.world since 2026-11-07. See [Deployment](DEPLOYMENT.md#current-deployment).
 3. **Live verification:** fair buzzing and the false-start lockout on real phones on mixed Wi-Fi and mobile data (iOS Safari first), link previews in Discord and iMessage, real HAM sign-in and sign-out, a superseding login, two or more real phones on different networks, a TV at 10 feet, iOS Safari and Android Chrome, one backend restart mid-game.
 4. **Playtest** a full game with the group and record what to change.
+5. **Per-client rate limits:** IP rate limits currently key on Cloudflare's edge address, because the live path is Cloudflare, then Caddy, then Node, and Caddy has no `trusted_proxies`. Fixing it needs a reviewed change to the shared Caddy on the host.
 
 ## Backlog
 
