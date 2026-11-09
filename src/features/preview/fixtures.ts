@@ -27,7 +27,7 @@ import type {
   TimerView,
   WaitingPlayer,
 } from "@/features/engine/contract";
-import type { PackSummary, SessionInfo } from "@/features/network/protocol";
+import type { PackSummary, RoomSummary, SessionInfo } from "@/features/network/protocol";
 
 export const FIXTURE_NOW = Date.UTC(2026, 10, 7, 20, 30, 0);
 export const ROOM = "BCDFG";
@@ -747,6 +747,33 @@ export const SESSION_SIGNED_IN: SessionInfo = {
   user: { id: "acct-medchu", name: "Medchu" },
   csrfToken: "preview-csrf",
 };
+
+export const OPEN_ROOMS: RoomSummary[] = [
+  {
+    code: "BCDFG",
+    status: "lobby",
+    hostName: "Medchu",
+    playerCount: 1,
+    maxPlayers: 6,
+    myRole: "host",
+  },
+  {
+    code: "HJKLM",
+    status: "playing",
+    hostName: "Medchu",
+    playerCount: 4,
+    maxPlayers: 6,
+    myRole: "host",
+  },
+  {
+    code: "NPQRS",
+    status: "finished",
+    hostName: "Medchu",
+    playerCount: 6,
+    maxPlayers: 6,
+    myRole: "host",
+  },
+];
 
 export const PACKS: PackSummary[] = [
   {

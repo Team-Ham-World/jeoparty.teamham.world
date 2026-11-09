@@ -6,8 +6,9 @@ import type { PlayerId, PlayerView } from "@/features/engine/contract";
 import type { ConnectionStatus } from "@/features/network/connection";
 import type { CloseReason } from "@/features/network/protocol";
 import { DisplayScreen } from "@/features/display/display-screen";
+import { packDraftKey, writeStoredDraft } from "@/features/editor/pack-autosave";
 import { PackEditor } from "@/features/editor/pack-editor";
-import { blankPack, newId } from "@/features/editor/pack-draft";
+import { blankPack, newId, updateFinal } from "@/features/editor/pack-draft";
 import { PACK_SCHEMA_VERSION, finalCluePath, withFinalClue } from "@/features/editor/pack-fields";
 import { PacksList } from "@/features/editor/packs-list";
 import { HostScreen } from "@/features/host/host-screen";
@@ -18,6 +19,7 @@ import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features
 import { ToastProvider } from "@/features/ui/toasts";
 import {
   FIXTURE_NOW,
+  OPEN_ROOMS,
   PACKS,
   PINGS,
   PINGS_MIXED,
@@ -87,27 +89,57 @@ function player(
   };
 }
 
-function host(id: string, title: string, spec: SpecId, conn: ConnOpts = {}): PreviewEntry {
+const DISPLAY_LINK = `https://quiz.teamham.world/display/${ROOM}#key=preview-only-key`;
+
+/** Clicks these buttons, in order, to reach a state that only exists after a press. */
+function PressOnOpen({ labels, children }: { labels: readonly string[]; children: ReactNode }) {
+  useEffect(() => {
+    const timers = labels.map((label, index) =>
+      window.setTimeout(
+        () => {
+          const buttons = [...document.querySelectorAll("button")];
+          buttons.find((button) => button.textContent?.trim() === label)?.click();
+        },
+        150 * (index + 1),
+      ),
+    );
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [labels]);
+  return <>{children}</>;
+}
+
+function host(
+  id: string,
+  title: string,
+  spec: SpecId,
+  {
+    displayLink,
+    press = [],
+    ...conn
+  }: ConnOpts & { displayLink?: string; press?: readonly string[] } = {},
+): PreviewEntry {
   return {
     id: `host-${id}`,
     group: "Host",
     title,
     viewport: "laptop",
     render: () => (
-      <HostScreen
-        code={ROOM}
-        connection={mockConnection(conn.status === "connecting" ? null : hostFixture(spec), {
-          ...conn,
-          pings: conn.pings ?? PINGS,
-          clockOffsetMs: CLOCK_OFFSET,
-          onSend: log("host"),
-        })}
-        packs={PACKS}
-        joinUrl={JOIN_URL}
-        onCreateDisplayLink={async () =>
-          `https://quiz.teamham.world/display/${ROOM}#key=preview-only-key`
-        }
-      />
+      <PressOnOpen labels={press}>
+        <HostScreen
+          code={ROOM}
+          connection={mockConnection(conn.status === "connecting" ? null : hostFixture(spec), {
+            ...conn,
+            pings: conn.pings ?? PINGS,
+            clockOffsetMs: CLOCK_OFFSET,
+            onSend: log("host"),
+          })}
+          packs={PACKS}
+          joinUrl={JOIN_URL}
+          onCreateDisplayLink={async () => DISPLAY_LINK}
+          displayLink={displayLink}
+          onCloseRoom={async () => {}}
+        />
+      </PressOnOpen>
     ),
   };
 }
@@ -232,7 +264,40 @@ function samplePack(): QuestionPack {
   };
 }
 
+/** Valid, so pressing Save reaches onSave and shows its conflict rather than field errors. */
+function saveablePack(): QuestionPack {
+  return updateFinal(samplePack(), 1, {
+    prompt: "This leavening agent is sold in a small orange box.",
+    answer: "What is baking soda?",
+  });
+}
+
+/** A pack with unsaved edits waiting in this tab, the way a return visit finds it. */
+function StoredDraftEditor({
+  onSave = async () => {},
+}: {
+  onSave?: (pack: QuestionPack) => Promise<void>;
+}) {
+  const draftKey = packDraftKey("preview", "stored-draft");
+  const [initial] = useState(() => {
+    const pack = saveablePack();
+    writeStoredDraft(draftKey, { ...pack, title: `${pack.title} (edited)` });
+    return pack;
+  });
+  return (
+    <PackEditor
+      initial={initial}
+      isNew={false}
+      draftKey={draftKey}
+      onSave={onSave}
+      onNavigate={() => {}}
+    />
+  );
+}
+
 const ME = "p-medchu";
+
+const RESTORE_THEN_SAVE = ["Restore", "Save changes"];
 
 export const PREVIEWS: PreviewEntry[] = [
   // ---------------------------------------------------------------- home
@@ -260,6 +325,22 @@ export const PREVIEWS: PreviewEntry[] = [
       <HomeScreen
         session={SESSION_SIGNED_IN}
         packs={PACKS}
+        onCreateGame={async () => {}}
+        onJoin={() => {}}
+        onSignOut={() => {}}
+      />
+    ),
+  },
+  {
+    id: "home-open-rooms",
+    group: "Home",
+    title: "Signed in, with open rooms",
+    viewport: "laptop",
+    render: () => (
+      <HomeScreen
+        session={SESSION_SIGNED_IN}
+        packs={PACKS}
+        openRooms={OPEN_ROOMS}
         onCreateGame={async () => {}}
         onJoin={() => {}}
         onSignOut={() => {}}
@@ -398,6 +479,14 @@ export const PREVIEWS: PreviewEntry[] = [
     {},
     { status: "closed", closeReason: "roomClosed" },
   ),
+  player(
+    "closed-left",
+    "Closed: you left",
+    SPECS.lobby,
+    ME,
+    {},
+    { status: "closed", closeReason: "left" },
+  ),
   {
     id: "player-gate-signin",
     group: "Player",
@@ -456,6 +545,14 @@ export const PREVIEWS: PreviewEntry[] = [
   host("results", "Results", "results"),
   host("paused", "Paused", "paused"),
   host("restored", "Restored after restart", "restored"),
+  host("close-confirm", "Close room: confirm", "lobby", { press: ["Close room"] }),
+  host("tv-link-confirm", "TV link: confirm replacing it", "board", {
+    displayLink: DISPLAY_LINK,
+    press: ["TV link", "Make a new link"],
+  }),
+  host("tv-link-confirm-unknown", "TV link: confirm, link not remembered", "board", {
+    press: ["TV link", "Get display link"],
+  }),
   host("stale", "Reconnecting (actions off)", "answering", { status: "reconnecting" }),
   host("room-closed", "Closed: room closed", "lobby", {
     status: "closed",
@@ -577,6 +674,42 @@ export const PREVIEWS: PreviewEntry[] = [
               { path: `${finalCluePath(1)}.answer`, message: "Expected a non-empty string." },
             ]}
           />
+        </main>
+      </ToastProvider>
+    ),
+  },
+  {
+    id: "packs-editor-restore",
+    group: "Packs",
+    title: "Editor: restore unsaved edits",
+    viewport: "laptop",
+    render: () => (
+      <ToastProvider>
+        <PageHeader session={SESSION_SIGNED_IN} onSignOut={() => {}} />
+        <main id="main-content" className="page">
+          <StoredDraftEditor />
+        </main>
+      </ToastProvider>
+    ),
+  },
+  {
+    id: "packs-editor-conflict",
+    group: "Packs",
+    title: "Editor: save conflict (restores, then presses Save)",
+    viewport: "laptop",
+    render: () => (
+      <ToastProvider>
+        <PageHeader session={SESSION_SIGNED_IN} onSignOut={() => {}} />
+        <main id="main-content" className="page">
+          <PressOnOpen labels={RESTORE_THEN_SAVE}>
+            <StoredDraftEditor
+              onSave={async () => {
+                throw Object.assign(new Error("This pack changed in another tab."), {
+                  code: "conflict",
+                });
+              }}
+            />
+          </PressOnOpen>
         </main>
       </ToastProvider>
     ),
