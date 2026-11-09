@@ -28,6 +28,16 @@ export function DisplayRoute({ code }: { code: string }) {
     status: "claiming",
   });
 
+  // A new link pasted into this tab differs only by its #fragment, so the
+  // browser doesn't load it. Reloading runs the claim below with the new key.
+  useEffect(() => {
+    const onHashChange = () => {
+      if (readDisplayKey(window.location.hash)) window.location.reload();
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const key = readDisplayKey(window.location.hash);

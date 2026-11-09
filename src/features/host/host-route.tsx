@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
   createDisplayLink,
   errorMessage,
   getRoom,
+  leaveRoom,
   listPacks,
 } from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
@@ -99,23 +101,38 @@ function HostGate({ code, csrf }: { code: string; csrf: string }) {
 function HostLive({ code, csrf }: { code: string; csrf: string }) {
   const connection = useRoomConnection({ code, role: "host" });
   const origin = useOrigin();
+  const router = useRouter();
   const [packs, setPacks] = useState<PackSummary[]>([]);
+  // In memory only: the link is a bearer key, so it never goes in browser storage.
+  const [displayLink, setDisplayLink] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    listPacks().then(
-      (list) => !cancelled && setPacks(list),
-      () => {},
-    );
+    function load() {
+      listPacks().then(
+        (list) => !cancelled && setPacks(list),
+        () => {},
+      );
+    }
+    load();
+    // Packs are usually edited in another tab, so coming back here refreshes the list.
+    window.addEventListener("focus", load);
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", load);
     };
   }, []);
 
-  const onCreateDisplayLink = useCallback(
-    async () => (await createDisplayLink(csrf, code)).url,
-    [csrf, code],
-  );
+  const onCreateDisplayLink = useCallback(async () => {
+    const { url } = await createDisplayLink(csrf, code);
+    setDisplayLink(url);
+    return url;
+  }, [csrf, code]);
+
+  const onCloseRoom = useCallback(async () => {
+    await leaveRoom(csrf, code);
+    router.push("/");
+  }, [csrf, code, router]);
 
   return (
     <HostScreen
@@ -124,6 +141,8 @@ function HostLive({ code, csrf }: { code: string; csrf: string }) {
       packs={packs}
       joinUrl={`${origin}/r/${code}`}
       onCreateDisplayLink={onCreateDisplayLink}
+      displayLink={displayLink}
+      onCloseRoom={onCloseRoom}
     />
   );
 }

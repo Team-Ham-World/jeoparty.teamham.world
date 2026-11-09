@@ -2,18 +2,22 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostView } from "@/features/engine/contract";
-import type { ClientCommand } from "@/features/network/protocol";
+import type { ClientCommand, PackSummary } from "@/features/network/protocol";
 import { PACKS, PINGS_MIXED, hostFixture } from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
 import { HostScreen } from "./host-screen";
 
-function renderView(view: HostView, pings: Record<string, number | null> = {}) {
+function renderView(
+  view: HostView,
+  pings: Record<string, number | null> = {},
+  packs: PackSummary[] = PACKS,
+) {
   const onSend = vi.fn<(cmd: ClientCommand) => void>();
   render(
     <HostScreen
       code="BCDFG"
       connection={mockConnection(view, { onSend, pings })}
-      packs={PACKS}
+      packs={packs}
       joinUrl="https://quiz.example/r/BCDFG"
       onCreateDisplayLink={async () => "https://quiz.example/display/BCDFG#key=k"}
     />,
@@ -105,6 +109,202 @@ describe("host lobby settings", () => {
       fireEvent.click(screen.getByRole("button", { name: `Use “${PACKS[0].title}”` }));
     });
     expect(onSend).toHaveBeenCalledWith({ type: "choosePack", packId: PACKS[0].id });
+  });
+});
+
+describe("host lobby board shape", () => {
+  function lobbyOn(pack: PackSummary, settings: Partial<HostView["settings"]>) {
+    const view = hostFixture("lobby");
+    return renderView(
+      {
+        ...view,
+        pack: { id: pack.id, title: pack.title },
+        settings: { ...view.settings, ...settings },
+      },
+      {},
+      [pack],
+    );
+  }
+  const optionValues = (label: string) =>
+    within(screen.getByLabelText(label))
+      .getAllByRole("option")
+      .map((option) => Number(option.getAttribute("value")));
+
+  async function saved() {
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+    });
+  }
+
+  it("shrinks the category count when a second round no longer fits it", async () => {
+    const onSend = lobbyOn(PACKS[2], { rounds: 1, categoriesPerRound: 6 }); // 6 categories in all
+    expect(optionValues("Categories per round")).toEqual([1, 2, 3, 4, 5, 6]);
+
+    fireEvent.click(screen.getByRole("button", { name: "2 rounds" }));
+
+    expect(screen.getByLabelText("Categories per round")).toHaveValue("3");
+    expect(optionValues("Categories per round")).toEqual([1, 2, 3]);
+    await saved();
+    expect(onSend).toHaveBeenCalledWith({
+      type: "updateSettings",
+      patch: expect.objectContaining({ rounds: 2, categoriesPerRound: 3 }),
+    });
+  });
+
+  it("shrinks wager clues to the cells a smaller board has", async () => {
+    const onSend = lobbyOn(
+      { ...PACKS[2], cluesPerCategory: 1 },
+      { rounds: 1, categoriesPerRound: 3, wagerClues: [3, 2] },
+    );
+
+    fireEvent.change(screen.getByLabelText("Categories per round"), { target: { value: "1" } });
+
+    expect(screen.getByLabelText("Wager clues, round 1")).toHaveValue("1");
+    expect(optionValues("Wager clues, round 1")).toEqual([0, 1]);
+    await saved();
+    expect(onSend).toHaveBeenCalledWith({
+      type: "updateSettings",
+      patch: expect.objectContaining({ categoriesPerRound: 1, wagerClues: [1, 1] }),
+    });
+  });
+
+  it("doesn't offer two rounds when the pack has a single category", () => {
+    lobbyOn(
+      { ...PACKS[2], categories: 1 },
+      { rounds: 1, categoriesPerRound: 1, wagerClues: [1, 1] },
+    );
+    expect(screen.getByRole("button", { name: "2 rounds" })).toBeDisabled();
+  });
+});
+
+describe("reloading the pack in use", () => {
+  const lobbyUsing = (pack: PackSummary) =>
+    renderView({ ...hostFixture("lobby"), pack: { id: pack.id, title: pack.title } });
+
+  it("re-sends the saved pack and says the settings reset", async () => {
+    const onSend = lobbyUsing(PACKS[2]);
+    const reload = screen.getByRole("button", { name: "Reload this pack" });
+    expect(reload).toHaveAccessibleDescription(/resets the settings/);
+
+    await act(async () => {
+      fireEvent.click(reload);
+    });
+
+    expect(onSend).toHaveBeenCalledWith({ type: "choosePack", packId: PACKS[2].id });
+  });
+
+  it("isn't offered for a built-in pack", () => {
+    lobbyUsing(PACKS[0]);
+    expect(screen.queryByRole("button", { name: "Reload this pack" })).toBeNull();
+  });
+
+  it("gives way while another pack is picked", () => {
+    lobbyUsing(PACKS[2]);
+    fireEvent.change(screen.getByLabelText("Question pack"), { target: { value: PACKS[0].id } });
+    expect(screen.queryByRole("button", { name: "Reload this pack" })).toBeNull();
+  });
+});
+
+describe("the display link panel", () => {
+  it("warns before the first link is made in the lobby", () => {
+    renderHost("lobby");
+    const warning = screen.getByText(/disconnects any screen using the old one/);
+    const button = screen.getByRole("button", { name: "Get display link" });
+    expect(warning.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("makes the lobby link in one click", async () => {
+    renderHost("lobby");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Get display link" }));
+    });
+    expect(screen.getByRole("textbox", { name: "Display link" })).toBeInTheDocument();
+  });
+
+  function openInGame(onCreate: () => Promise<string>, displayLink: string | null = null) {
+    render(
+      <HostScreen
+        code="BCDFG"
+        connection={mockConnection(hostFixture("board"))}
+        packs={PACKS}
+        joinUrl="https://quiz.example/r/BCDFG"
+        onCreateDisplayLink={onCreate}
+        displayLink={displayLink}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "TV link" }));
+  }
+
+  it("asks again before replacing a link during a game", async () => {
+    const onCreate = vi.fn(async () => "https://quiz.example/display/BCDFG#key=k");
+    openInGame(onCreate);
+
+    fireEvent.click(screen.getByRole("button", { name: "Get display link" }));
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Replace the TV link now?");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Yes, make a new link" }));
+    });
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the link alone when the host cancels", () => {
+    const onCreate = vi.fn(async () => "new");
+    openInGame(onCreate, "https://quiz.example/display/BCDFG#key=old");
+
+    const trigger = screen.getByRole("button", { name: "Make a new link" });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(trigger).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Display link" })).toHaveValue(
+      "https://quiz.example/display/BCDFG#key=old",
+    );
+  });
+
+  it("shows the failure and keeps the known link", async () => {
+    const onCreate = vi.fn(async () => {
+      throw new Error("No luck.");
+    });
+    openInGame(onCreate, "https://quiz.example/display/BCDFG#key=old");
+    fireEvent.click(screen.getByRole("button", { name: "Make a new link" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Yes, make a new link" }));
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("No luck.");
+    expect(screen.getByRole("textbox", { name: "Display link" })).toHaveValue(
+      "https://quiz.example/display/BCDFG#key=old",
+    );
+  });
+});
+
+describe("host announcements", () => {
+  it("names a late joiner who is on the waiting list", () => {
+    const base = hostFixture("board");
+    const props = {
+      code: "BCDFG",
+      packs: PACKS,
+      joinUrl: "https://quiz.example/r/BCDFG",
+      onCreateDisplayLink: async () => "x",
+    };
+    const { rerender } = render(<HostScreen {...props} connection={mockConnection(base)} />);
+    const revision = base.revision + 1;
+    rerender(
+      <HostScreen
+        {...props}
+        connection={mockConnection({
+          ...base,
+          revision,
+          lastEvent: { revision, event: { kind: "playerJoined", playerId: "p-john" } },
+        })}
+      />,
+    );
+    expect(screen.getByText("John joined.")).toBeInTheDocument();
+    expect(screen.queryByText("A player who left joined.")).toBeNull();
   });
 });
 
@@ -245,6 +445,45 @@ describe("host clue", () => {
     renderHost("wager");
     expect(screen.getByText("Placing wager")).toBeVisible();
     expect(screen.queryByText("Wager clue")).toBeNull();
+  });
+});
+
+describe("host clue with no more attempts", () => {
+  const closedClue = (view: HostView) => ({
+    ...view.clue!,
+    stage: "closed" as const,
+    answeringPlayerId: null,
+    attempts: [],
+  });
+
+  it("says the game is paused, not that everyone had a go", () => {
+    const view = hostFixture("closed");
+    renderView({
+      ...view,
+      clue: closedClue(view),
+      paused: { reason: "host", since: 0 },
+      allowedCommands: [],
+    });
+    expect(document.querySelector(".host-callout")).toHaveTextContent(
+      "The game is paused. Resume it to carry on.",
+    );
+    expect(screen.queryByText(/Everyone has had a go/)).toBeNull();
+  });
+
+  it("stays neutral after End attempts when nobody tried", () => {
+    const view = hostFixture("closed");
+    renderView({ ...view, clue: closedClue(view), allowedCommands: ["reveal", "pause"] });
+    expect(document.querySelector(".host-callout")).toHaveTextContent(
+      "No more attempts on this clue. Reveal the answer.",
+    );
+  });
+
+  it("still offers a reopen while the rules allow one", () => {
+    const view = hostFixture("closed");
+    renderView({ ...view, clue: closedClue(view), allowedCommands: ["openBuzzers", "reveal"] });
+    expect(document.querySelector(".host-callout")).toHaveTextContent(
+      "Reopen for players who haven't tried, or reveal the answer.",
+    );
   });
 });
 

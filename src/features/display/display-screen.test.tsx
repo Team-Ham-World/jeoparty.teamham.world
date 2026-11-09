@@ -26,6 +26,28 @@ function publicStrings(id: SpecId): string {
   return JSON.stringify(displayFixture(id));
 }
 
+describe("display announcements", () => {
+  it("names a late joiner who is on the waiting list", () => {
+    const joinUrl = "https://quiz.example/r/BCDFG";
+    const base = displayFixture("board");
+    const { rerender } = render(
+      <DisplayScreen connection={mockConnection(base)} joinUrl={joinUrl} />,
+    );
+    const revision = base.revision + 1;
+    rerender(
+      <DisplayScreen
+        connection={mockConnection({
+          ...base,
+          revision,
+          lastEvent: { revision, event: { kind: "playerJoined", playerId: "p-john" } },
+        })}
+        joinUrl={joinUrl}
+      />,
+    );
+    expect(screen.getByText("John joined.")).toBeInTheDocument();
+  });
+});
+
 describe("display privacy", () => {
   it.each(ids)("%s: renders no answer or hidden prompt the display view doesn't contain", (id) => {
     const { container } = render(

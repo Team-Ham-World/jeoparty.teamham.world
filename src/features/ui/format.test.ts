@@ -1,7 +1,29 @@
 import { describe, expect, it } from "vitest";
 import type { ClueView } from "@/features/engine/contract";
 import { SPECS } from "@/features/preview/fixtures";
-import { answeringMargin, formatMargin } from "./format";
+import { answeringMargin, formatDelta, formatMargin, namedInEvents, nameOf } from "./format";
+
+describe("formatDelta", () => {
+  it.each([
+    [400, "+400"],
+    [-400, "−400"],
+    [0, "+0"],
+    [-0, "+0"], // a zero stake, negated for the "Incorrect" button
+  ])("shows %s as %s", (delta, text) => {
+    expect(formatDelta(delta)).toBe(text);
+  });
+});
+
+describe("namedInEvents", () => {
+  it("can name a player on the waiting list", () => {
+    const named = namedInEvents({
+      players: [{ id: "p-ivvy", name: "Ivvy", score: 100, connected: true }],
+      waitingPlayers: [{ id: "p-john", name: "John" }],
+    });
+    expect(nameOf(named, "p-ivvy")).toBe("Ivvy");
+    expect(nameOf(named, "p-john")).toBe("John");
+  });
+});
 
 describe("formatMargin", () => {
   it("hides the margin when nobody else buzzed", () => {

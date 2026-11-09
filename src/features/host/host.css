@@ -321,6 +321,19 @@
     border-bottom: 2px dashed var(--rule);
   }
 
+  .host-pack__reload {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .host-settings .segmented button:disabled:not([aria-pressed="true"]) {
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
   .host-pack .field {
     flex: 1 1 18rem;
   }

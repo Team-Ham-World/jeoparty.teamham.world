@@ -294,10 +294,12 @@ export function HostClue({
                   <strong className="name">{nameOf(view.players, last.playerId)}</strong> missed it.
                   Reveal the answer to move on.
                 </>
+              ) : view.paused ? (
+                "The game is paused. Resume it to carry on."
               ) : showOpen ? (
                 "Reopen for players who haven't tried, or reveal the answer."
               ) : (
-                "Everyone has had a go. Reveal the answer."
+                "No more attempts on this clue. Reveal the answer."
               )}
             </ActionStatus>
             <div className="row">

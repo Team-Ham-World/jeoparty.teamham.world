@@ -9,15 +9,16 @@ import {
   type PlayerId,
 } from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
+import { errorMessage } from "@/features/network/client/api";
 import type { ClientCommand, ClientHostCommand, PackSummary } from "@/features/network/protocol";
 import { BoardGrid } from "@/features/board/board-grid";
 import { Lockup } from "@/features/ui/brand";
 import { ClosedNotice, ConnectionPill, StaleBanner } from "@/features/ui/connection-status";
 import { ConfirmDialog, Dialog } from "@/features/ui/dialog";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
-import { formatDelta, formatScore, nameOf } from "@/features/ui/format";
+import { formatDelta, formatScore, nameOf, namedInEvents } from "@/features/ui/format";
 import { NoticeShell } from "@/features/ui/page-chrome";
-import { ToastProvider } from "@/features/ui/toasts";
+import { ToastProvider, useToast } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
 import { DisplayLinkPanel } from "./display-link";
@@ -42,6 +43,10 @@ export function HostScreen(props: {
   packs: PackSummary[];
   joinUrl: string;
   onCreateDisplayLink: () => Promise<string>;
+  /** The newest display link made during this visit, if any. */
+  displayLink?: string | null;
+  /** Closes the room for everyone and leaves this page; rejects if it couldn't. */
+  onCloseRoom?: () => Promise<void>;
 }) {
   return (
     <ToastProvider>
@@ -56,19 +61,25 @@ function HostBody({
   packs,
   joinUrl,
   onCreateDisplayLink,
+  displayLink = null,
+  onCloseRoom,
 }: {
   code: string;
   connection: RoomConnection<HostView>;
   packs: PackSummary[];
   joinUrl: string;
   onCreateDisplayLink: () => Promise<string>;
+  displayLink?: string | null;
+  onCloseRoom?: () => Promise<void>;
 }) {
   const { view, status, stale } = connection;
   const { run, pending } = useCommand(connection);
   const fresh = useFreshEvent(view);
-  const [dialog, setDialog] = useState<null | "end" | "display" | { adjust: PlayerId | null }>(
-    null,
-  );
+  const toast = useToast();
+  const [dialog, setDialog] = useState<
+    null | "end" | "close" | "display" | { adjust: PlayerId | null }
+  >(null);
+  const [closing, setClosing] = useState(false);
 
   const allowed = view?.allowedCommands;
   const can = useCallback(
@@ -99,7 +110,18 @@ function HostBody({
   // Leaving this page mid-game pauses it for everyone (host offline), so the
   // logo only links home before the game and after it.
   const homeLink = view.phase === "lobby" || view.phase === "results";
-  const announcement = fresh ? describeEvent(fresh.event, view.players) : null;
+  const announcement = fresh ? describeEvent(fresh.event, namedInEvents(view)) : null;
+
+  async function closeRoom() {
+    setDialog(null);
+    setClosing(true);
+    try {
+      await onCloseRoom?.();
+    } catch (error) {
+      setClosing(false);
+      toast(`Couldn't close the room. ${errorMessage(error)}`);
+    }
+  }
 
   return (
     <div className={`host host--${view.phase}`}>
@@ -121,6 +143,17 @@ function HostBody({
           {inGame ? (
             <button type="button" className="btn btn--small" onClick={() => setDialog("display")}>
               TV link
+            </button>
+          ) : null}
+          {homeLink && onCloseRoom ? (
+            <button
+              type="button"
+              className="btn btn--small"
+              disabled={closing}
+              aria-busy={closing || undefined}
+              onClick={() => setDialog("close")}
+            >
+              {closing ? "Closing…" : "Close room"}
             </button>
           ) : null}
           {/* While paused, the banner below carries the one Resume button. */}
@@ -184,6 +217,7 @@ function HostBody({
             pings={connection.pings}
             actions={actions}
             onCreateDisplayLink={onCreateDisplayLink}
+            displayLink={displayLink}
           />
         </main>
       ) : (
@@ -215,6 +249,15 @@ function HostBody({
           setDialog(null);
         }}
       />
+      <ConfirmDialog
+        open={dialog === "close"}
+        title="Close this room?"
+        description="Everyone in the room is disconnected, including the big screen. The room can't be reopened."
+        confirmLabel="Close room"
+        cancelLabel="Keep it open"
+        onCancel={() => setDialog(null)}
+        onConfirm={() => void closeRoom()}
+      />
       <Dialog
         open={dialog === "display"}
         onClose={() => setDialog(null)}
@@ -225,7 +268,7 @@ function HostBody({
           </button>
         }
       >
-        <DisplayLinkPanel onCreate={onCreateDisplayLink} />
+        <DisplayLinkPanel onCreate={onCreateDisplayLink} link={displayLink} confirmFirst />
       </Dialog>
       {typeof dialog === "object" && dialog !== null ? (
         <AdjustDialog

@@ -1,4 +1,4 @@
-import type { ClueView, PlayerId, PublicPlayer } from "@/features/engine/contract";
+import type { ClueView, PlayerId, PublicPlayer, ViewCommon } from "@/features/engine/contract";
 
 const numberFormat = new Intl.NumberFormat("en-US");
 
@@ -10,12 +10,26 @@ export function formatScore(score: number): string {
 
 /** Signed change: +400 / −400. */
 export function formatDelta(delta: number): string {
-  return delta >= 0 ? `+${numberFormat.format(delta)}` : `−${numberFormat.format(-delta)}`;
+  // Math.abs also turns -0 (a zero stake, negated) into a plain 0.
+  return `${delta < 0 ? "−" : "+"}${numberFormat.format(Math.abs(delta))}`;
 }
 
 export function nameOf(players: readonly PublicPlayer[], id: PlayerId | null | undefined): string {
   if (!id) return "Someone";
   return players.find((player) => player.id === id)?.name ?? "A player who left";
+}
+
+/**
+ * Everyone an event can name: the seated players plus late joiners waiting for
+ * the next game, so a waiting player isn't announced as someone who left.
+ */
+export function namedInEvents(
+  view: Pick<ViewCommon, "players" | "waitingPlayers">,
+): PublicPlayer[] {
+  return [
+    ...view.players,
+    ...view.waitingPlayers.map((waiting) => ({ ...waiting, score: 0, connected: true })),
+  ];
 }
 
 /** "Ivvy", "Ivvy and Medchu", "Ivvy, Medchu and John". */

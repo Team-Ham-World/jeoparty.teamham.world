@@ -32,6 +32,33 @@ describe("display claim", () => {
     expect(window.location.pathname).toBe("/display/BCDFG");
   });
 
+  describe("when a new link is pasted into this tab", () => {
+    async function openedTab() {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(null, { status: 204 })),
+      );
+      render(<DisplayRoute code="BCDFG" />);
+      await screen.findByText(/Connecting the big screen/);
+    }
+    function changeHash(hash: string) {
+      const reload = vi.fn();
+      vi.stubGlobal("location", { hash, reload });
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+      return reload;
+    }
+
+    it("reloads so the new key gets claimed", async () => {
+      await openedTab();
+      expect(changeHash("#key=new-key")).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores a fragment with no key", async () => {
+      await openedTab();
+      expect(changeHash("#something-else")).not.toHaveBeenCalled();
+    });
+  });
+
   it("still strips the fragment and explains when the claim fails", async () => {
     window.history.replaceState(null, "", "/display/BCDFG#key=stale-key");
     vi.stubGlobal(

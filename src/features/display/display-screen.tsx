@@ -15,6 +15,7 @@ import {
   formatScore,
   listNames,
   nameOf,
+  namedInEvents,
   ordinal,
   plural,
 } from "@/features/ui/format";
@@ -76,7 +77,7 @@ export function DisplayScreen({
   }
 
   const stale = status !== "live";
-  const announcement = fresh ? describeEvent(fresh.event, view.players) : null;
+  const announcement = fresh ? describeEvent(fresh.event, namedInEvents(view)) : null;
   const judged =
     fresh && (fresh.event.kind === "judged" || fresh.event.kind === "finalJudged") ? fresh : null;
   const showScores = view.phase !== "lobby" && view.phase !== "results";

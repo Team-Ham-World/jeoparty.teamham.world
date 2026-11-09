@@ -23,6 +23,7 @@ export function HostLobby({
   pings,
   actions,
   onCreateDisplayLink,
+  displayLink,
 }: {
   view: HostView;
   packs: PackSummary[];
@@ -31,6 +32,7 @@ export function HostLobby({
   pings: Record<string, number | null>;
   actions: HostActions;
   onCreateDisplayLink: () => Promise<string>;
+  displayLink: string | null;
 }) {
   const [removing, setRemoving] = useState<{ id: PlayerId; name: string } | null>(null);
   // Unsaved settings would be dropped by Start, so they block it until saved or undone.
@@ -112,7 +114,7 @@ export function HostLobby({
           <div className="panel__title">
             <h2 id="lobby-display">Big screen</h2>
           </div>
-          <DisplayLinkPanel onCreate={onCreateDisplayLink} />
+          <DisplayLinkPanel onCreate={onCreateDisplayLink} link={displayLink} />
         </section>
 
         <section className="panel host-lobby__setup" aria-labelledby="lobby-setup">
@@ -125,7 +127,7 @@ export function HostLobby({
             formId={settingsFormId}
             onDirtyChange={setSettingsDirty}
             settings={view.settings}
-            packCategories={packs.find((p) => p.id === view.pack?.id)?.categories ?? null}
+            pack={packs.find((p) => p.id === view.pack?.id) ?? null}
             disabled={!actions.can("updateSettings")}
             busy={actions.pending === "updateSettings"}
             onSave={(patch) => actions.run({ type: "updateSettings", patch })}
@@ -209,6 +211,10 @@ function PackChooser({
   const mine = packs.filter((p) => p.source === "mine");
   // The pack in use can be missing from the list (still loading, or it failed to load).
   const inUseUnlisted = view.pack !== null && !packs.some((p) => p.id === view.pack?.id);
+  // The room keeps its own copy of a pack, so edits to a saved one need a reload.
+  const reloadable = changed
+    ? null
+    : packs.find((p) => p.id === view.pack?.id && p.source === "mine");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -276,6 +282,23 @@ function PackChooser({
           Use “{chosen.title}”
         </button>
       ) : null}
+      {reloadable ? (
+        <div className="host-pack__reload">
+          <button
+            type="button"
+            className="btn"
+            disabled={!actions.can("setPack")}
+            aria-busy={actions.pending === "choosePack" || undefined}
+            aria-describedby={`${id}-reload`}
+            onClick={() => actions.run({ type: "choosePack", packId: reloadable.id })}
+          >
+            Reload this pack
+          </button>
+          <span id={`${id}-reload`} className="field__hint">
+            Picks up your latest edits. This resets the settings to the pack&apos;s defaults.
+          </span>
+        </div>
+      ) : null}
     </form>
   );
 }
@@ -332,6 +355,34 @@ const BUZZ_OPTIONS = [
   },
 ] as const satisfies readonly { key: keyof Draft; label: string; hint: string }[];
 
+function maxCategoriesPerRound(rounds: number, pack: PackSummary | null): number {
+  return Math.max(1, Math.min(6, pack ? Math.floor(pack.categories / rounds) : 6));
+}
+
+function maxWagerClues(categoriesPerRound: number, pack: PackSummary | null): number {
+  return Math.min(3, pack ? categoriesPerRound * pack.cluesPerCategory : 3);
+}
+
+/** Shrinks the category and wager counts to what the board's shape can hold. */
+function fitBoard(draft: Draft, pack: PackSummary | null): Draft {
+  const categoriesPerRound = Math.min(
+    draft.categoriesPerRound,
+    maxCategoriesPerRound(draft.rounds, pack),
+  );
+  const maxWagers = maxWagerClues(categoriesPerRound, pack);
+  return {
+    ...draft,
+    categoriesPerRound,
+    wager1: Math.min(draft.wager1, maxWagers),
+    wager2: Math.min(draft.wager2, maxWagers),
+  };
+}
+
+/** 0, 1, … up to and including `last`. */
+function countTo(last: number): number[] {
+  return Array.from({ length: last + 1 }, (_, i) => i);
+}
+
 function validSeconds(key: SecondsKey, value: string): boolean {
   const n = Number(value);
   return Number.isInteger(n) && n >= SECONDS[key].min && n <= SECONDS[key].max;
@@ -345,7 +396,7 @@ function SettingsEditor({
   formId,
   onDirtyChange,
   settings,
-  packCategories,
+  pack,
   disabled,
   busy,
   onSave,
@@ -355,7 +406,8 @@ function SettingsEditor({
   /** Tells the lobby whether there are unsaved changes. */
   onDirtyChange: (dirty: boolean) => void;
   settings: GameSettings;
-  packCategories: number | null;
+  /** The list entry for the pack in use; null until the list has it. */
+  pack: PackSummary | null;
   disabled: boolean;
   busy: boolean;
   onSave: (patch: Partial<GameSettings>) => void;
@@ -368,13 +420,22 @@ function SettingsEditor({
   useEffect(() => {
     onDirtyChange(dirty);
   }, [dirty, onDirtyChange]);
-  const maxCategories = Math.max(
-    1,
-    Math.min(6, packCategories ? Math.floor(packCategories / draft.rounds) : 6),
+  // fitBoard keeps the draft within these limits. A draft can only start above
+  // them when the pack was edited after the room loaded it, and the selects
+  // still include that saved value so they don't show the wrong number.
+  const categoryChoices = countTo(
+    Math.max(maxCategoriesPerRound(draft.rounds, pack), draft.categoriesPerRound),
+  ).slice(1);
+  const wagerChoices = countTo(
+    Math.max(maxWagerClues(draft.categoriesPerRound, pack), draft.wager1, draft.wager2),
   );
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
+  }
+
+  function setBoard(patch: Partial<Pick<Draft, "rounds" | "categoriesPerRound">>) {
+    setDraft((d) => fitBoard({ ...d, ...patch }, pack));
   }
 
   function submit(event: FormEvent) {
@@ -429,7 +490,8 @@ function SettingsEditor({
               key={n}
               type="button"
               aria-pressed={draft.rounds === n}
-              onClick={() => set("rounds", n)}
+              disabled={n === 2 && pack !== null && pack.categories < 2}
+              onClick={() => setBoard({ rounds: n })}
             >
               {n === 1 ? "1 round" : "2 rounds"}
             </button>
@@ -447,12 +509,9 @@ function SettingsEditor({
             className="input"
             value={draft.categoriesPerRound}
             disabled={disabled}
-            onChange={(event) => set("categoriesPerRound", Number(event.target.value))}
+            onChange={(event) => setBoard({ categoriesPerRound: Number(event.target.value) })}
           >
-            {Array.from(
-              { length: Math.max(maxCategories, draft.categoriesPerRound) },
-              (_, i) => i + 1,
-            ).map((n) => (
+            {categoryChoices.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
@@ -470,7 +529,7 @@ function SettingsEditor({
             disabled={disabled}
             onChange={(event) => set("wager1", Number(event.target.value))}
           >
-            {[0, 1, 2, 3].map((n) => (
+            {wagerChoices.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
@@ -488,7 +547,7 @@ function SettingsEditor({
             disabled={disabled || draft.rounds === 1}
             onChange={(event) => set("wager2", Number(event.target.value))}
           >
-            {[0, 1, 2, 3].map((n) => (
+            {wagerChoices.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
