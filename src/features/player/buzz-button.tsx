@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type PointerEvent,
   type MouseEvent,
@@ -73,6 +74,13 @@ export const PinnedBuzzerTiming = createContext<{
   falseStart: boolean;
 } | null>(null);
 
+/** The buzzer is drawn as a circle, so the empty corners of its box don't count as a tap. */
+function insideBuzzer(bounds: DOMRect, x: number, y: number) {
+  const dx = (x - (bounds.left + bounds.width / 2)) / (bounds.width / 2);
+  const dy = (y - (bounds.top + bounds.height / 2)) / (bounds.height / 2);
+  return dx * dx + dy * dy <= 1;
+}
+
 /**
  * The phone buzzer. Fires on pointer-down for the fastest possible send
  * (and on click for keyboards). It only sends when the view says `can.buzz`
@@ -91,6 +99,9 @@ export function BuzzButton({
   clockOffsetMs?: number;
   run: (cmd: ClientCommand, options?: RunOptions) => Promise<CommandOutcome | null>;
 }) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  /** How to take back the early tap each finger is still holding down. */
+  const earlyTapUndo = useRef(new Map<number, () => void>());
   const [sentFor, setSentFor] = useState<string | null>(null);
   const measured = useBuzzerTiming({
     opensAt: clue.opensAt,
@@ -138,7 +149,7 @@ export function BuzzButton({
       },
       { quiet: ["buzzersClosed", "alreadyAttempted"] },
     ).then((outcome) => {
-      if (outcome && !outcome.ok) setSentFor(null);
+      if (!outcome?.ok) setSentFor((current) => (current === openingKey ? null : current));
     });
   }
 
@@ -155,8 +166,19 @@ export function BuzzButton({
   return (
     <div
       className="buzz-zone"
-      onPointerDownCapture={() => {
-        if (!stale && !view.paused) timing.recordEarlyTap();
+      onPointerDownCapture={(event) => {
+        earlyTapUndo.current.delete(event.pointerId);
+        if (stale || view.paused || event.button !== 0) return;
+        // Disabled buttons pass pointer events to the wrapper, including taps outside the button.
+        const bounds = buttonRef.current?.getBoundingClientRect();
+        if (bounds && insideBuzzer(bounds, event.clientX, event.clientY))
+          earlyTapUndo.current.set(event.pointerId, timing.recordEarlyTap());
+      }}
+      onPointerUpCapture={(event) => earlyTapUndo.current.delete(event.pointerId)}
+      // The browser cancels a touch that turns into a scroll, so it was never a tap.
+      onPointerCancelCapture={(event) => {
+        earlyTapUndo.current.get(event.pointerId)?.();
+        earlyTapUndo.current.delete(event.pointerId);
       }}
     >
       {/* The base under the live button; it glows while buzzing is open. Decoration only. */}
@@ -167,6 +189,7 @@ export function BuzzButton({
         />
       ) : null}
       <button
+        ref={buttonRef}
         type="button"
         className={`buzz ${early ? "buzz--early" : visiblyLit ? "buzz--live" : ""} ${sent ? "buzz--sent" : ""}`}
         disabled={!enabled}

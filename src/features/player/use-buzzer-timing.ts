@@ -2,6 +2,27 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
+interface EarlyTap {
+  clueId: string;
+  at: number;
+  serverAt: number;
+}
+
+/** Whether taps on this clue, oldest first, count as a false start for this opening. */
+function tappedEarly(taps: EarlyTap[], opensAt: number | null, fairBuzzing: boolean) {
+  if (!fairBuzzing || opensAt === null) return taps.some((t) => performance.now() - t.at <= 1000);
+  // Taps at most a second apart cover one continuous range of possible openings.
+  // Mashing extends that range, preserving false starts even before opensAt is known.
+  let runStart = taps[0];
+  for (const [index, tap] of taps.entries()) {
+    const previous = taps[index - 1];
+    if (previous && (tap.serverAt < previous.serverAt || tap.serverAt - previous.serverAt > 1000))
+      runStart = tap;
+    if (tap.serverAt >= opensAt - 1000 && runStart.serverAt < opensAt) return true;
+  }
+  return false;
+}
+
 /** Timing only. The engine still decides whether a buzz is accepted. */
 export function useBuzzerTiming({
   opensAt,
@@ -19,7 +40,7 @@ export function useBuzzerTiming({
   fairBuzzing?: boolean;
 }) {
   const key = `${clueId}:${opensAt}`;
-  const earlyTap = useRef<{ clueId: string; at: number; serverAt: number } | null>(null);
+  const earlyTaps = useRef<EarlyTap[]>([]);
   const litAt = useRef<{ key: string; at: number } | null>(null);
   const [light, setLight] = useState<{ key: string; falseStart: boolean } | null>(null);
   const [unlockedKey, setUnlockedKey] = useState<string | null>(null);
@@ -31,15 +52,15 @@ export function useBuzzerTiming({
     if (!active || litAt.current?.key === key) return;
     const timer = setTimeout(
       () => {
-        const tap = earlyTap.current;
         setLight({
           key,
           falseStart:
             lockoutEnabled &&
-            tap?.clueId === clueId &&
-            (fairBuzzing && opensAt !== null
-              ? tap.serverAt >= opensAt - 1000 && tap.serverAt < opensAt
-              : performance.now() - tap.at <= 1000),
+            tappedEarly(
+              earlyTaps.current.filter((tap) => tap.clueId === clueId),
+              opensAt,
+              fairBuzzing,
+            ),
         });
       },
       Math.max(0, (opensAt ?? 0) - Date.now() - clockOffsetMs),
@@ -63,11 +84,20 @@ export function useBuzzerTiming({
     lit,
     lockedOut,
     falseStart,
+    /** Remembers an early tap. Returns a function that takes it back, e.g. if it became a scroll. */
     recordEarlyTap() {
       const serverAt = Date.now() + clockOffsetMs;
-      // A late view must not let post-opening mashing erase a preceding false start.
-      if (!lit && (!fairBuzzing || !active || opensAt === null || serverAt < opensAt))
-        earlyTap.current = { clueId, at: performance.now(), serverAt };
+      if (lit || (fairBuzzing && active && opensAt !== null && serverAt >= opensAt))
+        return () => {};
+      const tap: EarlyTap = { clueId, at: performance.now(), serverAt };
+      // Only this clue's taps matter, and the bound is far more than anyone can mash in a second.
+      earlyTaps.current = [
+        ...earlyTaps.current.filter((other) => other.clueId === clueId).slice(-255),
+        tap,
+      ];
+      return () => {
+        earlyTaps.current = earlyTaps.current.filter((other) => other !== tap);
+      };
     },
     reactionMs() {
       return litAt.current?.key === key ? Math.max(0, performance.now() - litAt.current.at) : 0;

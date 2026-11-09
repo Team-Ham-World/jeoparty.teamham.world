@@ -145,6 +145,120 @@ describe("player screen", () => {
     expect(screen.queryByText("Wait for the light.")).toBeNull();
   });
 
+  describe("while paused", () => {
+    const paused = (view: PlayerView): PlayerView => ({
+      ...view,
+      paused: { reason: "host", since: 0 },
+    });
+    const screenFor = (view: PlayerView) => (
+      <PlayerScreen code="BCDFG" connection={mockConnection(view)} />
+    );
+
+    it("freezes a typed final answer and gives it back on resume", () => {
+      const view = playerOf(SPECS.finalAnswering, "p-ivvy", { can: { finalAnswer: true } });
+      const { rerender } = render(screenFor(view));
+      fireEvent.change(screen.getByLabelText("Your answer"), {
+        target: { value: "What is HAL 9000?" },
+      });
+      rerender(screenFor(paused(view)));
+      expect(screen.getByLabelText("Your answer")).toBeDisabled();
+      expect(screen.getByLabelText("Your answer")).toHaveValue("What is HAL 9000?");
+      expect(screen.getByRole("button", { name: "Submit answer" })).toBeDisabled();
+      expect(screen.queryByText("Answers are locked.")).toBeNull();
+      rerender(screenFor(view));
+      expect(screen.getByLabelText("Your answer")).toBeEnabled();
+      expect(screen.getByLabelText("Your answer")).toHaveValue("What is HAL 9000?");
+    });
+
+    it.each([
+      {
+        name: "wager clue",
+        spec: SPECS.wager,
+        can: { wager: { min: 5, max: 1200 } },
+        submit: "Lock in wager",
+      },
+      {
+        name: "final wager",
+        spec: SPECS.finalWagers,
+        can: { finalWager: { min: 0, max: 1200 } },
+        submit: "Save wager",
+      },
+    ])("freezes a typed $name and gives it back on resume", ({ spec, can, submit }) => {
+      const view = playerOf(spec, "p-ivvy", { can });
+      const { rerender } = render(screenFor(view));
+      fireEvent.change(screen.getByLabelText("Your wager"), { target: { value: "300" } });
+      rerender(screenFor(paused(view)));
+      expect(screen.getByLabelText("Your wager")).toBeDisabled();
+      expect(screen.getByLabelText("Your wager")).toHaveValue("300");
+      expect(screen.getByRole("button", { name: submit })).toBeDisabled();
+      rerender(screenFor(view));
+      expect(screen.getByLabelText("Your wager")).toBeEnabled();
+      expect(screen.getByLabelText("Your wager")).toHaveValue("300");
+    });
+
+    it("never tells the wager player that they themselves are placing a wager", () => {
+      const view = playerOf(SPECS.wager, "p-ivvy");
+      const me = view.players.find((player) => player.id === view.me.id)!;
+      render(screenFor(paused({ ...view, controllerId: me.id })));
+      expect(screen.queryByText(/is placing a/)).toBeNull();
+      expect(screen.getByText("This wager is yours. Only you answer this one.")).toBeVisible();
+    });
+
+    it("still tells an ineligible player what is going on in the final round", () => {
+      const view = playerOf(SPECS.finalAnswering, "p-ivvy");
+      const final = { ...view.final!, eligiblePlayerIds: ["p-medchu"] };
+      render(screenFor(paused({ ...view, final })));
+      expect(screen.getByText(/sitting this one out/)).toBeVisible();
+      expect(screen.queryByLabelText("Your answer")).toBeNull();
+    });
+
+    it("shows a saved answer, not a false lock, to a player with no answer form", () => {
+      const view = playerOf(SPECS.finalAnswering, "p-ivvy", {
+        myFinal: { wager: 100, answer: "What is HAL 9000?" },
+      });
+      render(screenFor(view));
+      expect(screen.queryByText("Answers are locked.")).toBeNull();
+      expect(screen.getByText("What is HAL 9000?")).toBeVisible();
+    });
+  });
+
+  it("names a late joiner in the screen-reader announcement", () => {
+    const view = {
+      ...playerOf(SPECS.board, "p-ivvy"),
+      waitingPlayers: [{ id: "p-late", name: "Latecomer" }],
+    };
+    const event = {
+      revision: view.revision + 1,
+      event: { kind: "playerJoined", playerId: "p-late" },
+    };
+    const { rerender } = render(<PlayerScreen code="BCDFG" connection={mockConnection(view)} />);
+    rerender(
+      <PlayerScreen
+        code="BCDFG"
+        connection={mockConnection({
+          ...view,
+          revision: view.revision + 1,
+          lastEvent: event as PlayerView["lastEvent"],
+        })}
+      />,
+    );
+    expect(screen.getByText("Latecomer joined.")).toBeInTheDocument();
+  });
+
+  it("says plainly that you left the room", () => {
+    render(
+      <PlayerScreen
+        code="BCDFG"
+        connection={mockConnection(playerOf(SPECS.lobby, "p-ivvy"), {
+          status: "closed",
+          closeReason: "left",
+        })}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "You left this room" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Go home" })).toHaveAttribute("href", "/");
+  });
+
   it("never shows pings, even if a connection carried them", () => {
     for (const spec of [SPECS.lobby, SPECS.board, SPECS.answeringRace]) {
       const { container, unmount } = render(

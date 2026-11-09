@@ -10,6 +10,7 @@ import {
   type ServerMessage,
   type ViewFor,
 } from "../protocol";
+import { ApiError, getRoom } from "./api";
 
 const COMMAND_TIMEOUT_MS = 15_000;
 /** How often the client pings while connected. */
@@ -23,6 +24,13 @@ const HEARTBEAT_MS = 5_000;
 const PONG_TIMEOUT_MS = 8_000;
 /** A handshake that hasn't opened by now is abandoned and retried. */
 const CONNECT_TIMEOUT_MS = 10_000;
+/** Consecutive sockets closed without a hello before a host or player asks the server why. */
+const REFUSED_BEFORE_ASKING = 3;
+/** A TV has no session to ask with, so after this many it shows the fallback notice instead. */
+const DISPLAY_REFUSED_WITHOUT_VIEW = 4;
+const DISPLAY_REFUSED_WITH_VIEW = 8;
+/** After a hide this long, an open socket's last view can't be trusted until it is re-sent. */
+const STALE_AFTER_HIDDEN_MS = 3_000;
 interface Pending {
   message: { t: "cmd"; id: string; cmd: ClientCommand };
   resolve(outcome: CommandOutcome): void;
@@ -60,7 +68,13 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
     let disposed = false,
       intentional = false,
       live = false,
-      retries = 0;
+      retries = 0,
+      hello = false, // Has the current socket said hello?
+      helloCount = 0,
+      refusedSockets = 0, // Consecutive sockets that closed without a hello.
+      askingServer = false,
+      connectStartedAt = 0;
+    let hiddenAt: number | null = document.visibilityState === "visible" ? null : Date.now();
     let socket: WebSocket | undefined;
     let reconnect: ReturnType<typeof setTimeout> | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -96,11 +110,56 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       clearInterval(heartbeat);
       clearTimeout(connectTimer);
       if (disposed || intentional) return;
-      setState((previous) => ({ ...previous, status: "reconnecting" }));
+      if (!hello) refusedSockets++;
+      // The notice is only a sign for the people in the room: the TV keeps retrying behind it.
+      const displayGivesUp =
+        role === "display" &&
+        refusedSockets >=
+          (latestRevision >= 0 ? DISPLAY_REFUSED_WITH_VIEW : DISPLAY_REFUSED_WITHOUT_VIEW);
+      setState((previous) => ({
+        ...previous,
+        status:
+          displayGivesUp || (role === "display" && previous.status === "closed")
+            ? "closed"
+            : "reconnecting",
+      }));
       clearTimeout(reconnect);
       const delay =
         Math.min(10_000, 500 * 2 ** Math.min(retries++, 5)) * (0.75 + Math.random() * 0.5);
       reconnect = setTimeout(connect, delay);
+      if (role !== "display" && refusedSockets >= REFUSED_BEFORE_ASKING) void askWhyRefused();
+    }
+    /** Stop for good: no more retries, pending commands fail, and the screen shows `reason`. */
+    function stopForGood(reason: CloseReason | null) {
+      intentional = true;
+      live = false;
+      clearTimeout(reconnect);
+      clearTimeout(connectTimer);
+      clearInterval(heartbeat);
+      setState((previous) => ({ ...previous, status: "closed", closeReason: reason }));
+      settle({ ok: false, error: "offline", message: "Connection closed." });
+      socket?.close();
+    }
+    /** The reason the server is refusing this role, or null if it gave no clear answer. */
+    async function refusalReason(): Promise<CloseReason | null> {
+      try {
+        const { myRole } = await getRoom(code);
+        const fits = role === "host" ? myRole === "host" : myRole !== null;
+        return fits ? null : "removed";
+      } catch (error) {
+        if (!(error instanceof ApiError)) return null;
+        if (error.status === 404 && error.code === "notFound") return "roomClosed";
+        return error.status === 401 ? "authExpired" : null;
+      }
+    }
+    /** The browser hides why an upgrade failed, so ask over HTTP. Only a clear answer stops us. */
+    async function askWhyRefused() {
+      if (askingServer) return;
+      askingServer = true;
+      const hellosBefore = helloCount;
+      const reason = await refusalReason();
+      askingServer = false;
+      if (reason && !disposed && !intentional && helloCount === hellosBefore) stopForGood(reason);
     }
     /** Abandon the current socket without waiting for the browser to notice it died. */
     function drop(ws: WebSocket) {
@@ -116,21 +175,45 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
     function onOffline() {
       if (socket) drop(socket);
     }
-    function onOnline() {
-      // Back online: retry now instead of waiting out the backoff.
-      if (disposed || intentional || socket) return;
+    function reconnectNow() {
       clearTimeout(reconnect);
       retries = 0;
       connect();
     }
+    function onOnline() {
+      // Back online: retry now instead of waiting out the backoff.
+      if (disposed || intentional || socket) return;
+      reconnectNow();
+    }
     function onVisible() {
+      if (document.visibilityState !== "visible") {
+        hiddenAt ??= Date.now();
+        return;
+      }
+      const hiddenMs = hiddenAt === null ? 0 : Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (disposed || intentional) return;
       // Phones freeze timers while asleep; check the socket as soon as the page is back.
-      if (document.visibilityState !== "visible" || !socket) return;
-      if (unansweredPingAt !== null && Date.now() - unansweredPingAt > PONG_TIMEOUT_MS) {
+      if (!socket) {
+        reconnectNow();
+      } else if (unansweredPingAt !== null && Date.now() - unansweredPingAt > PONG_TIMEOUT_MS) {
         drop(socket);
       } else if (socket.readyState === WebSocket.OPEN) {
+        if (live && hiddenMs > STALE_AFTER_HIDDEN_MS) {
+          // The buzzer on screen may be long out of date: hold it until the server re-sends the view.
+          live = false;
+          setState((previous) => ({ ...previous, status: "reconnecting" }));
+          socket.send(JSON.stringify({ t: "resync" }));
+        }
         unansweredPingAt ??= Date.now();
         socket.send(JSON.stringify({ t: "ping", at: Date.now() }));
+      } else if (
+        socket.readyState === WebSocket.CONNECTING &&
+        Date.now() - connectStartedAt > CONNECT_TIMEOUT_MS
+      ) {
+        // The handshake's own timeout was frozen along with the page.
+        drop(socket);
+        reconnectNow();
       }
     }
     window.addEventListener("offline", onOffline);
@@ -144,8 +227,9 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
       url.searchParams.set("role", role);
       const ws = new WebSocket(url);
       socket = ws;
+      hello = false;
+      connectStartedAt = Date.now();
       setState((previous) => ({ ...previous, rttMs: null, pings: {} }));
-      let hello = false;
       const clockSamples: { rttMs: number; offsetMs: number }[] = [];
       const active = () => !disposed && socket === ws;
       connectTimer = setTimeout(() => {
@@ -170,31 +254,20 @@ export const useRoomConnection: UseRoomConnection = function useRoomConnection<
           return;
         }
         if (message.t === "closing") {
-          intentional = true;
-          live = false;
-          clearTimeout(reconnect);
-          clearTimeout(connectTimer);
-          clearInterval(heartbeat);
-          setState((previous) => ({
-            ...previous,
-            status: "closed",
-            closeReason: message.reason,
-          }));
-          settle({
-            ok: false,
-            error: "offline",
-            message: "Connection closed.",
-          });
-          ws.close();
+          // A restart is not the end for a TV: it stays up and comes back with the server.
+          if (role === "display" && message.reason === "serverShutdown") drop(ws);
+          else stopForGood(message.reason);
           return;
         }
         if (intentional) return;
         if (message.t === "hello") {
           if (message.protocol !== PROTOCOL_VERSION || message.role !== role) {
-            ws.close();
+            stopForGood(null);
             return;
           }
           hello = true;
+          helloCount++;
+          refusedSockets = 0;
           setState((previous) => ({
             ...previous,
             clockOffsetMs: message.serverNow - Date.now(),

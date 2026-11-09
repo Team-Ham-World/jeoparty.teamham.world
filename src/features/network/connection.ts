@@ -16,7 +16,9 @@ export type ConnectionStatus =
   | "connecting" // First connection attempt; no view yet.
   | "live" // Socket open and the view is current.
   | "reconnecting" // Lost the socket; retrying with backoff. The last view is stale.
-  | "closed"; // Closed on purpose (see `closeReason`); no automatic retry.
+  | "closed"; // Stopped (see `closeReason`); no automatic retry. One exception: a display that
+//             can't reach its room shows "closed" with a null reason but keeps retrying, and a
+//             later view returns it to "live".
 
 export type CommandOutcome =
   | { ok: true; revision: number }

@@ -21,6 +21,7 @@ import {
   formatScore,
   listNames,
   nameOf,
+  namedInEvents,
   ordinal,
   plural,
 } from "@/features/ui/format";
@@ -86,7 +87,7 @@ function PlayerBody({
     );
   }
 
-  const announcement = fresh ? describeEvent(fresh.event, view.players, view.me.id) : null;
+  const announcement = fresh ? describeEvent(fresh.event, namedInEvents(view), view.me.id) : null;
   const isController = view.controllerId === view.me.id;
   // Leaving is safe only when you're not mid-game: the lobby, results, or the bench.
   // During play the logo isn't a link, so a stray tap can't leave the buzzer.
@@ -450,12 +451,14 @@ function PlayerClue({
             <WagerForm
               min={bounds.min}
               max={bounds.max}
-              disabled={stale}
+              disabled={stale || !!view.paused}
               busy={pending === "submitWager"}
               submitLabel="Lock in wager"
               onSubmit={(amount) => void run({ type: "submitWager", clueId: clue.clueId, amount })}
             />
           </section>
+        ) : view.controllerId === view.me.id ? (
+          <p className="pl-waiting">This wager is yours. Only you answer this one.</p>
         ) : (
           <p className="pl-waiting">
             <strong className="name">{nameOf(view.players, view.controllerId)}</strong> is placing a
@@ -557,8 +560,8 @@ function PlayerFinal({
       <div className="stack">
         {header}
         <p className="pl-waiting">
-          You&apos;re sitting this one out. Only players with more than 0 points play the final
-          round. Watch the big screen!
+          You&apos;re sitting this one out. The final round is for players who had more than 0
+          points when it began. Watch the big screen!
         </p>
         {final.prompt ? (
           <ClueCard
@@ -604,7 +607,7 @@ function PlayerFinal({
               min={bounds.min}
               max={bounds.max}
               initial={submitted}
-              disabled={stale}
+              disabled={stale || !!view.paused}
               busy={pending === "submitFinalWager"}
               submitLabel={submitted === null ? "Save wager" : "Change wager"}
               onSubmit={(amount) => void run({ type: "submitFinalWager", amount })}
@@ -628,12 +631,20 @@ function PlayerFinal({
         {view.can.finalAnswer ? (
           <FinalAnswerForm
             submitted={view.myFinal?.answer ?? null}
-            disabled={stale}
+            disabled={stale || !!view.paused}
             busy={pending === "submitFinalAnswer"}
             onSubmit={(text) => void run({ type: "submitFinalAnswer", text })}
           />
         ) : (
-          <p className="pl-waiting">Answers are locked.</p>
+          <p className="pl-waiting">
+            {view.myFinal?.answer ? (
+              <>
+                You answered: <strong className="name">{view.myFinal.answer}</strong>
+              </>
+            ) : (
+              "Watch the big screen."
+            )}
+          </p>
         )}
       </div>
     );

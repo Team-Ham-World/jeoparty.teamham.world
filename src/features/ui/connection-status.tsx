@@ -57,6 +57,13 @@ export function closedCopy(
         action: "home",
         actionLabel: "Go home",
       };
+    case "left":
+      return {
+        title: "You left this room",
+        body: "Thanks for playing! You can join again from home with the room code.",
+        action: "home",
+        actionLabel: "Go home",
+      };
     case "signedInElsewhere":
       return {
         title: "This room is open somewhere else",
