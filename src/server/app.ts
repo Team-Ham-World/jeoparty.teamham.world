@@ -45,7 +45,12 @@ const claimSchema = z
   })
   .strict();
 const createSchema = z.object({ packId: z.string().min(1).max(128).optional() }).strict();
-const saveSchema = z.object({ pack: z.unknown().refine((value) => value !== undefined) }).strict();
+const saveSchema = z
+  .object({
+    pack: z.unknown().refine((value) => value !== undefined),
+    expectedUpdatedAt: z.string().min(1).max(64).optional(),
+  })
+  .strict();
 interface Options {
   engine: EngineApi;
   now?: () => number;
@@ -253,7 +258,7 @@ export async function createApp(config: Config, options: Options) {
         : route === "/api/auth/logout" || route === "/api/display/claim"
           ? ["POST"]
           : route === "/api/rooms"
-            ? ["POST"]
+            ? ["GET", "POST"]
             : /^\/api\/rooms\/[^/]+$/.test(route)
               ? ["GET"]
               : /^\/api\/rooms\/[^/]+\/(join|leave|display-link)$/.test(route)
@@ -348,6 +353,18 @@ export async function createApp(config: Config, options: Options) {
         return `${grantName(config, room.code)}=${grant}; Path=/; ${config.publicOrigin.startsWith("https:") ? "Secure; " : ""}HttpOnly; SameSite=Strict; Max-Age=43200`;
       });
       sendJson(res, 204, null, { "set-cookie": cookie });
+      return;
+    }
+    if (route === "/api/rooms" && method === "GET") {
+      const user = await identity(req);
+      const hosted = [...rooms.values()]
+        .filter((room) => room.hostId === user.account.account_id)
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+      sendJson(
+        res,
+        200,
+        hosted.map((room) => room.summary(user)),
+      );
       return;
     }
     if (route === "/api/rooms" && method === "POST") {
@@ -454,7 +471,11 @@ export async function createApp(config: Config, options: Options) {
       }
       if ((!id && method === "POST") || (id && !duplicate && method === "PUT")) {
         const request = parse(saveSchema, rawBody);
-        sendJson(res, id ? 200 : 201, packs.save(request.pack, owner, id));
+        sendJson(
+          res,
+          id ? 200 : 201,
+          packs.save(request.pack, owner, id, request.expectedUpdatedAt),
+        );
         return;
       }
       if (id && !duplicate && method === "DELETE") {
@@ -667,6 +688,8 @@ export async function createApp(config: Config, options: Options) {
     );
   });
   let sweepWork: Promise<void> | undefined;
+  // Keyed by session, so a stalled HAM check only delays the session it belongs to.
+  const renewals = new Map<string, Promise<void>>();
   function tick(): Promise<void> {
     if (stopped) return Promise.resolve();
     for (const room of rooms.values()) room.probe();
@@ -679,52 +702,65 @@ export async function createApp(config: Config, options: Options) {
           void room.detach(c).catch(() => undefined);
         }
       }
+    startRenewals();
     if (!sweepWork)
       sweepWork = sweep().finally(() => {
         sweepWork = undefined;
       });
-    return sweepWork;
+    return Promise.all([sweepWork, ...renewals.values()]).then(() => undefined);
+  }
+  function startRenewals() {
+    for (const room of rooms.values()) {
+      if (room.updatedAt + ROOM_IDLE_MS <= now()) continue; // The sweep is about to close it.
+      for (const c of room.connections) {
+        const hash = c.sessionHash;
+        if (c.role === "display" || !hash || c.authorizedUntil - now() >= 5000) continue;
+        if (renewals.has(hash)) continue;
+        renewals.set(
+          hash,
+          // A failed renewal needs no handling: the lease simply runs out and the socket closes.
+          renew(hash)
+            .catch(() => undefined)
+            .finally(() => renewals.delete(hash)),
+        );
+      }
+    }
+  }
+  async function renew(hash: string) {
+    const result = await verify(hash, true);
+    if (result === "active") {
+      const session = db.get<SessionRow>("SELECT * FROM sessions WHERE session_hash = ?", hash);
+      const user = auth.identityFor(session ?? null);
+      if (user)
+        for (const code of memberRooms.get(user.account.public_id) ?? []) {
+          const room = rooms.get(code)!;
+          const view = options.engine.playerView(room.state, user.account.public_id, now());
+          if (view && view.me.name !== user.displayName)
+            await room.system({
+              type: "renamePlayer",
+              playerId: user.account.public_id,
+              name: user.displayName,
+            });
+        }
+      return;
+    }
+    for (const room of rooms.values())
+      for (const c of room.connections)
+        if (c.sessionHash === hash && c.authorizedUntil <= now()) {
+          c.close(WS_CLOSE.authExpired);
+          await room.detach(c);
+        }
   }
   async function sweep() {
-    const hashes = new Set<string>();
     for (const room of rooms.values()) {
       if (room.updatedAt + ROOM_IDLE_MS <= now()) {
         await room.run(() => room.closeRoom());
         continue;
       }
-      for (const c of room.connections) {
-        if (c.role === "display") {
-          if (c.authorizedUntil <= now()) room.closeWhere((other) => other === c, "displayRevoked");
-        } else if (c.sessionHash && c.authorizedUntil - now() < 5000) hashes.add(c.sessionHash);
-      }
+      for (const c of room.connections)
+        if (c.role === "display" && c.authorizedUntil <= now())
+          room.closeWhere((other) => other === c, "displayRevoked");
     }
-    await Promise.all(
-      [...hashes].map(async (hash) => {
-        const result = await verify(hash, true);
-        if (result === "active") {
-          const session = db.get<SessionRow>("SELECT * FROM sessions WHERE session_hash = ?", hash);
-          const user = auth.identityFor(session ?? null);
-          if (user)
-            for (const code of memberRooms.get(user.account.public_id) ?? []) {
-              const room = rooms.get(code)!;
-              const view = options.engine.playerView(room.state, user.account.public_id, now());
-              if (view && view.me.name !== user.displayName)
-                await room.system({
-                  type: "renamePlayer",
-                  playerId: user.account.public_id,
-                  name: user.displayName,
-                });
-            }
-        }
-        if (result !== "active")
-          for (const room of rooms.values())
-            for (const c of room.connections)
-              if (c.sessionHash === hash && c.authorizedUntil <= now()) {
-                c.close(WS_CLOSE.authExpired);
-                await room.detach(c);
-              }
-      }),
-    );
   }
 
   const intervals: ReturnType<typeof setInterval>[] = [];
@@ -745,7 +781,16 @@ export async function createApp(config: Config, options: Options) {
         }
       }, 20_000),
     );
-    intervals.push(setInterval(() => auth.sweep(), 3_600_000));
+    intervals.push(
+      setInterval(() => {
+        // A throw inside a timer would end the process. Housekeeping can wait for the next hour.
+        try {
+          auth.sweep();
+        } catch (error) {
+          console.error("Auth sweep failed; skipping until the next one:", error);
+        }
+      }, 3_600_000),
+    );
     intervals.forEach((timer) => timer.unref());
   }
   return {
@@ -778,7 +823,7 @@ export async function createApp(config: Config, options: Options) {
         server.close(() => resolve());
         server.closeAllConnections();
       });
-      await Promise.all([...pendingRequests, sweepWork]);
+      await Promise.all([...pendingRequests, sweepWork, ...renewals.values()]);
       await Promise.all([...rooms.values()].map((room) => room.shutdown()));
       await Promise.all([...rooms.values()].map((room) => room.run(() => undefined)));
       wss.close();

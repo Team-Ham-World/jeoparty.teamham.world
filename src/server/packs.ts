@@ -100,12 +100,26 @@ export class Packs {
     return this.save({ ...source, title }, ownerId);
   }
 
-  save(raw: unknown, ownerId: string, existingId?: string): PackDocument {
-    if (
-      existingId &&
-      !this.db.get("SELECT 1 FROM packs WHERE id = ? AND owner_id = ?", existingId, ownerId)
-    )
-      throw new HttpError(404, "notFound", "Pack not found.");
+  save(
+    raw: unknown,
+    ownerId: string,
+    existingId?: string,
+    expectedUpdatedAt?: string,
+  ): PackDocument {
+    if (existingId) {
+      const stored = this.db.get<{ updated_at: string }>(
+        "SELECT updated_at FROM packs WHERE id = ? AND owner_id = ?",
+        existingId,
+        ownerId,
+      );
+      if (!stored) throw new HttpError(404, "notFound", "Pack not found.");
+      if (expectedUpdatedAt !== undefined && expectedUpdatedAt !== stored.updated_at)
+        throw new HttpError(
+          409,
+          "conflict",
+          "This pack was changed somewhere else since you opened it. Reload it before saving again.",
+        );
+    }
     if (
       !existingId &&
       this.db.get<{ n: number }>("SELECT count(*) n FROM packs WHERE owner_id = ?", ownerId)!.n >=

@@ -198,6 +198,23 @@ describe("security review regressions", () => {
     expect(await tooSlow).toEqual({ status: "unavailable" });
   });
 
+  it("survives an hourly auth sweep that throws", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      h = await harness(":memory:", { timers: true });
+      const sweep = vi.spyOn(h.app.auth, "sweep").mockImplementation(() => {
+        throw new Error("database is locked");
+      });
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      expect(() => vi.advanceTimersByTime(3_600_000)).not.toThrow();
+      expect(sweep).toHaveBeenCalledOnce();
+      await h.stop();
+      h = undefined;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("rejects oversized bodies outside packs while pack routes allow up to 1 MiB", async () => {
     h = await harness();
     const b = new Browser(h);

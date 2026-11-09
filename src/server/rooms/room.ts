@@ -211,7 +211,7 @@ export class Room {
         { type: "removeMember", playerId: identity.account.public_id },
       );
       if (result.ok) this.commit(result.state);
-      this.closeWhere((c) => c.publicId === identity.account.public_id, "removed");
+      this.closeWhere((c) => c.publicId === identity.account.public_id, "left");
       this.broadcast();
     });
   }
@@ -283,6 +283,8 @@ export class Room {
   detach(c: Connection): Promise<void> {
     this.latencies.delete(c);
     return this.run(() => {
+      // Again here: an attach still queued when the socket closed adds the entry after the line above.
+      this.latencies.delete(c);
       this.sendPings();
       if (!this.connections.delete(c) || this.closed || c.role === "display") return;
       if (

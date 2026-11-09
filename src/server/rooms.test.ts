@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Browser, harness, type Harness } from "./test-harness";
 import type { ServerMessage } from "@/features/network/protocol";
 import { parseClientMessage } from "./validation";
+import type { Connection } from "./rooms/room";
 
 let h: Harness;
 afterEach(async () => {
@@ -60,8 +61,73 @@ async function rejectedSocket(code: string, role: string, cookie: string, origin
 }
 const ack = (messages: ServerMessage[], id: string) =>
   messages.find((m) => m.t === "ack" && m.id === id);
+/** Holds HAM introspection responses for one username until `release` is called. */
+function stallIntrospection(username: string) {
+  const fixture = h.app.fixture!;
+  const original = fixture.handle;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const stalled = { checks: 0, release };
+  fixture.handle = async (req) => {
+    const response = await original(req);
+    if (req.url.endsWith("/introspect")) {
+      const body = (await response.clone().json()) as { username?: string };
+      if (body.username === username) {
+        stalled.checks += 1;
+        await gate;
+      }
+    }
+    return response;
+  };
+  return stalled;
+}
 
 describe("HTTP room and pack boundaries", () => {
+  it("lists only the rooms the caller hosts, most recently updated first", async () => {
+    const { host, player, code: first, room } = await setup();
+    h.advance(1000);
+    const second = await host.createRoom();
+    const theirs = await player.createRoom();
+    const list = async (b: Browser) => (await b.request("/api/rooms")).json();
+    expect(await list(host)).toMatchObject([
+      { code: second, myRole: "host" },
+      { code: first, myRole: "host", playerCount: 1 },
+    ]);
+    expect(await list(player)).toMatchObject([{ code: theirs, myRole: "host" }]);
+    h.advance(1000);
+    await room.system({ type: "restored" });
+    expect((await list(host)).map((r: { code: string }) => r.code)).toEqual([first, second]);
+    expect((await host.mutate(`/api/rooms/${first}/leave`)).status).toBe(204);
+    expect((await list(host)).map((r: { code: string }) => r.code)).toEqual([second]);
+    expect((await new Browser(h).request("/api/rooms")).status).toBe(401);
+  });
+  it("refuses a pack save based on a copy that has since changed", async () => {
+    const { host } = await setup();
+    const built = (await (await host.request("/api/packs")).json())[0];
+    const doc = await (await host.mutate(`/api/packs/${built.id}/duplicate`)).json();
+    const save = (body: object) => host.mutate(`/api/packs/${doc.id}`, body, "PUT");
+    const stale = await save({
+      pack: { ...doc.pack, title: "From the old tab" },
+      expectedUpdatedAt: "2000-01-01T00:00:00.000Z",
+    });
+    expect(stale.status).toBe(409);
+    expect(await stale.json()).toMatchObject({
+      error: "conflict",
+      message: expect.stringContaining("changed somewhere else"),
+    });
+    expect((await (await host.request(`/api/packs/${doc.id}`)).json()).pack.title).toBe(
+      doc.pack.title,
+    );
+    const current = await save({
+      pack: { ...doc.pack, title: "Current tab" },
+      expectedUpdatedAt: doc.updatedAt,
+    });
+    expect(current.status).toBe(200);
+    expect((await save({ pack: { ...doc.pack, title: "No check" } })).status).toBe(200);
+    expect((await save({ pack: doc.pack, expectedUpdatedAt: 5 })).status).toBe(400);
+  });
   it("creates a host, joins lobby players, prevents host self-join, leaves and waits during play", async () => {
     const { host, player, code, room } = await setup();
     expect(code).toMatch(/^[BCDFGHJKLMNPQRSTVWXZ]{5}$/);
@@ -288,6 +354,107 @@ describe("WebSocket and room actor", () => {
         reason: "signedInElsewhere",
       }),
     );
+  });
+  it("closes the old account's sockets when the same browser signs in as someone else", async () => {
+    const { code, host } = await setup(),
+      a = await socket(code, "host", host.cookie);
+    await host.signIn("someone-else");
+    await vi.waitFor(() =>
+      expect(a.messages).toContainEqual({ t: "closing", reason: "signedInElsewhere" }),
+    );
+  });
+  it("tells a player who leaves that they left, not that they were removed", async () => {
+    const { code, player } = await setup(),
+      a = await socket(code, "player", player.cookie);
+    expect((await player.mutate(`/api/rooms/${code}/leave`)).status).toBe(204);
+    await vi.waitFor(() => expect(a.messages).toContainEqual({ t: "closing", reason: "left" }));
+    expect(a.messages).not.toContainEqual({ t: "closing", reason: "removed" });
+  });
+  it("forgets a socket's latency when it closes while its attach is still queued", async () => {
+    const { room, player } = await setup();
+    const publicId = (await (await player.request("/api/session")).json()).user.id;
+    const sent: ServerMessage[] = [];
+    const c: Connection = {
+      role: "player",
+      publicId,
+      authorizedUntil: Number.MAX_SAFE_INTEGER,
+      send: (message) => sent.push(message),
+      close: () => undefined,
+    };
+    let release!: () => void;
+    void room.run(() => new Promise<void>((resolve) => (release = resolve)));
+    const attached = room.attach(c);
+    const detached = room.detach(c);
+    await vi.waitFor(() => expect(release).toBeDefined());
+    release();
+    await Promise.all([attached, detached]);
+    expect(room.connections.has(c)).toBe(false);
+    sent.length = 0;
+    h.advance(5000);
+    room.probe();
+    expect(sent.filter((m) => m.t === "probe")).toEqual([]);
+  });
+  it("keeps renewing other sessions while one HAM check is stalled", async () => {
+    const { code, host, player } = await setup();
+    await socket(code, "host", host.cookie);
+    await socket(code, "player", player.cookie);
+    const connections = [...h.app.rooms.get(code)!.connections];
+    const hostHash = connections.find((c) => c.role === "host")!.sessionHash!;
+    const playerSocket = connections.find((c) => c.role === "player")!;
+    const verify = vi.spyOn(h.app.auth, "verify");
+    const stalled = stallIntrospection("host");
+
+    h.advance(26000);
+    const originalLease = playerSocket.authorizedUntil;
+    let firstSettled = false;
+    const first = h.app.tick().then(() => {
+      firstSettled = true;
+    });
+    await vi.waitFor(() => expect(playerSocket.authorizedUntil).toBeGreaterThan(originalLease));
+    await vi.waitFor(() => expect(stalled.checks).toBe(1));
+
+    h.advance(1000);
+    const second = h.app.tick();
+    const hostRenewals = verify.mock.calls.filter(
+      ([hash, opts]) => hash === hostHash && opts?.fresh === true,
+    );
+    expect(hostRenewals).toHaveLength(1);
+
+    // Still stalled, and the next window for the healthy session has arrived.
+    h.advance(25000);
+    const renewedLease = playerSocket.authorizedUntil;
+    const third = h.app.tick();
+    await vi.waitFor(() => expect(playerSocket.authorizedUntil).toBeGreaterThan(renewedLease));
+    expect(firstSettled).toBe(false);
+
+    stalled.release();
+    await Promise.all([first, second, third]);
+    expect(firstSettled).toBe(true);
+  });
+  it("waits for in-flight renewals before closing, and starts none once stopped", async () => {
+    const { code, host } = await setup();
+    await socket(code, "host", host.cookie);
+    const verify = vi.spyOn(h.app.auth, "verify");
+    const stalled = stallIntrospection("host");
+    h.advance(26000);
+    void h.app.tick();
+    await vi.waitFor(() => expect(stalled.checks).toBe(1));
+
+    let closed = false;
+    const closing = h.app.close().then(() => {
+      closed = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(closed).toBe(false);
+
+    const calls = verify.mock.calls.length;
+    h.advance(1000);
+    await h.app.tick();
+    expect(verify.mock.calls).toHaveLength(calls);
+
+    stalled.release();
+    await closing;
+    expect(closed).toBe(true);
   });
   it("freshly introspects startGame and blocks outage commands", async () => {
     const { code, host } = await setup(),

@@ -172,6 +172,7 @@ export async function harness(
     port?: number;
     now?: () => number;
     trustProxy?: boolean;
+    timers?: boolean;
     fallback?: Parameters<typeof createApp>[1]["fallback"];
   } = {},
 ) {
@@ -189,7 +190,7 @@ export async function harness(
     {
       engine: options.engine ?? engine.api,
       now: options.now ?? (() => time),
-      timers: false,
+      timers: options.timers ?? false,
       fallback: options.fallback,
     },
   );

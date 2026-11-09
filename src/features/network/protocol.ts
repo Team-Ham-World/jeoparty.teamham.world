@@ -65,6 +65,7 @@ export type CloseReason =
   | "signedInElsewhere"
   | "authExpired"
   | "removed"
+  | "left"
   | "displayRevoked"
   | "roomClosed"
   | "serverShutdown";
@@ -100,6 +101,7 @@ export const WS_CLOSE = {
 //   GET    /api/auth/login?return_to=PATH   → 302 to HAM (PATH must be allowlisted)
 //   GET    /api/auth/callback               → 302 to the stored return path
 //   POST   /api/auth/logout                 → 204
+//   GET    /api/rooms                       → RoomSummary[] (rooms the caller hosts, most recently updated first)
 //   POST   /api/rooms                       CreateRoomRequest → CreateRoomResponse (caller becomes host)
 //   GET    /api/rooms/:code                 → RoomSummary
 //   POST   /api/rooms/:code/join            → JoinRoomResponse
@@ -181,6 +183,11 @@ export interface PackDocument {
 export interface SavePackRequest {
   /** Validated with the content validator; the server assigns the stored id. */
   pack: unknown;
+  /**
+   * PUT only: the `updatedAt` of the copy being edited. If the stored pack has changed since,
+   * the save fails with 409 `conflict`. Omit it to overwrite unconditionally.
+   */
+  expectedUpdatedAt?: string;
 }
 
 export type ApiErrorCode =

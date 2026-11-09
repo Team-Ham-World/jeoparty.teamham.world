@@ -348,9 +348,14 @@ export class AuthService {
           value: exchanged.token,
           exp: tokenExp,
         });
+        // Signing in as someone else ends the old account's session in this browser too.
+        const replacedAccount =
+          session.account_id && session.account_id !== account.account_id
+            ? [session.session_hash]
+            : [];
         return {
           id: created.id,
-          superseded: others.map((o) => o.session_hash),
+          superseded: [...others.map((o) => o.session_hash), ...replacedAccount],
         };
       });
       for (const hash of superseded) this.hooks.onSessionEnded(hash, "superseded");
