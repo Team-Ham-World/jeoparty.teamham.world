@@ -7,6 +7,7 @@ import {
   deletePack,
   getSession,
   joinRoom,
+  listMyRooms,
   logout,
   updatePack,
 } from "./api";
@@ -40,6 +41,30 @@ describe("api helpers", () => {
     expect(headersOf(display[1])[CSRF_HEADER]).toBe("csrf-3");
     expect(update[1].method).toBe("PUT");
     expect(JSON.parse(String(update[1].body))).toEqual({ pack: { title: "x" } });
+  });
+
+  it("sends the loaded version with a pack update and surfaces the conflict", async () => {
+    const calls = stubFetch(
+      () =>
+        new Response(JSON.stringify({ error: "conflict", message: "Changed in another tab." }), {
+          status: 409,
+        }),
+    );
+    await expect(
+      updatePack("t", "p1", { title: "x" }, "2026-11-09T10:00:00Z"),
+    ).rejects.toMatchObject({ status: 409, code: "conflict", message: "Changed in another tab." });
+    expect(JSON.parse(String(calls()[0][1].body))).toEqual({
+      pack: { title: "x" },
+      expectedUpdatedAt: "2026-11-09T10:00:00Z",
+    });
+  });
+
+  it("lists the rooms this host has open", async () => {
+    const rooms = [{ code: "BCDFG", status: "lobby", playerCount: 2 }];
+    const calls = stubFetch(() => new Response(JSON.stringify(rooms), { status: 200 }));
+    await expect(listMyRooms()).resolves.toEqual(rooms);
+    expect(calls()[0][0]).toBe("/api/rooms");
+    expect(calls()[0][1].method).toBe("GET");
   });
 
   it("handles 204 responses for logout and delete", async () => {

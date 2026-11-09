@@ -1,8 +1,23 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { PACKS, SESSION_SIGNED_IN, SESSION_SIGNED_OUT } from "@/features/preview/fixtures";
+import { SignInNotice } from "@/features/ui/page-chrome";
 import { HomeScreen, normalizeRoomCode } from "./home-screen";
+
+afterEach(() => window.history.replaceState(null, "", "/"));
+
+function signedOutHome() {
+  render(
+    <HomeScreen
+      session={SESSION_SIGNED_OUT}
+      packs={null}
+      onCreateGame={async () => {}}
+      onJoin={() => {}}
+      onSignOut={() => {}}
+    />,
+  );
+}
 
 describe("home", () => {
   it("normalizes typed room codes", () => {
@@ -50,5 +65,30 @@ describe("home", () => {
     fireEvent.change(input, { target: { value: "bcdfg" } });
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(onJoin).toHaveBeenCalledWith("BCDFG");
+  });
+
+  it.each([
+    ["denied", "Sign-in was cancelled."],
+    ["expired", "That sign-in took too long. Try again."],
+    ["state", "We couldn't finish signing you in. Try again."],
+  ])("explains a failed sign-in (%s) and clears it from the address", (code, message) => {
+    window.history.replaceState(null, "", `/?auth_error=${code}&keep=1#top`);
+    signedOutHome();
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe(
+      "/?keep=1#top",
+    );
+  });
+
+  it("shows no sign-in error without the parameter", () => {
+    signedOutHome();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("explains a failed sign-in on the sign-in notice too", () => {
+    window.history.replaceState(null, "", "/packs?auth_error=denied");
+    render(<SignInNotice returnTo="/packs" authMode="live" title="Sign in" body="Body" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Sign-in was cancelled.");
+    expect(window.location.search).toBe("");
   });
 });

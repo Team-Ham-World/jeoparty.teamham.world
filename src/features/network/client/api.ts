@@ -139,6 +139,11 @@ export function createRoom(
   return request<CreateRoomResponse>("/api/rooms", { method: "POST", body, csrf });
 }
 
+/** Open rooms the signed-in user hosts, most recently updated first. */
+export function listMyRooms(): Promise<RoomSummary[]> {
+  return request<RoomSummary[]>("/api/rooms");
+}
+
 export function getRoom(code: RoomCode): Promise<RoomSummary> {
   return request<RoomSummary>(`/api/rooms/${enc(code)}`);
 }
@@ -181,8 +186,18 @@ export function createPack(csrf: string, pack: unknown): Promise<PackDocument> {
   return request<PackDocument>("/api/packs", { method: "POST", body: { pack }, csrf });
 }
 
-export function updatePack(csrf: string, id: string, pack: unknown): Promise<PackDocument> {
-  return request<PackDocument>(`/api/packs/${enc(id)}`, { method: "PUT", body: { pack }, csrf });
+/** With `expectedUpdatedAt`, the server answers 409 "conflict" if the pack changed since then. */
+export function updatePack(
+  csrf: string,
+  id: string,
+  pack: unknown,
+  expectedUpdatedAt?: string,
+): Promise<PackDocument> {
+  return request<PackDocument>(`/api/packs/${enc(id)}`, {
+    method: "PUT",
+    body: { pack, expectedUpdatedAt },
+    csrf,
+  });
 }
 
 export function deletePack(csrf: string, id: string): Promise<void> {

@@ -6,10 +6,13 @@ import {
   ROOM_CODE_ALPHABET,
   ROOM_CODE_PATTERN,
   type PackSummary,
+  type RoomCode,
+  type RoomSummary,
   type SessionInfo,
 } from "@/features/network/protocol";
 import { loginUrl } from "@/features/network/client/api";
-import { PageHeader } from "@/features/ui/page-chrome";
+import { PageHeader, useAuthErrorMessage } from "@/features/ui/page-chrome";
+import { OpenRooms } from "./open-rooms";
 
 /** Keep only room-code letters, uppercased: "bc d-fg" → "BCDFG". */
 export function normalizeRoomCode(input: string): string {
@@ -26,6 +29,11 @@ export interface HomeScreenProps {
   /** null while loading. */
   packs: PackSummary[] | null;
   packsError?: string | null;
+  /** Rooms this host still has open. */
+  openRooms?: RoomSummary[];
+  openRoomsError?: string | null;
+  onRetryOpenRooms?: () => void;
+  onCloseRoom?: (code: RoomCode) => Promise<void>;
   onCreateGame: (packId: string | undefined) => Promise<void>;
   onJoin: (code: string) => void;
   onSignOut: () => void;
@@ -35,10 +43,15 @@ export function HomeScreen({
   session,
   packs,
   packsError,
+  openRooms = [],
+  openRoomsError = null,
+  onRetryOpenRooms = () => {},
+  onCloseRoom = async () => {},
   onCreateGame,
   onJoin,
   onSignOut,
 }: HomeScreenProps) {
+  const authError = useAuthErrorMessage();
   return (
     <>
       <PageHeader session={session} onSignOut={onSignOut} />
@@ -58,6 +71,15 @@ export function HomeScreen({
         </section>
 
         {session.signedIn ? (
+          <OpenRooms
+            rooms={openRooms}
+            error={openRoomsError}
+            onRetry={onRetryOpenRooms}
+            onClose={onCloseRoom}
+          />
+        ) : null}
+
+        {session.signedIn ? (
           <div className="home-actions">
             <HostCard packs={packs} packsError={packsError ?? null} onCreateGame={onCreateGame} />
             <JoinCard onJoin={onJoin} />
@@ -69,6 +91,11 @@ export function HomeScreen({
               HAM Quiz is for HAM friends. Sign in with your HAM account and you&apos;ll come right
               back here.
             </p>
+            {authError ? (
+              <p className="field__error" role="alert">
+                {authError}
+              </p>
+            ) : null}
             <div className="row">
               <a className="btn btn--primary btn--big" href={loginUrl("/")}>
                 Sign in with HAM

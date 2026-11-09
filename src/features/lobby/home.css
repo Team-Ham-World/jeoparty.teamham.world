@@ -44,6 +44,45 @@
     color: var(--muted);
   }
 
+  .home-rooms {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .home-rooms h2 {
+    font-size: var(--fs-xl);
+  }
+
+  .home-rooms__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .home-room {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding-block: 0.6rem;
+    border-top: 1.5px dashed var(--rule);
+  }
+
+  .home-room:first-child {
+    border-top: 0;
+  }
+
+  .home-room__code {
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .home-room__actions {
+    margin-left: auto;
+  }
+
   .home-actions {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));

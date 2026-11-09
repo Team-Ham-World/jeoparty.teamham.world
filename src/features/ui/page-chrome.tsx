@@ -1,10 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { AuthMode, SessionInfo } from "@/features/network/protocol";
 import { loginUrl } from "@/features/network/client/api";
 import { FixtureStamp, Lockup } from "./brand";
+
+/** Plain words for the `auth_error` code the sign-in callback adds to the return address. */
+function authErrorMessage(code: string): string {
+  if (code === "denied") return "Sign-in was cancelled.";
+  if (code === "expired") return "That sign-in took too long. Try again.";
+  return "We couldn't finish signing you in. Try again.";
+}
+
+/**
+ * Why the last sign-in failed, or null. Read after mount so the server and
+ * first client render match, then dropped from the address so a reload or a
+ * shared link doesn't repeat it.
+ */
+export function useAuthErrorMessage(): string | null {
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("auth_error");
+    if (code === null) return;
+    url.searchParams.delete("auth_error");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- A one-time read of the address, which only exists after mount.
+    setMessage(authErrorMessage(code));
+  }, []);
+
+  return message;
+}
 
 /** Top bar for the paper pages (home, packs, gates). */
 export function PageHeader({
@@ -130,11 +158,17 @@ export function SignInNotice({
   title: string;
   body: string;
 }) {
+  const authError = useAuthErrorMessage();
   return (
     <NoticeShell>
       <span className="stamp stamp--red">Sign in</span>
       <h1>{title}</h1>
       <p className="muted">{body}</p>
+      {authError ? (
+        <p className="field__error" role="alert">
+          {authError}
+        </p>
+      ) : null}
       <a className="btn btn--primary btn--big" href={loginUrl(returnTo)}>
         Sign in with HAM
       </a>

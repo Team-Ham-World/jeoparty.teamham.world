@@ -94,6 +94,16 @@ export function packForSave(pack: QuestionPack): QuestionPack {
   return synced;
 }
 
+/** Download name for a pack. Titles with no a-z or 0-9 leave nothing to slug, so they get a default. */
+export function exportFileName(title: string): string {
+  const slug = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${slug || "ham-quiz-pack"}.json`;
+}
+
 export function move<T>(list: readonly T[], from: number, to: number): T[] {
   if (to < 0 || to >= list.length || from === to) return [...list];
   const next = [...list];

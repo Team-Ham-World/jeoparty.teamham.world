@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { QuestionPack } from "@/features/content";
 import {
   createPack,
@@ -17,6 +17,7 @@ import type { PackSummary, SessionInfo } from "@/features/network/protocol";
 import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
 import { useSession } from "@/features/ui/session";
 import { ToastProvider, useToast } from "@/features/ui/toasts";
+import { packDraftKey } from "./pack-autosave";
 import { blankPack } from "./pack-draft";
 import { PackEditor } from "./pack-editor";
 import { PacksList } from "./packs-list";
@@ -136,13 +137,24 @@ function PacksPage({ csrf }: { csrf: string }) {
 export function PackEditorRoute({ id }: { id: string | null }) {
   return (
     <WithSession returnTo={id ? `/packs/${id}` : "/packs"}>
-      {(session) => <EditorPage id={id} csrf={session.csrfToken} />}
+      {(session) => <EditorPage id={id} csrf={session.csrfToken} accountId={session.user.id} />}
     </WithSession>
   );
 }
 
-function EditorPage({ id, csrf }: { id: string | null; csrf: string }) {
+function EditorPage({
+  id,
+  csrf,
+  accountId,
+}: {
+  id: string | null;
+  csrf: string;
+  accountId: string;
+}) {
   const router = useRouter();
+  // The version of the pack this editor last loaded or saved. The server refuses a
+  // save if the stored pack has moved on, so two tabs can't silently overwrite each other.
+  const baseUpdatedAt = useRef<string | undefined>(undefined);
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "ready"; pack: QuestionPack }
@@ -153,7 +165,11 @@ function EditorPage({ id, csrf }: { id: string | null; csrf: string }) {
     if (!id) return;
     let cancelled = false;
     getPack(id).then(
-      (doc) => !cancelled && setState({ status: "ready", pack: { ...doc.pack, id: doc.id } }),
+      (doc) => {
+        if (cancelled) return;
+        baseUpdatedAt.current = doc.updatedAt;
+        setState({ status: "ready", pack: { ...doc.pack, id: doc.id } });
+      },
       (e: unknown) => !cancelled && setState({ status: "error", message: errorMessage(e) }),
     );
     return () => {
@@ -176,10 +192,12 @@ function EditorPage({ id, csrf }: { id: string | null; csrf: string }) {
         key={id ?? "new"}
         initial={state.pack}
         isNew={id === null}
+        draftKey={packDraftKey(accountId, id)}
         onNavigate={(href) => router.push(href)}
         onSave={async (pack) => {
           if (id) {
-            await updatePack(csrf, id, pack);
+            const doc = await updatePack(csrf, id, pack, baseUpdatedAt.current);
+            baseUpdatedAt.current = doc.updatedAt;
           } else {
             const doc = await createPack(csrf, pack);
             router.replace(`/packs/${doc.id}`);

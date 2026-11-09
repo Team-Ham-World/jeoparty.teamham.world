@@ -9,9 +9,10 @@ import {
   type QuestionPack,
   type ValidationError,
 } from "@/features/content";
-import { ConfirmDialog } from "@/features/ui/dialog";
+import { ConfirmDialog, Dialog } from "@/features/ui/dialog";
 import { formatScore, plural } from "@/features/ui/format";
 import { useToast } from "@/features/ui/toasts";
+import { clearStoredDraft, readStoredDraft, writeStoredDraft } from "./pack-autosave";
 import {
   TIERS,
   blankCategory,
@@ -19,6 +20,7 @@ import {
   blankRound,
   describePath,
   errorsByPath,
+  exportFileName,
   fieldId,
   friendlyMessage,
   move,
@@ -40,6 +42,8 @@ export interface PackEditorProps {
   onNavigate: (href: string) => void;
   /** Show these errors on first render (previews and tests). */
   initialErrors?: ValidationError[];
+  /** Where to keep unsaved work in this browser tab. Leave out to skip autosaving. */
+  draftKey?: string;
 }
 
 /**
@@ -53,19 +57,43 @@ export function PackEditor({
   onSave,
   onNavigate,
   initialErrors = [],
+  draftKey,
 }: PackEditorProps) {
   const toast = useToast();
   const [pack, setPack] = useState<QuestionPack>(initial);
   const [saved, setSaved] = useState<string>(() => JSON.stringify(packForSave(initial)));
   const [errors, setErrors] = useState<ValidationError[]>(initialErrors);
   const [saving, setSaving] = useState(false);
+  // A new pack exists on the server once this is true. Saving again would make a
+  // second copy, so Save stays off until the redirect to the pack's own page lands.
+  const [created, setCreated] = useState(false);
   const [removingCategory, setRemovingCategory] = useState<number | null>(null);
+  const [saveConflict, setSaveConflict] = useState<string | null>(null);
+  const [pendingImport, setPendingImport] = useState<{
+    pack: QuestionPack;
+    fileName: string;
+  } | null>(null);
+  // Unsaved work from an earlier visit, waiting for the author to restore or discard it.
+  const [storedDraft, setStoredDraft] = useState<QuestionPack | null>(() => {
+    const draft = draftKey ? readStoredDraft(draftKey) : null;
+    const differs =
+      draft && JSON.stringify(packForSave(draft)) !== JSON.stringify(packForSave(initial));
+    return differs ? draft : null;
+  });
   const fileInput = useRef<HTMLInputElement>(null);
   const dirty = JSON.stringify(packForSave(pack)) !== saved;
-  const canSave = !saving && (dirty || isNew || errors.length > 0);
+  const canSave = !saving && !created && (dirty || isNew || errors.length > 0);
   const guard = useUnsavedGuard(dirty && !saving);
   const fieldErrors = useMemo(() => errorsByPath(errors), [errors]);
   const err = (path: string) => fieldErrors.get(path);
+
+  // Browser Back and Sign out leave this page with no warning, so keep every change.
+  // `saved` is a dependency so edits typed during a save are stored again afterwards.
+  useEffect(() => {
+    if (!draftKey || storedDraft) return; // Don't overwrite a draft still awaiting a decision.
+    if (dirty) writeStoredDraft(draftKey, pack);
+    else clearStoredDraft(draftKey);
+  }, [draftKey, storedDraft, dirty, pack, saved]);
 
   async function save() {
     const candidate = packForSave(pack);
@@ -77,15 +105,21 @@ export function PackEditor({
     }
     setSaving(true);
     setErrors([]);
+    setSaveConflict(null);
     try {
       await onSave(candidate);
+      // Now, not in the effect: saving a new pack navigates away from this editor.
+      if (draftKey) clearStoredDraft(draftKey);
       setSaved(JSON.stringify(candidate));
+      if (isNew) setCreated(true);
       toast("Pack saved.", "info");
     } catch (error) {
       const validation = (error as { validationErrors?: ValidationError[] }).validationErrors;
       if (validation && validation.length > 0) {
         setErrors(validation);
         toast(`The server found ${plural(validation.length, "problem")}.`);
+      } else if ((error as { code?: string }).code === "conflict") {
+        setSaveConflict(error instanceof Error ? error.message : "This pack changed elsewhere.");
       } else {
         toast(error instanceof Error ? error.message : "Couldn't save. Try again.");
       }
@@ -116,10 +150,18 @@ export function PackEditor({
       toast(`Couldn't import ${file.name}. ${what}${more} Nothing was changed.`);
       return;
     }
+    if (dirty) {
+      setPendingImport({ pack: result.data, fileName: file.name });
+      return;
+    }
+    applyImport(result.data, file.name);
+  }
+
+  function applyImport(imported: QuestionPack, fileName: string) {
     // Keep this pack's id so saving updates it instead of creating a twin.
-    setPack({ ...result.data, id: pack.id });
+    setPack({ ...imported, id: pack.id });
     setErrors([]);
-    toast(`Imported ${file.name}. Review it, then save.`, "info");
+    toast(`Imported ${fileName}. Review it, then save.`, "info");
   }
 
   function exportFile() {
@@ -129,10 +171,7 @@ export function PackEditor({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${(pack.title.trim() || "ham-quiz-pack")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")}.json`;
+    link.download = exportFileName(pack.title);
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -158,7 +197,7 @@ export function PackEditor({
             <span className="stamp stamp--warn stamp--flat">Unsaved changes</span>
           ) : errors.length > 0 ? (
             <span className="stamp stamp--bad stamp--flat">Needs fixes</span>
-          ) : isNew ? (
+          ) : isNew && !created ? (
             <span className="stamp stamp--dashed stamp--flat">Not saved yet</span>
           ) : (
             <span className="stamp stamp--good stamp--flat">Saved</span>
@@ -201,6 +240,18 @@ export function PackEditor({
           </button>
         </div>
       </div>
+
+      {saveConflict ? (
+        <div className="banner banner--warn" role="alert">
+          <p>
+            <strong>{saveConflict}</strong> Your edits are still on this page. Export them so you
+            don&apos;t lose them.
+          </p>
+          <button type="button" className="btn btn--small" onClick={exportFile}>
+            Export JSON
+          </button>
+        </div>
+      ) : null}
 
       {errors.length > 0 ? (
         <section
@@ -664,8 +715,54 @@ export function PackEditor({
         onConfirm={() => {
           const href = guard.pendingHref;
           guard.cancel();
+          if (draftKey) clearStoredDraft(draftKey);
           if (href) onNavigate(href);
         }}
+      />
+      <ConfirmDialog
+        open={pendingImport !== null}
+        title="Replace your unsaved changes?"
+        description={`Importing ${pendingImport?.fileName ?? "this file"} replaces everything in this editor.`}
+        confirmLabel="Import and replace"
+        cancelLabel="Keep editing"
+        onCancel={() => setPendingImport(null)}
+        onConfirm={() => {
+          if (pendingImport) applyImport(pendingImport.pack, pendingImport.fileName);
+          setPendingImport(null);
+        }}
+      />
+      {/* No way to dismiss it: Escape or a stray click shouldn't decide the fate of someone's work. */}
+      <Dialog
+        open={storedDraft !== null}
+        onClose={() => {}}
+        title="Restore your unsaved edits?"
+        description="You left this pack with changes that weren't saved."
+        footer={
+          <>
+            {/* First on purpose: opening a dialog focuses its first button, so Enter keeps the work. */}
+            <button
+              type="button"
+              className="btn btn--primary"
+              autoFocus
+              onClick={() => {
+                if (storedDraft) setPack(storedDraft);
+                setStoredDraft(null);
+              }}
+            >
+              Restore
+            </button>
+            <button
+              type="button"
+              className="btn btn--bad"
+              onClick={() => {
+                if (draftKey) clearStoredDraft(draftKey);
+                setStoredDraft(null);
+              }}
+            >
+              Discard
+            </button>
+          </>
+        }
       />
     </div>
   );
