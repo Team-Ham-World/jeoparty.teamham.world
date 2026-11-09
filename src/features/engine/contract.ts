@@ -361,7 +361,13 @@ export interface PlayerView extends ViewCommon {
   audience: "player";
   board: BoardView | null;
   me: { id: PlayerId; name: string; score: number; status: "playing" | "waiting" };
-  /** What this player can do right now. Screens must not recompute rules. */
+  /**
+   * What this player can do right now. Screens must not recompute rules.
+   * `wager`, `finalWager` and `finalAnswer` stay set during a pause so the
+   * phone keeps the form and its typed text: show it disabled when the view
+   * says `paused`, because the engine rejects those commands until resume.
+   * `buzz` is false while paused.
+   */
   can: {
     buzz: boolean;
     wager: { min: number; max: number } | null;

@@ -94,7 +94,9 @@ export function wagerBounds(state: GameState) {
   if (state.clue?.stage !== "wager") return null;
   return {
     min: 5,
+    // Includes the minimum so a board of very small values still has a legal wager.
     max: Math.max(
+      5,
       state.players.find((p) => p.id === state.controllerId)?.score ?? 0,
       ...currentBoard(state)!.categories.flatMap((c) => c.cells.map((cell) => cell.value)),
     ),

@@ -6,8 +6,8 @@ These functions are pure and preserve optional metadata.
 
 Each pack declares its dimensions, categories, and scoring rounds. Every category
 has ordinary text clues with tiers 1–5 and one `finalClue` with tier `"final"`.
-Every scoring round defines positive integer points for all five tiers;
-`defaultRoundId` references one of those rounds. IDs are unique across all
+Every scoring round defines positive integer points for all five tiers, each at
+most 1,000,000; `defaultRoundId` references one of those rounds. IDs are unique across all
 pack, round, category, and clue definitions within a pack.
 
 Validation reports exact field paths. Blank required text, invalid dimensions,

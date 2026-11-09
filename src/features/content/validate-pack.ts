@@ -10,6 +10,9 @@ const liveStateFields = new Set([
   "usedClues",
 ]);
 
+// Keeps doubled round values and running scores well inside the safe-integer range.
+const MAX_POINTS_PER_CLUE = 1_000_000;
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -180,7 +183,11 @@ export function validateQuestionPack(input: unknown): ValidationResult {
         metadata(round, path);
         if (object(round.pointsByTier, `${path}.pointsByTier`)) {
           for (let tier = 1; tier <= 5; tier++) {
-            positiveInteger(round.pointsByTier[tier], `${path}.pointsByTier.${tier}`);
+            const points = round.pointsByTier[tier];
+            const pointsPath = `${path}.pointsByTier.${tier}`;
+            if (positiveInteger(points, pointsPath) && points > MAX_POINTS_PER_CLUE) {
+              error(pointsPath, "Must be at most 1,000,000 points.");
+            }
           }
         }
       });

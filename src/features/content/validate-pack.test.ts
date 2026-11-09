@@ -217,6 +217,21 @@ describe("validateQuestionPack", () => {
     );
   });
 
+  it("caps each point value at 1,000,000 and still accepts small values", () => {
+    const pack = sample();
+    pack.scoring.rounds[0].pointsByTier[1] = 1_000_000;
+    pack.scoring.rounds[0].pointsByTier[2] = 1;
+    expect(validateQuestionPack(pack).ok).toBe(true);
+    pack.scoring.rounds[0].pointsByTier[1] = 1_000_001;
+    pack.scoring.rounds[0].pointsByTier[2] = 5e15;
+    expect(errorsFor(pack)).toEqual(
+      expect.arrayContaining([
+        { path: "scoring.rounds[0].pointsByTier.1", message: "Must be at most 1,000,000 points." },
+        { path: "scoring.rounds[0].pointsByTier.2", message: "Must be at most 1,000,000 points." },
+      ]),
+    );
+  });
+
   it("rejects empty rounds and non-integer round points", () => {
     const pack = sample();
     pack.scoring.rounds[0].pointsByTier[1] = 1.5;

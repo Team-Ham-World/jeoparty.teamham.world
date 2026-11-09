@@ -180,6 +180,17 @@ const stateShape = object({
   updatedAt: number,
 });
 
+/**
+ * An old save has no opening time, so treat the buzzers as already open. A paused
+ * game must not open after its pause began, or resume reads the gap as remaining lead.
+ */
+function migratedOpensAt(updatedAt: unknown, paused: unknown): unknown {
+  const since = paused && typeof paused === "object" && "since" in paused ? paused.since : null;
+  return typeof updatedAt === "number" && typeof since === "number"
+    ? Math.min(updatedAt, since)
+    : updatedAt;
+}
+
 /** Persistence is a trust boundary: validate structure, references and active-stage invariants. */
 export function restore(raw: unknown): GameState | null {
   try {
@@ -212,7 +223,7 @@ export function restore(raw: unknown): GameState | null {
           Object.assign(json.clue, {
             opensAt:
               "stage" in json.clue && json.clue.stage === "open" && "updatedAt" in json
-                ? json.updatedAt
+                ? migratedOpensAt(json.updatedAt, "paused" in json ? json.paused : null)
                 : null,
           });
         if (!("collection" in json.clue)) Object.assign(json.clue, { collection: null });
@@ -304,13 +315,12 @@ export function restore(raw: unknown): GameState | null {
           entries.length > s.players.length ||
           new Set(entries.map((e) => e.playerId)).size !== entries.length ||
           entries.some(
-            (e, i) =>
+            (e) =>
               !playing.has(e.playerId) ||
               e.effectiveMs < c.opensAt! - 40 ||
               e.effectiveMs > e.arrivalMs ||
               e.arrivalMs > c.collection!.decidesAt ||
-              c.attempts.some((a) => a.playerId === e.playerId) ||
-              (i > 0 && e.arrivalMs < entries[i - 1].arrivalMs),
+              c.attempts.some((a) => a.playerId === e.playerId),
           ) ||
           c.collection.decidesAt < entries[0].arrivalMs ||
           c.collection.decidesAt > entries[0].arrivalMs + 250

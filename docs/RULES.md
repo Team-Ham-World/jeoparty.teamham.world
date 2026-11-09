@@ -19,6 +19,7 @@ A room code alone never grants host powers. Identity is the HAM account (server-
 - Signed-in accounts join with the room code or link. At most 6 players. The host cannot also be a player in their own room.
 - The host chooses a pack and settings, may remove lobby players, and starts with 2–6 players.
 - Accounts that join after the game starts **wait** for the next game. **Play again** returns everyone to the lobby with scores reset and adds waiting accounts while seats remain.
+- When a lobby seat frees up (a player is removed or leaves), waiting accounts move into free seats immediately, longest-waiting first, ahead of any newcomer.
 
 ## Settings (host, lobby only)
 
@@ -40,7 +41,7 @@ Changing the pack resets settings to that pack's defaults.
 ## Boards
 
 - Round `r` (0-based) uses pack categories `[r·C, (r+1)·C)` where C = `categoriesPerRound`. Each column shows all of its category's clues ordered by tier, then pack order.
-- Values: round 0 uses the scoring round `defaultRoundId`. Round 1 uses the first *other* scoring round in pack order, otherwise the default values × 2. A clue's value is `pointsByTier[clue.tier]` of its round. Clue IDs never determine points.
+- Values: round 0 uses the scoring round `defaultRoundId`. Round 1 uses the first *other* scoring round in pack order, otherwise the default values × 2. A clue's value is `pointsByTier[clue.tier]` of its round. Each `pointsByTier` value in a pack is at most 1,000,000. Clue IDs never determine points.
 - Wager clues: `wagerClues[r]` cells per round, placed by the game's seeded random generator, preferring cells that are not the round's lowest tier. Players and the display cannot see where they are until selected. The host can.
 - Final round clue: the `finalClue` of the first pack category not used on any board. If every category is used, use a seeded-random used category's final clue.
 - The running game keeps a fixed copy of the pack. Editing a saved pack never changes a game in progress.
@@ -72,7 +73,7 @@ Stages: `reading → open → answering → closed ⇄ open → revealed`.
 Stages: `wager → answering → closed → revealed`.
 
 - Selecting a wager cell → `wager`. Public views show the category, value slot, and controller, but **not** the prompt.
-- The controller (or the host on their behalf) submits an integer wager from **5** to **max(controller score, highest clue value on the current board)**. → `answering`: the prompt and wager become public; the controller is the only answerer; the answer timer starts.
+- The controller (or the host on their behalf) submits an integer wager from **5** to **max(5, controller score, highest clue value on the current board)**. → `answering`: the prompt and wager become public; the controller is the only answerer; the answer timer starts.
 - Judge ±wager. Control stays with the controller either way. Then reveal and return to board as normal.
 - **Cancel:** the host may end attempts during `wager` (for example, the controller is gone): no score change, → `closed`.
 
@@ -92,7 +93,7 @@ Standings sort by score. Every player with the top score wins (shared win), even
 
 ## Pause, presence and recovery
 
-- Host **pause/resume** any time after start. While paused, timers freeze with their remaining time, and every gameplay command except resume, score correction, and end game is rejected (`paused`). Server-only presence, membership, rename, and recovery commands still run; timer expiry is rejected while paused.
+- Host **pause/resume** any time after start. While paused, timers freeze with their remaining time, and every gameplay command except resume, score correction, and end game is rejected (`paused`). Server-only presence, membership, rename, and recovery commands still run; timer expiry is rejected while paused. A seated player's wager or final-round form stays on their phone during a pause, shown disabled, so typed text is not lost; submitting it is still rejected until resume. Buzzing is unavailable while paused.
 - Pausing during collection freezes the candidates and decides the winner immediately on resume, with a fresh answer timer. No candidates are added while paused. Pausing before `opensAt` preserves the remaining lead. Resuming an open window without candidates schedules a fresh opening after that remaining lead, restarts phone reaction measurement, and preserves the remaining buzz time. A restart follows the same rules, frozen at the last saved command time; transport latency samples start fresh. Older saved games receive the two default-on settings.
 - If the host's last connection drops during a game, the game auto-pauses (`hostOffline`). Resuming is always the host's explicit action.
 - Player disconnects are shown but do not change the game; the host decides whether to wait, judge, or end attempts. Voluntary departure removes lobby and waiting members immediately. During play, retain the player's scores and attempts through results, mark them disconnected, and free their seat on play again. Reconnecting before then cancels the departure.

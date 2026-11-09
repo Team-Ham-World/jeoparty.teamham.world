@@ -175,8 +175,7 @@ export function playerView(s: GameState, playerId: string, now: number): PlayerV
   const playing = s.players.find((p) => p.id === playerId);
   const member = playing ?? s.waitingPlayers.find((p) => p.id === playerId);
   if (!member) return null;
-  const active = !!playing && !s.paused;
-  const finalEligible = active && s.final?.eligiblePlayerIds.includes(playerId);
+  const finalEligible = !!playing && s.final?.eligiblePlayerIds.includes(playerId);
   return structuredClone({
     ...common(s, now, false),
     audience: "player",
@@ -189,11 +188,12 @@ export function playerView(s: GameState, playerId: string, now: number): PlayerV
     },
     can: {
       buzz:
-        active &&
+        !!playing &&
+        !s.paused &&
         s.clue?.stage === "open" &&
         !s.clue.collection?.candidates.some((p) => p.playerId === playerId) &&
         eligibleBuzzers(s).some((p) => p.id === playerId),
-      wager: active && s.controllerId === playerId ? wagerBounds(s) : null,
+      wager: playing && s.controllerId === playerId ? wagerBounds(s) : null,
       finalWager:
         finalEligible && s.final?.stage === "wagers"
           ? { min: 0, max: s.final.startingScores[playerId] }

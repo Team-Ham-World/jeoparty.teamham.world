@@ -878,7 +878,99 @@ describe("privacy, views, and defensive input handling", () => {
   });
 });
 
+describe("forms during a pause", () => {
+  const waiter = { type: "addPlayer", playerId: "w", name: "Waiter" } as const;
+
+  it("keeps the wager form for the controller only, and still rejects the wager", () => {
+    const g = game();
+    g.start();
+    g.run(waiter, system);
+    const clueId = g.select(true);
+    const controller = g.s.controllerId!;
+    const other = controller === "a" ? "b" : "a";
+    const bounds = engine.hostView(g.s, 100).wagerBounds;
+    g.run({ type: "pause" });
+    const view = engine.playerView(g.s, controller, 100)!;
+    expect(view.paused).not.toBeNull();
+    expect(view.can.wager).toEqual(bounds);
+    expect(view.can.buzz).toBe(false);
+    expect(engine.playerView(g.s, other, 100)!.can.wager).toBeNull();
+    expect(engine.playerView(g.s, "w", 100)!.can.wager).toBeNull();
+    g.reject({ type: "submitWager", clueId, amount: 5 }, "paused", {
+      kind: "player",
+      playerId: controller,
+    });
+    g.reject({ type: "submitWager", clueId, amount: 5 }, "paused");
+  });
+
+  it("keeps final-round forms for eligible players only, and still rejects submissions", () => {
+    const g = game();
+    toFinal(g, pack(), [1000, 0]);
+    g.run(waiter, system);
+    g.run({ type: "pause" });
+    expect(engine.playerView(g.s, "a", 100)!.can.finalWager).toEqual({ min: 0, max: 1000 });
+    expect(engine.playerView(g.s, "b", 100)!.can.finalWager).toBeNull();
+    expect(engine.playerView(g.s, "w", 100)!.can.finalWager).toBeNull();
+    g.reject({ type: "submitFinalWager", amount: 10 }, "paused", alice);
+    g.run({ type: "resume" });
+    g.run({ type: "showFinalClue" });
+    g.run({ type: "pause" });
+    expect(engine.playerView(g.s, "a", 100)!.can.finalAnswer).toBe(true);
+    expect(engine.playerView(g.s, "a", 100)!.can.finalWager).toBeNull();
+    expect(engine.playerView(g.s, "b", 100)!.can.finalAnswer).toBe(false);
+    expect(engine.playerView(g.s, "w", 100)!.can.finalAnswer).toBe(false);
+    g.reject({ type: "submitFinalAnswer", text: "typed" }, "paused", alice);
+  });
+});
+
 describe("membership and submission edge cases", () => {
+  it("gives a board of tiny values a legal wager of 5", () => {
+    const g = game();
+    const small = pack();
+    for (const round of small.scoring.rounds) round.pointsByTier = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4 };
+    g.start(small);
+    const clueId = g.select(true);
+    expect(engine.hostView(g.s, 100).wagerBounds).toEqual({ min: 5, max: 5 });
+    g.run({ type: "submitWager", clueId, amount: 5 });
+    expect(g.s.clue!.wager).toBe(5);
+  });
+
+  function fullLobbyWithWaiters() {
+    const g = game();
+    g.lobby();
+    for (const playerId of ["c", "d", "e", "f"])
+      g.run({ type: "addPlayer", playerId, name: playerId }, system);
+    g.run({ type: "startGame" });
+    for (const playerId of ["w1", "w2"])
+      g.run({ type: "addPlayer", playerId, name: playerId }, system);
+    g.run({ type: "endGame" });
+    g.run({ type: "playAgain" });
+    expect(g.s.waitingPlayers.map((p) => p.id)).toEqual(["w1", "w2"]);
+    return g;
+  }
+
+  it("seats the longest-waiting account when the host removes a lobby player", () => {
+    const g = fullLobbyWithWaiters();
+    g.run({ type: "removePlayer", playerId: "a" });
+    expect(g.s.players.map((p) => p.id)).toEqual(["b", "c", "d", "e", "f", "w1"]);
+    expect(g.s.waitingPlayers.map((p) => p.id)).toEqual(["w2"]);
+    g.reject({ type: "addPlayer", playerId: "new", name: "New" }, "gameFull", system);
+  });
+
+  it("seats the longest-waiting account when a lobby player leaves", () => {
+    const g = fullLobbyWithWaiters();
+    g.run({ type: "removeMember", playerId: "b" }, system);
+    expect(g.s.players.map((p) => p.id)).toEqual(["a", "c", "d", "e", "f", "w1"]);
+    expect(g.s.waitingPlayers.map((p) => p.id)).toEqual(["w2"]);
+  });
+
+  it("does not move the queue when someone on the waiting list leaves", () => {
+    const g = fullLobbyWithWaiters();
+    g.run({ type: "removeMember", playerId: "w1" }, system);
+    expect(g.s.players.map((p) => p.id)).toEqual(["a", "b", "c", "d", "e", "f"]);
+    expect(g.s.waitingPlayers.map((p) => p.id)).toEqual(["w2"]);
+  });
+
   it("retains departed scores through results, then frees seats for waiting players", () => {
     const g = game();
     g.start();

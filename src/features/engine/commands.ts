@@ -88,6 +88,10 @@ export function rejection(code: RejectionCode) {
 const nameValid = (name: string) =>
   typeof name === "string" && name.trim().length > 0 && name.trim().length <= 32;
 const inPlay = (s: GameState) => s.phase !== "lobby" && s.phase !== "results";
+/** Moves waiting accounts into free seats, longest-waiting first. */
+const seatWaitingPlayers = (s: GameState) => {
+  s.players.push(...s.waitingPlayers.splice(0, 6 - s.players.length));
+};
 
 /** Mutates only the private draft. The facade discards it on rejection. */
 export function execute(
@@ -165,6 +169,7 @@ export function execute(
       if (s.phase !== "lobby") return "wrongPhase";
       if (!player) return "unknownPlayer";
       s.players = s.players.filter((p) => p.id !== c.playerId);
+      seatWaitingPlayers(s);
       return null;
     case "removeMember":
       if (!member) return "unknownPlayer";
@@ -174,6 +179,7 @@ export function execute(
         if (!s.departedPlayerIds.includes(player.id)) s.departedPlayerIds.push(player.id);
       } // Preserve attempts, final eligibility and scores for this game.
       s.waitingPlayers = s.waitingPlayers.filter((p) => p.id !== c.playerId);
+      if (s.phase === "lobby") seatWaitingPlayers(s);
       return null;
     case "setPresence":
       if (typeof c.connected !== "boolean" || !c.target) return "forbidden";
@@ -484,13 +490,14 @@ export function execute(
           ? Math.max(0, s.clue.opensAt - s.paused.since)
           : 0;
       s.paused = null;
+      // Before decideBuzz: screens react to lastEvent, which must end up as buzzAccepted.
+      event(s, events, { kind: "resumed" });
       if (s.clue?.collection) decideBuzz(s, now, events);
       else if (s.clue?.stage === "open") s.clue.opensAt = now + lead;
       if (s.timer) {
         s.timer.id = `timer-${s.revision}`;
         s.timer.endsAt = now + (s.timer.kind === "buzz" ? lead : 0) + s.timer.remainingMs;
       }
-      event(s, events, { kind: "resumed" });
       return null;
     }
     case "endGame":
@@ -501,7 +508,7 @@ export function execute(
       if (s.phase !== "results") return "wrongPhase";
       s.players = s.players.filter((p) => !s.departedPlayerIds.includes(p.id));
       s.departedPlayerIds = [];
-      s.players.push(...s.waitingPlayers.splice(0, 6 - s.players.length));
+      seatWaitingPlayers(s);
       s.players.forEach((p) => {
         p.score = 0;
       });

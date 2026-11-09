@@ -164,6 +164,49 @@ describe("fair buzzing", () => {
       expect(g.state.timer?.endsAt).toBe(15000);
     }
   });
+  it("makes the buzz result the last event when resume decides a collection", () => {
+    const g = game();
+    g.buzz("a", 200, 1420);
+    g.apply({ type: "pause" }, 1510);
+    const result = g.apply({ type: "resume" }, 5000);
+    expect(result.ok && result.events.map((e) => e.kind)).toEqual(["resumed", "buzzAccepted"]);
+    expect(g.state.lastEvent?.event).toMatchObject({ kind: "buzzAccepted", playerId: "a" });
+    expect(g.state.timer).toMatchObject({ endsAt: 15000, remainingMs: 10000 });
+  });
+  it("still reports resumed when there is no collection to decide", () => {
+    const g = game();
+    g.apply({ type: "pause" }, 1100);
+    g.apply({ type: "resume" }, 5000);
+    expect(g.state.lastEvent?.event.kind).toBe("resumed");
+  });
+  it("keeps a live room restorable when candidate arrival times go backward", () => {
+    const g = game();
+    g.buzz("a", 200, 1420);
+    // game() asserts that every applied state restores.
+    expect(g.buzz("b", 150, 1410, 150, false, 1421).ok).toBe(true);
+    const arrivals = g.state.clue?.collection?.candidates.map((c) => c.arrivalMs);
+    expect(arrivals).toEqual([1420, 1410]);
+    expect(engine.restore(JSON.parse(JSON.stringify(g.state)))).not.toBeNull();
+    g.decide();
+    expect(g.state.clue?.answeringPlayerId).toBe("b");
+  });
+  it("migrates an old paused save so resume does not read the gap as lead", () => {
+    const g = game();
+    g.apply({ type: "pause" }, 1100);
+    g.apply({ type: "adjustScore", playerId: "a", delta: 1, reason: "correction" }, 3000);
+    const legacy = JSON.parse(JSON.stringify(g.state));
+    delete legacy.clue.opensAt;
+    g.state = engine.restore(legacy)!;
+    expect(g.state.clue?.opensAt).toBe(1100);
+    g.apply({ type: "resume" }, 5000);
+    expect(g.state.clue?.opensAt).toBe(5000);
+  });
+  it("migrates an old unpaused save to its last saved time", () => {
+    const g = game();
+    const legacy = JSON.parse(JSON.stringify(g.state));
+    delete legacy.clue.opensAt;
+    expect(engine.restore(legacy)?.clue?.opensAt).toBe(legacy.updatedAt);
+  });
   it("freezes opening lead and buzz time through pause and restore", () => {
     const g = game();
     g.apply({ type: "pause" }, 1100);
