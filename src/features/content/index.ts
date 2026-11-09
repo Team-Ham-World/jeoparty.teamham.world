@@ -15,7 +15,7 @@ export type {
 } from "./types";
 export { validateQuestionPack } from "./validate-pack";
 
-/** Parse supplied JSON without importing an answer-bearing pack or doing I/O. */
+/** Parse v3 pack JSON without importing answer-bearing content or doing I/O. */
 export function parseQuestionPackJson(json: string): ValidationResult {
   let input: unknown;
   try {

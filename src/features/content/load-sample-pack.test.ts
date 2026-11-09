@@ -9,11 +9,14 @@ import { loadSamplePack } from "./load-sample-pack.server";
 // verify-server-boundary.mjs separately checks real Next enforcement without it.
 vi.mock("server-only", () => ({}));
 
-const sampleJson = await readFile(new URL("./samples/sample-pack-3x3.json", import.meta.url), "utf8");
+const sampleJson = await readFile(
+  new URL("./samples/sample-pack-3x3.json", import.meta.url),
+  "utf8",
+);
 let directory = "";
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), "jeoparty-content-loader-"));
+  directory = await mkdtemp(join(tmpdir(), "ham-quiz-content-loader-"));
 });
 
 afterEach(async () => {
@@ -29,7 +32,7 @@ describe("loadSamplePack filesystem behavior", () => {
     if (!result.ok) throw new Error(JSON.stringify(result.errors));
     expect(result.data.dimensions).toEqual({ categories: 3, cluesPerCategory: 3 });
     expect(result.data.categories.flatMap((category) => category.clues)).toHaveLength(9);
-    expect(result.data.categories.map((category) => category.finalJeoparty)).toHaveLength(3);
+    expect(result.data.categories.map((category) => category.finalClue)).toHaveLength(3);
   });
 
   it("reads a developer-controlled file path using the same parser", async () => {
@@ -83,7 +86,7 @@ describe("loadSamplePack filesystem behavior", () => {
     expect(result).toEqual(parseQuestionPackJson(invalidJson));
     if (result.ok) throw new Error("Expected invalid content to fail validation.");
     expect(result.errors).toEqual([
-      { path: "schemaVersion", message: 'Expected schema version "2.0.0".' },
+      { path: "schemaVersion", message: 'Expected schema version "3.0.0".' },
       { path: "categories[1].clues[2].prompt", message: "Expected a non-empty string." },
     ]);
   });

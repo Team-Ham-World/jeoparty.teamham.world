@@ -1,0 +1,285 @@
+/* Board grid — shared by the TV ("stage"), the host and the phone. */
+
+@layer components {
+  .board {
+    --board-gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    grid-template-rows: auto repeat(var(--rows), minmax(0, 1fr));
+    gap: var(--board-gap);
+    min-width: 0;
+  }
+
+  .board__col {
+    display: grid;
+    grid-row: 1 / -1;
+    grid-template-rows: subgrid;
+    min-width: 0;
+  }
+
+  .board__cat {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-width: 0;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    /* Wrap between words; break a word only when it can't fit its column.
+       Browsers don't hyphenate capitalised words, so hyphens: auto only
+       helps lowercase ones ("hard-ware"). */
+    overflow-wrap: break-word;
+    hyphens: auto;
+    text-wrap: balance;
+  }
+
+  /* The title is a flex item: let it shrink so long words wrap, not spill. */
+  .board__cat > span {
+    min-width: 0;
+  }
+
+  .board__cell {
+    position: relative;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.25rem;
+    font: inherit;
+    color: var(--ink);
+    border-radius: var(--radius);
+  }
+
+  .board__value {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .board__done,
+  .board__now {
+    font-size: 0.7em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .board__hot {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    padding: 0 0.3rem;
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--hot);
+    border: 1.5px solid var(--ink);
+    transform: rotate(4deg);
+  }
+
+  /* ------------------------------------------------------------ TV stage */
+  .board--stage {
+    --board-gap: 0.45em;
+    height: 100%;
+  }
+
+  .board--stage .board__cat {
+    padding: 0.45em 0.4em 0.5em;
+    font-size: 0.92em;
+    color: var(--ink);
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    box-shadow: 0.12em 0.12em 0 var(--red);
+  }
+
+  .board--stage .board__col:nth-child(odd) .board__cat {
+    transform: rotate(-0.8deg);
+  }
+
+  .board--stage .board__col:nth-child(even) .board__cat {
+    transform: rotate(0.7deg);
+  }
+
+  .board--stage .board__cell--available,
+  .board--stage .board__cell--active {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    box-shadow: 0.14em 0.14em 0 #000;
+  }
+
+  .board--stage .board__value {
+    font-size: 2.05em;
+  }
+
+  .board--stage .board__cell--active {
+    color: var(--surface);
+    background: var(--blue);
+    outline: 0.18em solid var(--stage-text);
+    outline-offset: 0.12em;
+    transform: scale(1.04);
+    z-index: 1;
+  }
+
+  .board--stage .board__cell--active .board__now {
+    position: absolute;
+    bottom: 0.25em;
+    font-size: 0.55em;
+  }
+
+  /* Played: a dashed outline and the value struck through say "done" from
+     across the room; the word itself stays for screen readers only. */
+  .board--stage .board__cell--completed {
+    color: var(--stage-faint);
+    background: transparent;
+    border: 2px dashed var(--muted);
+  }
+
+  .board--stage .board__cell--completed .board__value {
+    font-size: 1.1em;
+    text-decoration: line-through;
+    text-decoration-thickness: 0.08em;
+  }
+
+  .board--stage .board__done {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------------- host */
+  .board--host {
+    --board-gap: 0.4rem;
+    font-size: var(--fs-md);
+  }
+
+  .board--host .board__cat {
+    padding: 0.3rem 0.2rem 0.45rem;
+    font-size: var(--fs-sm);
+    border-bottom: 3px solid var(--ink);
+  }
+
+  .board--host .board__cell {
+    min-height: 3.25rem;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Shrinks on a phone so "1,000" stays inside a 54 px cell. */
+  .board--host .board__value {
+    font-size: clamp(var(--fs-sm), 3.6vw, var(--fs-xl));
+  }
+
+  .board--host button.board__cell {
+    cursor: pointer;
+    transition:
+      transform 80ms var(--ease),
+      box-shadow 80ms var(--ease);
+  }
+
+  .board--host button.board__cell:hover:not(:disabled) {
+    color: var(--surface);
+    background: var(--blue);
+  }
+
+  .board--host button.board__cell:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  .board--host button.board__cell:disabled {
+    cursor: not-allowed;
+    color: var(--muted);
+  }
+
+  .board--host .board__cell--wager {
+    background: var(--hot-tint);
+  }
+
+  .board--host .board__cell--active {
+    color: var(--surface);
+    background: var(--blue);
+  }
+
+  .board--host .board__cell--completed {
+    color: var(--muted);
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--rule);
+    box-shadow: none;
+  }
+
+  .board--host .board__cell--completed .board__value {
+    display: none;
+  }
+
+  /* Hosting from a phone: six columns in about 360 px. */
+  @media (max-width: 480px) {
+    .board--host {
+      --board-gap: 0.25rem;
+    }
+
+    .board--host .board__cat {
+      padding-inline: 0;
+      font-size: var(--fs-2xs);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    .board--host .board__cell {
+      min-height: 2.75rem;
+      padding: 0.1rem;
+    }
+  }
+
+  /* --------------------------------------------------------------- phone */
+  .board--phone {
+    --board-gap: 0.25rem;
+    font-size: var(--fs-sm);
+  }
+
+  /* Tighter tracking lets most 8-letter words ("Midnight") fit a 51 px
+     column at 360 px instead of breaking. */
+  .board--phone .board__cat {
+    padding-bottom: 0.25rem;
+    font-size: var(--fs-2xs);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .board--phone .board__cell {
+    min-height: 2.4rem;
+    padding: 0.1rem;
+    background: var(--surface);
+    border: 1.5px solid var(--ink);
+  }
+
+  .board--phone .board__value {
+    font-size: clamp(var(--fs-2xs), 3.6vw, var(--fs-md));
+  }
+
+  .board--phone .board__cell--active {
+    color: var(--surface);
+    background: var(--blue);
+  }
+
+  /* A played cell is an empty dashed slot; screen readers still hear "done". */
+  .board--phone .board__cell--active .board__now,
+  .board--phone .board__cell--completed .board__value,
+  .board--phone .board__done {
+    display: none;
+  }
+
+  .board--phone .board__cell--completed {
+    color: var(--muted);
+    background: transparent;
+    border-style: dashed;
+    border-color: var(--rule);
+  }
+}

@@ -1,10 +1,14 @@
-import { StarterHome } from "../components/starter-home";
+import { connection } from "next/server";
+import { HomeRoute } from "@/features/lobby/home-route";
+import { socialMetadata } from "./social-metadata";
 
-/*
-  Root page. It only renders the shared StarterHome —
-  all home content lives there so member routes can reuse it.
-*/
+export async function generateMetadata() {
+  // Docker supplies PUBLIC_ORIGIN at startup, after Next's build has finished.
+  // Only home needs this opt-in; the root layout stays statically renderable.
+  await connection();
+  return socialMetadata();
+}
 
 export default function HomePage() {
-  return <StarterHome />;
+  return <HomeRoute />;
 }

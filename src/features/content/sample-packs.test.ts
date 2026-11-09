@@ -4,8 +4,14 @@ import { parseQuestionPackJson, validateQuestionPack } from "./index";
 import type { QuestionPack, ValidationError } from "./types";
 
 // Read answer-bearing fixtures in Node tests, never through UI imports.
-const smallSampleJson = readFileSync(new URL("./samples/sample-pack-3x3.json", import.meta.url), "utf8");
-const expandedSampleJson = readFileSync(new URL("../../../docs/sample-pack.json", import.meta.url), "utf8");
+const smallSampleJson = readFileSync(
+  new URL("./samples/sample-pack-3x3.json", import.meta.url),
+  "utf8",
+);
+const expandedSampleJson = readFileSync(
+  new URL("./samples/ham-starter-pack.json", import.meta.url),
+  "utf8",
+);
 
 function validatedSample(json: string): QuestionPack {
   const result = parseQuestionPackJson(json);
@@ -55,11 +61,12 @@ const invalidVariants: InvalidVariant[] = [
   {
     name: "duplicate clue and final IDs",
     change(pack) {
-      pack.categories[1].clues[1].id = pack.categories[0].finalJeoparty.id;
+      pack.categories[1].clues[1].id = pack.categories[0].finalClue.id;
     },
     error: {
       path: "categories[1].clues[1].id",
-      message: 'Duplicate ID "666ac83b-1b5f-4307-a9b8-8927dc3a7611"; first defined at categories[0].finalJeoparty.id.',
+      message:
+        'Duplicate ID "666ac83b-1b5f-4307-a9b8-8927dc3a7611"; first defined at categories[0].finalClue.id.',
     },
   },
   {
@@ -112,12 +119,12 @@ const invalidVariants: InvalidVariant[] = [
     },
   },
   {
-    name: "missing reserved final content",
+    name: "missing final content",
     change(pack) {
       const category: Record<string, unknown> = pack.categories[2];
-      delete category.finalJeoparty;
+      delete category.finalClue;
     },
-    error: { path: "categories[2].finalJeoparty", message: "Expected an object." },
+    error: { path: "categories[2].finalClue", message: "Expected an object." },
   },
 ];
 
@@ -127,37 +134,45 @@ describe("sample pack inventory", () => {
     const pack = validatedSample(smallSampleJson);
 
     expect(pack).toEqual(input);
-    expect(pack.schemaVersion).toBe("2.0.0");
+    expect(pack.schemaVersion).toBe("3.0.0");
     expect(pack.dimensions).toEqual({ categories: 3, cluesPerCategory: 3 });
     expect(pack.categories).toHaveLength(3);
     expect(pack.categories.flatMap((category) => category.clues)).toHaveLength(9);
-    expect(pack.categories.map((category) => category.finalJeoparty)).toHaveLength(3);
+    expect(pack.categories.map((category) => category.finalClue)).toHaveLength(3);
     for (const category of pack.categories) {
       expect(category.clues.map((clue) => clue.tier)).toEqual([1, 2, 3]);
-      expect(category.finalJeoparty.tier).toBe("final");
-      expect(category.finalJeoparty.notes).toBe("Reserved future content; not used by the ordinary 3x3 board.");
+      expect(category.finalClue.tier).toBe("final");
+      expect(category.finalClue.notes).toBe(
+        "Final-round content; separate from the ordinary board.",
+      );
     }
     expect(pack.scoring.rounds).toHaveLength(1);
     expect(pack.scoring.defaultRoundId).toBe(pack.scoring.rounds[0].id);
     expect(pack.scoring.rounds[0].pointsByTier).toEqual({
-      1: 200, 2: 400, 3: 600, 4: 800, 5: 1000,
+      1: 200,
+      2: 400,
+      3: 600,
+      4: 800,
+      5: 1000,
     });
   });
 
-  it("uses distinct definition IDs within and across the small and expanded packs", () => {
+  it("uses distinct definition IDs within each pack", () => {
     const packs = [validatedSample(smallSampleJson), validatedSample(expandedSampleJson)];
-    const ids = packs.flatMap((pack) => [
-      pack.id,
-      ...pack.scoring.rounds.map((round) => round.id),
-      ...pack.categories.flatMap((category) => [
-        category.id,
-        ...category.clues.map((clue) => clue.id),
-        category.finalJeoparty.id,
-      ]),
-    ]);
+    for (const pack of packs) {
+      const ids = [
+        pack.id,
+        ...pack.scoring.rounds.map((round) => round.id),
+        ...pack.categories.flatMap((category) => [
+          category.id,
+          ...category.clues.map((clue) => clue.id),
+          category.finalClue.id,
+        ]),
+      ];
 
-    // defaultRoundId is a reference, not a second ID definition.
-    expect(new Set(ids).size).toBe(ids.length);
+      // defaultRoundId is a reference, not a second ID definition.
+      expect(new Set(ids).size).toBe(ids.length);
+    }
   });
 
   it("returns the same valid sample object without mutation", () => {

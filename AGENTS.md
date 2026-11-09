@@ -1,11 +1,11 @@
 # Repository guidance
 
-- Start with [README.md](README.md) for project status and the documentation map.
-- Before implementation, read [docs/PROJECT.md](docs/PROJECT.md) for scope and shared rules, [docs/TEAM.md](docs/TEAM.md) for ownership, and the current milestone in [docs/ROADMAP.md](docs/ROADMAP.md).
-- Follow [docs/WORKFLOW.md](docs/WORKFLOW.md) for the task, verification, and review process.
-- For member-specific work, read the matching guide in [docs/pointers/](docs/pointers/README.md). Implement one ready task, not the whole role; shared docs still govern scope and behavior.
-- Work on one bounded task. Preserve unrelated changes and coordinate shared-file or interface edits with their owner.
-- Explain the plan and important code choices in plain language. This is a learning project; prefer code the owner can understand over unnecessary abstractions.
-- Treat proposed decisions as proposals. Report conflicting requirements instead of silently choosing new behavior.
-- Use the actual repository scripts for checks. Report what ran, what passed, and what remains unverified.
-- Keep credentials out of source and output. Commit, push, or deploy only when explicitly asked.
+- Start with [README.md](README.md) for status, commands and the folder map.
+- Game behavior is defined in [docs/RULES.md](docs/RULES.md); change the rules there first, then the engine and its tests. Product decisions and technical boundaries are in [docs/PROJECT.md](docs/PROJECT.md); remaining work is in [docs/ROADMAP.md](docs/ROADMAP.md).
+- The typed interfaces are `src/features/engine/contract.ts` (engine and views), `src/features/network/protocol.ts` (wire protocol) and `src/features/network/connection.ts` (what screens consume). Change them deliberately and update every caller, example and test in the same change.
+- Follow [docs/WORKFLOW.md](docs/WORKFLOW.md): one bounded task, a plan first, small changes, checks, review.
+- Keep the boundaries: screens render views and request commands; only the engine decides rules; only the server derives identity, orders commands and stores state. Never put answers or other private data in player or display payloads.
+- Never use "Jeopardy", "Daily Double" or "Final Jeopardy" in product text or new identifiers.
+- Explain plans and important code choices in plain language. Prefer code the owner can understand over clever abstractions.
+- Use the repository scripts for checks (`npm run check`, `npm run test:smoke`, `npm run test:e2e`). Report what ran, what passed, and what remains unverified.
+- Keep credentials out of source, prompts and output. Commit, push or deploy only when explicitly asked.

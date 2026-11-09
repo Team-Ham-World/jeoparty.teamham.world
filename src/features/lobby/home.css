@@ -1,0 +1,231 @@
+/* Home and the join card. */
+
+@layer components {
+  .account {
+    max-width: 12rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .home {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  .home-hero {
+    display: grid;
+    gap: 1rem;
+    justify-items: start;
+    max-width: 48rem;
+    padding-top: 1rem;
+  }
+
+  .home-hero__title {
+    font-size: clamp(2.25rem, 6.5vw, 4rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  /* A slimmer stroke that sits just under the baseline, clear of the next line. */
+  .home-hero__title .marker {
+    padding-bottom: 0.08em;
+    background-size: 100% 0.22em;
+  }
+
+  .nowrap {
+    white-space: nowrap;
+  }
+
+  .home-hero__lede {
+    max-width: 38rem;
+    font-size: var(--fs-xl);
+    color: var(--muted);
+  }
+
+  .home-rooms {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .home-rooms h2 {
+    font-size: var(--fs-xl);
+  }
+
+  .home-rooms__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .home-room {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding-block: 0.6rem;
+    border-top: 1.5px dashed var(--rule);
+  }
+
+  .home-room:first-child {
+    border-top: 0;
+  }
+
+  .home-room__code {
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .home-room__actions {
+    margin-left: auto;
+  }
+
+  .home-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: 2rem;
+  }
+
+  .home-card {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+  }
+
+  .home-card form > .btn {
+    justify-self: start;
+  }
+
+  .home-card h2 {
+    font-size: var(--fs-2xl);
+  }
+
+  .home-card--host {
+    transform: rotate(-0.4deg);
+  }
+
+  .home-card--join {
+    transform: rotate(0.5deg);
+  }
+
+  /* Stacked (one column): most people on a phone are joining, so Join goes first. */
+  @media (max-width: 47.99rem) {
+    .home-card--join {
+      order: -1;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .home-card {
+      transform: none;
+    }
+  }
+
+  .input--code {
+    max-width: 12rem;
+    font-family: var(--font-display);
+    font-size: var(--fs-2xl);
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .home-signin {
+    display: grid;
+    gap: 1rem;
+    max-width: 38rem;
+  }
+
+  .home-how {
+    display: grid;
+    gap: 0.75rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed var(--rule);
+  }
+
+  .home-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .home-steps li {
+    counter-increment: step;
+    display: grid;
+    gap: 0.35rem;
+    max-width: 22rem;
+  }
+
+  .home-steps li::before {
+    content: counter(step);
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--surface);
+    background: var(--ink);
+  }
+
+  .join-card {
+    display: grid;
+    gap: 1rem;
+    justify-items: start;
+    margin-top: 1.5rem;
+  }
+
+  .join-card h1 {
+    font-size: var(--fs-2xl);
+    overflow-wrap: anywhere;
+  }
+
+  .join-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    margin: 0;
+  }
+
+  .join-facts dt {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .join-facts dd {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 700;
+  }
+}
+
+/* Dev-only preview gallery index. */
+@layer components {
+  .preview-index {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .preview-index h1 {
+    justify-self: start;
+  }
+
+  .preview-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: 0.35rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
