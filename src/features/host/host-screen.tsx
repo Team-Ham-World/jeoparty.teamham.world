@@ -25,6 +25,7 @@ import { DisplayLinkPanel } from "./display-link";
 import { HostClue, HostFinal, HostResults } from "./host-clue";
 import { HostLobby } from "./host-lobby";
 import { PingChip } from "./ping";
+import { SWAP_GUARD_MS, hostStepKey, swapGuardProps, useSettled } from "./swap-guard";
 
 export interface HostActions {
   /** True when the view allows this command right now and the connection is fresh. */
@@ -80,6 +81,8 @@ function HostBody({
     null | "end" | "close" | "display" | { adjust: PlayerId | null }
   >(null);
   const [closing, setClosing] = useState(false);
+  // A double click must not land on the next step's button (see swap-guard.ts).
+  const swapGuard = swapGuardProps(useSettled(hostStepKey(view), SWAP_GUARD_MS));
 
   const allowed = view?.allowedCommands;
   const can = useCallback(
@@ -203,7 +206,7 @@ function HostBody({
       </div>
 
       {view.phase === "lobby" ? (
-        <main id="main-content" className="host-page">
+        <main id="main-content" className="host-page" {...swapGuard}>
           <div className="host-intro">
             <h1 className="marker">Set up the game</h1>
             <p className="muted">
@@ -222,7 +225,7 @@ function HostBody({
         </main>
       ) : (
         <div className="host-grid">
-          <main id="main-content" className="host-main">
+          <main id="main-content" className="host-main" {...swapGuard}>
             <HostPhase view={view} actions={actions} clockOffsetMs={connection.clockOffsetMs} />
           </main>
           <aside className="host-side" aria-label="Scores">
