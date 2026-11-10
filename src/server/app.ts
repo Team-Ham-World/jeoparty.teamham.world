@@ -160,7 +160,7 @@ export async function createApp(config: Config, options: Options) {
       continue;
     }
     rooms.set(row.code, room);
-    await room.system({ type: "restored" });
+    await room.system({ type: "restored" }, false);
   }
   const limiter = new RateLimiter(now);
   function limit(key: string, max: number, windowMs = 60_000) {
@@ -170,6 +170,19 @@ export async function createApp(config: Config, options: Options) {
   function origin(req: IncomingMessage): void {
     if (req.headers.origin !== config.publicOrigin)
       throw new HttpError(403, "csrf", "Origin does not match.");
+  }
+  // HAM username is display data. Synchronize it through the engine, never patch its state.
+  async function syncDisplayName(user: Identity): Promise<void> {
+    for (const code of memberRooms.get(user.account.public_id) ?? []) {
+      const room = rooms.get(code)!;
+      const view = options.engine.playerView(room.state, user.account.public_id, now());
+      if (view && view.me.name !== user.displayName)
+        await room.system({
+          type: "renamePlayer",
+          playerId: user.account.public_id,
+          name: user.displayName,
+        });
+    }
   }
   async function identity(req: IncomingMessage): Promise<Identity> {
     const session = auth.sessionFromCookieHeader(req.headers.cookie);
@@ -184,17 +197,7 @@ export async function createApp(config: Config, options: Options) {
       );
     const current = auth.identityFor(session);
     if (!current) throw new HttpError(401, "unauthorized", "Sign in with HAM.");
-    // HAM username is display data. Synchronize it through the engine, never patch its state.
-    for (const code of memberRooms.get(current.account.public_id) ?? []) {
-      const room = rooms.get(code)!;
-      const view = options.engine.playerView(room.state, current.account.public_id, now());
-      if (view && view.me.name !== current.displayName)
-        await room.system({
-          type: "renamePlayer",
-          playerId: current.account.public_id,
-          name: current.displayName,
-        });
-    }
+    await syncDisplayName(current);
     return current;
   }
   async function mutation(req: IncomingMessage): Promise<Identity> {
@@ -731,17 +734,7 @@ export async function createApp(config: Config, options: Options) {
     if (result === "active") {
       const session = db.get<SessionRow>("SELECT * FROM sessions WHERE session_hash = ?", hash);
       const user = auth.identityFor(session ?? null);
-      if (user)
-        for (const code of memberRooms.get(user.account.public_id) ?? []) {
-          const room = rooms.get(code)!;
-          const view = options.engine.playerView(room.state, user.account.public_id, now());
-          if (view && view.me.name !== user.displayName)
-            await room.system({
-              type: "renamePlayer",
-              playerId: user.account.public_id,
-              name: user.displayName,
-            });
-        }
+      if (user) await syncDisplayName(user);
       return;
     }
     for (const room of rooms.values())

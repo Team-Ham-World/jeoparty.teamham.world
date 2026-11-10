@@ -402,7 +402,7 @@ describe("real engine through HTTP and WebSocket", () => {
     }
   });
 
-  it("replays accepted ids after reconnect and re-evaluates rejected ids without repeating scores", async () => {
+  it("replays accepted and rejected ids after reconnect without repeating scores", async () => {
     const h = await server();
     const { a, host, code, players } = await table(h);
     await start(a, snack.id);
@@ -426,6 +426,20 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(second.host.revision).toBe(before);
     expect(scores(second.host)[players[0].player.me.id]).toBe(123);
     expect(second.host.scoreLog).toHaveLength(1);
+  });
+
+  it("replays a rejection for a retried id even when the command would now be accepted", async () => {
+    const h = await server();
+    const { a } = await table(h);
+    await start(a, snack.id);
+    const id = randomUUID();
+    const rejection = await a.send({ type: "resume" }, id);
+    expect(rejection).toMatchObject({ ok: false, error: "notPaused" });
+    await a.ok({ type: "pause" });
+    const before = a.host.revision;
+    expect(await a.send({ type: "resume" }, id)).toEqual(rejection);
+    expect(a.host.revision).toBe(before);
+    expect(a.host.paused?.reason).toBe("host");
   });
 
   it("auto-pauses on the last host socket closing and requires explicit resume", async () => {

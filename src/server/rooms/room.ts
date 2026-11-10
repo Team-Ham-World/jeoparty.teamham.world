@@ -14,7 +14,7 @@ import type {
   RoomSummary,
 } from "@/features/network/protocol";
 import { WS_CLOSE } from "@/features/network/protocol";
-import type { Identity } from "../auth";
+import { displayNameFor, type Identity } from "../auth";
 import type { SqlDatabase } from "../storage";
 import type { Packs } from "../packs";
 import { HttpError } from "../http";
@@ -26,6 +26,9 @@ interface Recent {
   identity: string;
   ack: Ack;
 }
+// Bound memory-only remembered rejections per identity and for the whole room.
+const REJECTED_PER_IDENTITY = 32;
+const MAX_REJECTED = 512;
 export interface RoomRow {
   code: string;
   host_id: string;
@@ -61,6 +64,9 @@ export class Room {
   private latencies = new Map<Connection, Latency>();
   state: GameState;
   private recent: Recent[];
+  // Rejections are replayed from memory only, so bad commands cause no database writes
+  // and cannot push out accepted entries.
+  private rejected: Recent[] = [];
   private members = new Set<string>();
   updatedAt: number;
   constructor(
@@ -96,8 +102,9 @@ export class Room {
     this.indexMembers();
     this.schedule();
   }
-  private commit(state: GameState, recent = this.recent): void {
-    const updated = this.deps.now();
+  /** `touch: false` saves without restarting the room's idle clock, for restart bookkeeping that is not activity. */
+  private commit(state: GameState, recent = this.recent, touch = true): void {
+    const updated = touch ? this.deps.now() : this.updatedAt;
     this.persist(state, recent, updated);
     this.state = state;
     this.indexMembers();
@@ -141,11 +148,11 @@ export class Room {
     if (this.closed) throw new HttpError(404, "notFound", "Room closed.");
     return this.deps.engine.apply(this.state, actor, command, this.deps.now());
   }
-  system(command: SystemCommand): Promise<ReturnType<EngineApi["apply"]>> {
+  system(command: SystemCommand, touch = true): Promise<ReturnType<EngineApi["apply"]>> {
     return this.run(() => {
       const result = this.apply({ kind: "system" }, command);
       if (result.ok) {
-        this.commit(result.state);
+        this.commit(result.state, this.recent, touch);
         this.broadcast();
       }
       return result;
@@ -161,9 +168,7 @@ export class Room {
     return {
       code: this.code,
       status: view.phase === "lobby" ? "lobby" : view.phase === "results" ? "finished" : "playing",
-      hostName:
-        account?.username?.slice(0, 32) ||
-        `Player ${account?.public_id.slice(-4).toUpperCase() ?? "????"}`,
+      hostName: account ? displayNameFor(account) : "Player ????",
       playerCount: view.players.length,
       maxPlayers: MAX_PLAYERS,
       myRole:
@@ -359,9 +364,9 @@ export class Room {
     );
     return this.run(async () => {
       const identity = `${c.role}:${c.publicId}`;
-      const cached = this.recent.find(
-        (entry) => entry.identity === identity && entry.ack.id === id,
-      );
+      const cached =
+        this.recent.find((entry) => entry.identity === identity && entry.ack.id === id) ??
+        this.rejected.find((entry) => entry.identity === identity && entry.ack.id === id);
       // A replay must still be authorized; revocation never permits cached access.
       if (!this.connections.has(c) || this.closed) return;
       if (c.role === "display" && c.authorizedUntil <= this.deps.now()) {
@@ -447,11 +452,18 @@ export class Room {
             };
         }
       }
-      // Only accepted commands need durable replay. One identity cannot evict another's retries.
+      // Accepted commands are saved durably; rejections are remembered in memory.
+      // One identity cannot evict another's accepted retries.
       if (ack.ok) {
         const own = this.recent.filter((entry) => entry.identity === identity).slice(-31);
         const others = this.recent.filter((entry) => entry.identity !== identity);
         this.commit(state, [...others, ...own, { identity, ack }]);
+      } else {
+        const own = this.rejected
+          .filter((entry) => entry.identity === identity)
+          .slice(-(REJECTED_PER_IDENTITY - 1));
+        const others = this.rejected.filter((entry) => entry.identity !== identity);
+        this.rejected = [...others, ...own, { identity, ack }].slice(-MAX_REJECTED);
       }
       c.send(ack);
       if (ack.ok) this.broadcast();
@@ -483,7 +495,7 @@ export class Room {
         { kind: "system" },
         { type: "setPresence", target: { role: "host" }, connected: false },
       );
-      if (result.ok) this.commit(result.state);
+      if (result.ok) this.commit(result.state, this.recent, false);
       this.closed = true;
       clearTimeout(this.timer);
       this.latencies.clear();
