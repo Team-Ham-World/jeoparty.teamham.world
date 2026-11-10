@@ -82,7 +82,7 @@ function player(
             clockOffsetMs: CLOCK_OFFSET,
             onSend: log("player"),
           })}
-          onLeave={() => console.info("[preview] leave")}
+          onLeave={async () => console.info("[preview] leave")}
         />
       );
     },

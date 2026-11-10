@@ -82,7 +82,7 @@ Stages: `wager → answering → closed → revealed`.
 Starts after the last ordinary round when `finalRound` is on. **Eligible:** players with a score > 0 at that moment. If nobody is eligible, skip to results. Eligibility, wager limits, and reveal order use scores captured at the start of the final round; later score corrections do not change them.
 
 1. `wagers`: the category is public, the prompt hidden. Each eligible player submits an integer wager 0–score, changeable until locked. No timer. Everyone sees *who* has submitted, never amounts.
-2. **Show final clue** (host) locks wagers (missing → 0) → `answering`. The prompt is public and the final answer timer starts when timers are enabled. Players type answers (≤ 200 characters, editable until locked).
+2. **Show final clue** (host) locks wagers (missing → 0) → `answering`. The prompt is public and the final answer timer starts when timers are enabled. Players type answers (≤ 200 characters, editable until locked). In the last 5 seconds of the timer, each phone sends its typed text by itself, so an answer that was typed but not submitted still counts.
 3. **Lock answers** (host) or timer expiry → `judging`. Missing answers are empty.
 4. `judging`: responses go in ascending order of score at the start of the final round (ties: later joiner first). The host must **reveal the next response** (its text becomes public), then **judge** it (±wager; the wager becomes public). Out-of-order requests are rejected.
 5. After the last judgment → `done`: the correct answer is public. **Finish** (host) → results.
@@ -106,6 +106,6 @@ The host may add or subtract a non-zero integer (|delta| ≤ 100 000) with a rea
 
 ## Commands and safety
 
-- Every client command carries a unique id. Retrying the same id never applies it twice; the server replays the first outcome.
+- Every client command carries a unique id. Retrying the same id never applies it twice; the server replays the first outcome. Accepted outcomes are saved and survive a backend restart. Rejected outcomes are remembered in memory only, for the most recent commands of each connection identity.
 - Clue-stage commands name the clue (and attempt) they target, so a delayed request cannot affect a different clue.
 - Rejected commands never change state or the revision. Every accepted command increments the revision by exactly one.

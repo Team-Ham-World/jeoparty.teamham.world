@@ -38,7 +38,7 @@ Every protected HTTP request freshly introspects, including session, room, pack 
 
 Every authenticated mutation requires exact Origin and `x-quiz-csrf` from `/api/session`. Display claim is the deliberate exception: it is anonymous, requires Origin and an unguessable host-issued key, and is rate limited. Its HttpOnly cookie is named for the room; it cannot authenticate another room. Display links keep the key in a fragment. Rotation invalidates all older grants and closes their sockets.
 
-Room codes use five consonants. Rooms close after 12 hours without persisted activity; reconnect/presence and accepted commands count as activity. Only accepted commands enter the durable replay cache, with at most 32 entries per role plus public account identity across all its sockets. One sender cannot evict another sender's accepted retries. Accepted retries survive session rotation and restart within that window. Rejected IDs are re-evaluated and can succeed after conditions change; they do not write room state or extend room lifetime. Rooms restore through `engine.restore` and receive `restored` before serving connections. Invalid state or malformed state/replay JSON moves the row to `quarantined_rooms`, deletes its display grants, and logs only the room code. Other rooms continue restoring. Inspect/repair quarantine offline before restoring a row; it is never served automatically. Save failures never publish a new state or ack.
+Room codes use five consonants. Rooms close after 12 hours without persisted activity; reconnect/presence and accepted commands count as activity. A server restart does not: shutdown and the `restored` step save without restarting that clock. Only accepted commands enter the durable replay cache, with at most 32 entries per role plus public account identity across all its sockets. One sender cannot evict another sender's accepted retries. Accepted retries survive session rotation and restart within that window. Rejected IDs are replayed too, from memory only: at most 32 per identity and 512 per room, forgotten on restart. They do not write room state or extend room lifetime. Rooms restore through `engine.restore` and receive `restored` before serving connections. Invalid state or malformed state/replay JSON moves the row to `quarantined_rooms`, deletes its display grants, and logs only the room code. Other rooms continue restoring. Inspect/repair quarantine offline before restoring a row; it is never served automatically. Save failures never publish a new state or ack.
 
 ## Resource and browser limits
 
@@ -65,7 +65,7 @@ The container runs as `node`, with a persistent SQLite volume, a read-only root,
 
 ## Current deployment
 
-First deployed 2026-11-07 at **https://quiz.teamham.world**. Last redeployed 2026-11-08 with the UI polish pass, social cards and fair buzzing, from commit `3d55773` on `feat/ham-quiz`.
+First deployed 2026-11-07 at **https://quiz.teamham.world**. Last redeployed in November 2026 from `main` at the merge of PR #3 (the fixes from the post-merge review). `DEPLOYED_COMMIT` on the host records the exact commit.
 
 - **DNS:** `quiz.teamham.world` is a Cloudflare-proxied CNAME to `oracle.cyr1en.dev`, the same as Strokies.
 - **Ingress:** the shared Caddy on the Oracle host serves `/opt/stacks/caddy/sites/quiz.caddy` (a copy of `deploy/quiz.caddy`), with a Let's Encrypt certificate.

@@ -1,4 +1,5 @@
 import type { Command, FinalView, HostView, PlayerView, ViewCommon } from "./contract";
+import { MIN_WAGER } from "./contract";
 import type { GameState } from "./state";
 import { currentBoard, eligibleBuzzers, ownValue, standings, wagerBounds } from "./rules";
 import { execute, hostCommands } from "./commands";
@@ -131,7 +132,7 @@ function allowedCommands(s: GameState, now: number) {
     { type: "endAttempts", clueId: id },
     { type: "reveal", clueId: id },
     { type: "returnToBoard", clueId: id },
-    { type: "submitWager", clueId: id, amount: wagerBounds(s)?.min ?? 5 },
+    { type: "submitWager", clueId: id, amount: wagerBounds(s)?.min ?? MIN_WAGER },
     { type: "showFinalClue" },
     { type: "lockFinalAnswers" },
     { type: "revealFinalResponse", playerId: next },
@@ -143,12 +144,20 @@ function allowedCommands(s: GameState, now: number) {
     { type: "endGame" },
     { type: "playAgain" },
   ];
+  // Probes never change the pack (setPack is answered above), so they share it instead of copying it.
+  const withoutPack = { ...s, pack: null };
   return hostCommands.filter((type) => {
     if (type === "setPack") return s.phase === "lobby" && !s.paused;
     const command = probes.find((c) => c.type === type);
     return (
       command !== undefined &&
-      execute(structuredClone(s), { kind: "host" }, command, now, []) === null
+      execute(
+        { ...structuredClone(withoutPack), pack: s.pack },
+        { kind: "host" },
+        command,
+        now,
+        [],
+      ) === null
     );
   });
 }

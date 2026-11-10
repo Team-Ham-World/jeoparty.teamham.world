@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   MAX_PLAYERS,
   type ClueView,
@@ -10,8 +10,10 @@ import {
   type PublicPlayer,
 } from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
+import { errorMessage } from "@/features/network/client/api";
 import { BoardGrid } from "@/features/board/board-grid";
 import { HotHam, Lockup } from "@/features/ui/brand";
+import { useRemaining } from "@/features/ui/clock";
 import { ClosedNotice, ConnectionPill, StaleBanner } from "@/features/ui/connection-status";
 import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
@@ -27,7 +29,7 @@ import {
 } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
 import { NoticeShell } from "@/features/ui/page-chrome";
-import { ToastProvider } from "@/features/ui/toasts";
+import { ToastProvider, useToast } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
 import { WagerForm } from "@/features/ui/wager-form";
@@ -36,6 +38,9 @@ import { FinalAnswerForm } from "./final-answer-form";
 
 type Run = ReturnType<typeof useCommand<PlayerView>>["run"];
 type Pending = ReturnType<typeof useCommand<PlayerView>>["pending"];
+
+/** In the last seconds before final answers lock, phones send typed text by themselves. */
+const FINAL_AUTOSAVE_WINDOW_MS = 5_000;
 
 /**
  * The player's phone. Renders the PlayerView and asks for commands; every
@@ -48,7 +53,8 @@ export function PlayerScreen({
 }: {
   code: string;
   connection: RoomConnection<PlayerView>;
-  onLeave?: () => void;
+  /** Leaves the room and this page; rejects if it couldn't. */
+  onLeave?: () => Promise<void>;
 }) {
   return (
     <ToastProvider>
@@ -64,11 +70,13 @@ function PlayerBody({
 }: {
   code: string;
   connection: RoomConnection<PlayerView>;
-  onLeave?: () => void;
+  onLeave?: () => Promise<void>;
 }) {
   const { view, status, stale } = connection;
   const { run, pending } = useCommand(connection);
   const fresh = useFreshEvent(view);
+  const toast = useToast();
+  const [leaving, setLeaving] = useState(false);
 
   if (status === "closed") {
     return <ClosedNotice reason={connection.closeReason} role="player" returnTo={`/r/${code}`} />;
@@ -93,6 +101,17 @@ function PlayerBody({
   // During play the logo isn't a link, so a stray tap can't leave the buzzer.
   const canLeave =
     view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting";
+
+  async function leave() {
+    if (!onLeave) return;
+    setLeaving(true);
+    try {
+      await onLeave();
+    } catch (error) {
+      setLeaving(false);
+      toast(`Couldn't leave the room. ${errorMessage(error)}`);
+    }
+  }
 
   return (
     <div className={`pl pl--${view.phase}`}>
@@ -147,8 +166,14 @@ function PlayerBody({
 
       {onLeave && canLeave ? (
         <footer className="pl-foot">
-          <button type="button" className="btn btn--quiet btn--small" onClick={onLeave}>
-            Leave room
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            disabled={leaving}
+            aria-busy={leaving || undefined}
+            onClick={() => void leave()}
+          >
+            {leaving ? "Leaving…" : "Leave room"}
           </button>
         </footer>
       ) : null}
@@ -547,6 +572,9 @@ function PlayerFinal({
   pending: Pending;
   clockOffsetMs: number;
 }) {
+  const remaining = useRemaining(final.stage === "answering" ? view.timer : null, clockOffsetMs);
+  const closing =
+    remaining !== null && view.timer?.endsAt != null && remaining <= FINAL_AUTOSAVE_WINDOW_MS;
   const eligible = final.eligiblePlayerIds.includes(view.me.id);
   const header = (
     <div className="stack stack--tight">
@@ -633,7 +661,10 @@ function PlayerFinal({
             submitted={view.myFinal?.answer ?? null}
             disabled={stale || !!view.paused}
             busy={pending === "submitFinalAnswer"}
-            onSubmit={(text) => void run({ type: "submitFinalAnswer", text })}
+            autosave={closing}
+            onSubmit={(text, auto) =>
+              void run({ type: "submitFinalAnswer", text }, { silent: auto })
+            }
           />
         ) : (
           <p className="pl-waiting">
