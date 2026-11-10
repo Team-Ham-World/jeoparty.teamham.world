@@ -1,29 +1,51 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { MAX_FINAL_ANSWER_LENGTH } from "@/features/engine/contract";
+
+// Limit automatic sends to about one every 0.7 seconds.
+const AUTOSAVE_DELAY_MS = 700;
 
 /** Typed final-round answer. Editable until the host locks answers. */
 export function FinalAnswerForm({
   submitted,
   disabled,
   busy,
+  autosave,
   onSubmit,
 }: {
   submitted: string | null;
   disabled: boolean;
   busy: boolean;
-  onSubmit: (text: string) => void;
+  /** True in the last seconds before answers lock; typed text is then sent without pressing the button. */
+  autosave: boolean;
+  onSubmit: (text: string, auto: boolean) => void;
 }) {
   const id = useId();
   const [draft, setDraft] = useState(submitted ?? "");
   const dirty = draft.trim() !== (submitted ?? "").trim();
   const left = MAX_FINAL_ANSWER_LENGTH - draft.length;
+  const latest = useRef({ draft, onSubmit });
+  useEffect(() => {
+    latest.current = { draft, onSubmit };
+  });
+
+  const unsaved = dirty && draft.trim() !== "";
+  const autosaving = autosave && !disabled && !busy && unsaved;
+  // Typing must not restart the delay, so this effect depends only on autosaving.
+  useEffect(() => {
+    if (!autosaving) return;
+    const timer = setTimeout(() => {
+      const text = latest.current.draft.trim();
+      if (text) latest.current.onSubmit(text, true);
+    }, AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [autosaving]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!draft.trim()) return;
-    onSubmit(draft.trim());
+    onSubmit(draft.trim(), false);
   }
 
   return (
@@ -47,7 +69,11 @@ export function FinalAnswerForm({
           {left} characters left
         </span>
       </div>
-      {submitted !== null ? (
+      {autosave && unsaved ? (
+        <p className="final-status" role="status">
+          Time is almost up. Saving what you typed.
+        </p>
+      ) : submitted !== null ? (
         <p className="final-status" role="status">
           <span className="stamp stamp--good stamp--flat">Submitted</span>
           <span>

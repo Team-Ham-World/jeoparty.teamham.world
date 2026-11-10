@@ -14,6 +14,8 @@ const FALLBACK: Partial<Record<string, string>> = {
 export interface RunOptions {
   /** Rejections the screen already explains in place, so no toast is needed (e.g. a lost buzz race). */
   quiet?: readonly (AckError | "offline" | "timeout")[];
+  /** Never show a toast for this command. For sends the person did not ask for. */
+  silent?: boolean;
 }
 
 /**
@@ -33,11 +35,11 @@ export function useCommand<V>(connection: RoomConnection<V>) {
       setPending(cmd.type);
       try {
         const outcome = await connection.send(cmd);
-        if (!outcome.ok && !options.quiet?.includes(outcome.error))
+        if (!outcome.ok && !options.silent && !options.quiet?.includes(outcome.error))
           toast(FALLBACK[outcome.error] ?? outcome.message);
         return outcome;
       } catch {
-        toast("That didn't send. Try again.");
+        if (!options.silent) toast("That didn't send. Try again.");
         return null;
       } finally {
         inFlight.current = false;

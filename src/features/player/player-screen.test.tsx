@@ -9,7 +9,11 @@ import { PlayerScreen } from "./player-screen";
 
 function renderView(view: PlayerView | null, onSend?: (cmd: ClientCommand) => void) {
   return render(
-    <PlayerScreen code="BCDFG" connection={mockConnection(view, { onSend })} onLeave={() => {}} />,
+    <PlayerScreen
+      code="BCDFG"
+      connection={mockConnection(view, { onSend })}
+      onLeave={async () => {}}
+    />,
   );
 }
 

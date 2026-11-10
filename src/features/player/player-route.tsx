@@ -243,9 +243,11 @@ function PlayerLive({ code, csrf }: { code: string; csrf: string }) {
       onLeave={async () => {
         try {
           await leaveRoom(csrf, code);
-        } finally {
-          router.push("/");
+        } catch (error) {
+          // A room that no longer exists has nothing left to leave.
+          if (!(error instanceof ApiError && error.status === 404)) throw error;
         }
+        router.push("/");
       }}
     />
   );
