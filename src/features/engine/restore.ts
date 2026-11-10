@@ -1,6 +1,7 @@
 import { validateQuestionPack } from "@/features/content";
+import { MAX_FINAL_ANSWER_LENGTH, MAX_NAME_LENGTH, MAX_PLAYERS, MIN_PLAYERS } from "./contract";
 import type { GameState } from "./state";
-import { validSettings } from "./rules";
+import { freezeAfterRestart, validSettings } from "./rules";
 
 type Check = (value: unknown) => boolean;
 const string: Check = (v) => typeof v === "string";
@@ -238,8 +239,8 @@ export function restore(raw: unknown): GameState | null {
     const playing = new Set(s.players.map((p) => p.id));
     if (
       ids.size !== members.length ||
-      s.players.length > 6 ||
-      members.some((p) => !p.id || !p.name.trim() || p.name.length > 32)
+      s.players.length > MAX_PLAYERS ||
+      members.some((p) => !p.id || !p.name.trim() || p.name.length > MAX_NAME_LENGTH)
     )
       return null;
     if (
@@ -255,7 +256,7 @@ export function restore(raw: unknown): GameState | null {
     } else {
       if (
         !s.pack ||
-        s.players.length < 2 ||
+        s.players.length < MIN_PLAYERS ||
         s.boards.length !== s.settings.rounds ||
         !s.boards[s.roundIndex] ||
         !s.controllerId
@@ -350,7 +351,7 @@ export function restore(raw: unknown): GameState | null {
         if (Object.keys(data).some((id) => !f.eligiblePlayerIds.includes(id))) return null;
       if (
         Object.entries(f.wagers).some(([id, w]) => w > f.startingScores[id]) ||
-        Object.values(f.answers).some((a) => a.length > 200)
+        Object.values(f.answers).some((a) => a.length > MAX_FINAL_ANSWER_LENGTH)
       )
         return null;
       if (f.stage === "wagers" || f.stage === "answering") {
@@ -394,20 +395,7 @@ export function restore(raw: unknown): GameState | null {
       )
         return null;
     }
-    s.hostConnected = false;
-    members.forEach((p) => {
-      p.connected = false;
-    });
-    if (s.phase !== "lobby" && s.phase !== "results") {
-      if (s.timer?.endsAt !== null && s.timer) {
-        s.timer.remainingMs = Math.min(
-          s.timer.durationMs,
-          Math.max(0, s.timer.endsAt! - s.updatedAt),
-        );
-        s.timer.endsAt = null;
-      }
-      s.paused = { reason: "restored", since: s.paused?.since ?? s.updatedAt };
-    }
+    freezeAfterRestart(s);
     return s;
   } catch {
     return null;

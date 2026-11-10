@@ -1,4 +1,12 @@
 import { validateQuestionPack } from "@/features/content";
+import {
+  MAX_ADJUSTMENT_DELTA,
+  MAX_ADJUSTMENT_REASON_LENGTH,
+  MAX_FINAL_ANSWER_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+} from "./contract";
 import type { Actor, Command, GameEvent, RejectionCode } from "./contract";
 import type { GameState } from "./state";
 import {
@@ -10,6 +18,7 @@ import {
   defaultSettings,
   eligibleBuzzers,
   event,
+  freezeAfterRestart,
   lockFinal,
   ownValue,
   pause,
@@ -65,7 +74,7 @@ const messages: Record<RejectionCode, string> = {
   gameFull: "All six seats are taken.",
   unknownPlayer: "Player not found.",
   alreadyJoined: "This player has already joined.",
-  invalidName: "Use a name of 1–32 characters.",
+  invalidName: `Use a name of 1–${MAX_NAME_LENGTH} characters.`,
   unknownClue: "Clue not found.",
   clueCompleted: "This clue is already completed.",
   staleClue: "This is not the current clue.",
@@ -79,18 +88,18 @@ const messages: Record<RejectionCode, string> = {
   notEligible: "You are not eligible for the final round.",
   submissionsLocked: "Submissions are locked.",
   outOfOrder: "Reveal and judge the next response in order.",
-  invalidAdjustment: "Use a non-zero integer up to 100000 and a reason of 1–120 characters.",
+  invalidAdjustment: `Use a non-zero integer up to ${MAX_ADJUSTMENT_DELTA} and a reason of 1–${MAX_ADJUSTMENT_REASON_LENGTH} characters.`,
   staleTimer: "This timer is no longer active.",
 };
 export function rejection(code: RejectionCode) {
   return { code, message: messages[code] };
 }
 const nameValid = (name: string) =>
-  typeof name === "string" && name.trim().length > 0 && name.trim().length <= 32;
+  typeof name === "string" && name.trim().length > 0 && name.trim().length <= MAX_NAME_LENGTH;
 const inPlay = (s: GameState) => s.phase !== "lobby" && s.phase !== "results";
 /** Moves waiting accounts into free seats, longest-waiting first. */
 const seatWaitingPlayers = (s: GameState) => {
-  s.players.push(...s.waitingPlayers.splice(0, 6 - s.players.length));
+  s.players.push(...s.waitingPlayers.splice(0, MAX_PLAYERS - s.players.length));
 };
 
 /** Mutates only the private draft. The facade discards it on rejection. */
@@ -154,7 +163,7 @@ export function execute(
       if (!nameValid(c.name) || typeof c.playerId !== "string" || !c.playerId.trim())
         return "invalidName";
       if (member) return "alreadyJoined";
-      if (s.phase === "lobby" && s.players.length >= 6) return "gameFull";
+      if (s.phase === "lobby" && s.players.length >= MAX_PLAYERS) return "gameFull";
       const p = { id: c.playerId, name: c.name.trim(), score: 0, connected: true };
       (s.phase === "lobby" ? s.players : s.waitingPlayers).push(p);
       event(s, events, { kind: "playerJoined", playerId: p.id });
@@ -197,7 +206,7 @@ export function execute(
     case "startGame":
       if (s.phase !== "lobby") return "wrongPhase";
       if (!s.pack) return "noPack";
-      if (s.players.length < 2) return "notEnoughPlayers";
+      if (s.players.length < MIN_PLAYERS) return "notEnoughPlayers";
       if (!validSettings(s.settings, s.pack)) return "invalidSettings";
       s.boards = buildBoards(s, s.pack);
       s.roundIndex = 0;
@@ -417,7 +426,8 @@ export function execute(
           return "invalidWager";
         f.wagers = { ...f.wagers, [actor.playerId]: c.amount };
       } else {
-        if (typeof c.text !== "string" || c.text.length > 200) return "forbidden";
+        if (typeof c.text !== "string" || c.text.length > MAX_FINAL_ANSWER_LENGTH)
+          return "forbidden";
         f.answers = { ...f.answers, [actor.playerId]: c.text };
       }
       return null;
@@ -470,10 +480,10 @@ export function execute(
       if (
         !Number.isSafeInteger(c.delta) ||
         !c.delta ||
-        Math.abs(c.delta) > 100_000 ||
+        Math.abs(c.delta) > MAX_ADJUSTMENT_DELTA ||
         typeof c.reason !== "string" ||
         !c.reason.trim() ||
-        c.reason.trim().length > 120
+        c.reason.trim().length > MAX_ADJUSTMENT_REASON_LENGTH
       )
         return "invalidAdjustment";
       score(s, c.playerId, c.delta, "adjustment", c.reason.trim(), now);
@@ -540,23 +550,10 @@ export function execute(
       return null;
     }
     case "restored":
-      s.hostConnected = false;
-      [...s.players, ...s.waitingPlayers].forEach((p) => {
-        p.connected = false;
-      });
-      if (inPlay(s)) {
-        if (s.timer && s.timer.endsAt !== null) {
-          s.timer.remainingMs = Math.min(
-            s.timer.durationMs,
-            Math.max(0, s.timer.endsAt - s.updatedAt),
-          );
-          s.timer.endsAt = null;
-        }
-        if (s.paused) {
-          s.paused.reason = "restored";
-          event(s, events, { kind: "paused", reason: "restored" });
-        } else pause(s, "restored", s.updatedAt, events);
-      }
+      // The same rule `restore` applies when a saved game is loaded. Here it also announces
+      // the pause, which gives the paused view its own revision.
+      freezeAfterRestart(s);
+      if (inPlay(s)) event(s, events, { kind: "paused", reason: "restored" });
       return null;
     default: {
       const exhaustive: never = c;

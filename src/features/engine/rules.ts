@@ -1,4 +1,5 @@
 import type { QuestionPack } from "@/features/content";
+import { MIN_WAGER } from "./contract";
 import type { GameEvent, GameSettings, PauseReason, ResultsView, TimerKind } from "./contract";
 import type { GameState } from "./state";
 
@@ -93,10 +94,10 @@ export const eligibleBuzzers = (state: GameState) =>
 export function wagerBounds(state: GameState) {
   if (state.clue?.stage !== "wager") return null;
   return {
-    min: 5,
+    min: MIN_WAGER,
     // Includes the minimum so a board of very small values still has a legal wager.
     max: Math.max(
-      5,
+      MIN_WAGER,
       state.players.find((p) => p.id === state.controllerId)?.score ?? 0,
       ...currentBoard(state)!.categories.flatMap((c) => c.cells.map((cell) => cell.value)),
     ),
@@ -136,6 +137,26 @@ export function pause(state: GameState, reason: PauseReason, now: number, events
   }
   state.paused = { reason, since: now };
   event(state, events, { kind: "paused", reason });
+}
+/**
+ * The one recovery rule for a backend restart: everyone is offline, and a game in progress is
+ * paused with its timer frozen at the last saved command time. `restore` applies it when a
+ * saved game is loaded, and the `restored` command applies it and announces the pause.
+ */
+export function freezeAfterRestart(state: GameState) {
+  state.hostConnected = false;
+  [...state.players, ...state.waitingPlayers].forEach((p) => {
+    p.connected = false;
+  });
+  if (state.phase === "lobby" || state.phase === "results") return;
+  if (state.timer && state.timer.endsAt !== null) {
+    state.timer.remainingMs = Math.min(
+      state.timer.durationMs,
+      Math.max(0, state.timer.endsAt - state.updatedAt),
+    );
+    state.timer.endsAt = null;
+  }
+  state.paused = { reason: "restored", since: state.paused?.since ?? state.updatedAt };
 }
 export function standings(state: GameState): ResultsView {
   const sorted = [...state.players].sort((a, b) => b.score - a.score);
