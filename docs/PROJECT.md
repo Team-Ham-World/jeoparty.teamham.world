@@ -16,7 +16,7 @@ Labels: **Agreed** (owner decided), **Implemented** (code exists), **Verified** 
 | Runtime: one persistent Node 24 service (Next.js + `/api` + `/ws`) with SQLite, deployed with Docker behind the shared Caddy on the Oracle host | Agreed, implemented. Not deployed |
 | Introspection: fresh on every HTTP request, WebSocket connect and `startGame`; ≤ 30 s lease for other in-socket commands | Agreed; see [security decisions](SECURITY.md) |
 | Original HAM "Cut & Paste" look; no imitation of the TV show | Agreed, implemented |
-| Picture clues have one optional JPEG; bytes live in SQLite, URLs are public and unguessable, phones show pictures where there is no buzzer | Agreed; backend implemented and verified by content, engine, HTTP and socket tests. Screen and editor work follows |
+| Picture clues have one optional JPEG; bytes live in SQLite, URLs are public and unguessable, phones show pictures where there is no buzzer | Agreed, implemented; verified by content, engine, HTTP, socket, screen and end-to-end tests |
 | Players 2–6, one non-playing host, verbal answers judged by the host | Agreed, implemented |
 
 The game rules themselves live in [RULES.md](RULES.md). Change rules there first, then the engine and its tests.
@@ -43,6 +43,15 @@ Keep typed definitions, examples and tests beside the code (`contract.ts`, `prot
 ## Visual baseline
 
 HAM System A ("Cut & Paste", `organization-docs/BRAND.md`): paper, ink and surface tokens; interactive blue; decorative red only for shapes; Bricolage Grotesque headings and Atkinson Hyperlegible UI text; near-zero radii; stamps for state. The TV uses a dark ink stage for 10-foot reading. Readable text, large phone targets, keyboard access, visible focus, measured contrast (`src/features/ui/contrast.test.ts`), and state in words as well as color. Animation never delays or decides a game action, and stops under reduced motion.
+
+## Picture clues on screen
+
+`CluePicture` (`src/features/ui/clue-picture.tsx`) draws every clue picture in a frame that each screen sizes, so nothing moves when it loads. The picture fits inside on a paper mat. A failed load says "Picture didn't load". The description is alt text only and is never drawn, so it can't give an answer away on the TV.
+
+- **TV.** The picture sits beside the prompt at the full height of the prompt's row, as wide as a 16:9 picture needs and at most 55%. A prompt beside a picture counts double when choosing its size, with one extra smallest step. The answer row stays reserved. The small scrolling layout stacks picture and prompt. Final judging and results leave the picture out.
+- **Host.** Between the prompt label ("Prompt and picture · …") and the prompt, in every stage. It is `min(28vh, 16rem)` tall so the answer stays above the sticky action bar on a 768 px laptop.
+- **Phones.** Only on wager clues once the wager is in, and in the final round. Standard clues keep the buzzer screen exactly as it was.
+- **Editor.** Every clue and final clue has Add, Replace and Remove, and takes a picture pasted or dropped on it. The browser re-encodes to JPEG (1600 px long edge, quality 0.82, one retry at 1200 px and 0.7) before uploading. Save waits for uploads, and a late upload never undoes a newer Remove or Replace.
 
 ## Fair buzzing handoff
 

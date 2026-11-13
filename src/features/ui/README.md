@@ -37,6 +37,7 @@ per screen.
 | `events.ts` | Screen-reader sentences for game events; pause copy |
 | `wager-form.tsx` | Whole-number wager inside server-given bounds, with quick picks |
 | `qr-code.tsx` | QR code as one SVG path (no images, no network) |
+| `clue-picture.tsx` | A clue's picture in a frame the screen sizes; "Picture didn't load" on failure; the description is alt text only |
 | `copy-field.tsx` | Read-only link + Copy button |
 | `page-chrome.tsx` | Paper top bar, `NoticeShell` (top bar + notice column), loading/error/sign-in notices |
 | `haptics.ts` | Optional `navigator.vibrate`, only after the person has tapped |

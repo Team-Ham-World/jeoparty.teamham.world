@@ -299,7 +299,7 @@ A warm, papery neutral base with five functional accents, each paired with a wor
 - **Headline** (800, 2.25rem / 36 px, 1.12, −0.02em): page h1 (packs, editor, host lobby), host results title.
 - **Title** (800, 1.375rem / 22 px, 1.12): panel and section h2. Home cards step up to 1.75rem.
 - **Numeral** (800, 1.25–2.05em, 1, −0.03em, tabular): scores, board values, clue values, room codes (with +0.08–0.2em tracking).
-- **Body** (400, 1rem / 16 px, 1.5): sentences. Clue prompts are body font at 700: 1.375rem on the phone, 1.75rem on the host, 1.4–2.6em on the TV by prompt length.
+- **Body** (400, 1rem / 16 px, 1.5): sentences. Clue prompts are body font at 700: 1.375rem on the phone, 1.75rem on the host, 1–2.6em on the TV by prompt length (counted double beside a picture).
 - **Label** (700, 0.8125rem / 13 px, 0.12em, uppercase): eyebrows above fields and sections. Field labels are 0.875rem 700, not uppercase.
 - **Stamp** (700, 0.8125rem, 0.08em, uppercase): state stamps; `--fs-2xs` (0.75rem) for tags inside board cells and host roster rows.
 
@@ -364,6 +364,14 @@ Rubber stamps for state.
 - **Panel:** surface, 2 px ink border, 2 px radius, 4 px slip shadow, 1.25rem padding. `--flat` drops the shadow; `--sunk` is shade with a dashed border and no shadow.
 - **Clue card:** surface slip with an ink header bar (category in uppercase Atkinson, value in Bricolage) and the prompt in Atkinson 700.
 - **Banner:** 8 px colored left spine, 2 px border, bold title with a regular-weight sentence; warn (yellow), info (blue-tint), bad (bad-tint).
+
+### Clue pictures
+A picture is pasted onto a paper mat inside a 2 px ink frame. The screen sets the frame's size and the picture fits inside it uncropped, so nothing moves when it loads.
+- **TV:** beside the prompt at the full height of its row, as wide as a 16:9 picture needs (at most 55%), with a 0.15em ink shadow. Stacked above the prompt in the scrolling layout.
+- **Host:** under the "Prompt and picture" label, `min(28vh, 16rem)` tall.
+- **Phone:** above the prompt in the clue card, `min(30dvh, 14rem)` tall, only where there is no buzzer.
+- **Editor:** a 10rem 4:3 thumbnail beside the description field and the Add/Replace and Remove buttons; full width on phones.
+- **Failed:** the frame turns dashed and says "Picture didn't load" in muted text. The description is alt text only, never drawn.
 
 ### Inputs / Fields
 - **Style:** surface, 2 px ink border, 2 px radius, min height 44 px, padding 0.5rem 0.7rem. Labels 0.875rem 700 above; hints 0.8125rem muted below.
