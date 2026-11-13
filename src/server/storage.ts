@@ -52,4 +52,14 @@ CREATE TABLE quarantined_rooms (
 );
 `,
   },
+  {
+    version: 3,
+    sql: `
+CREATE TABLE pictures (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES accounts(account_id),
+ sha256 TEXT NOT NULL, bytes BLOB NOT NULL, created_at INTEGER NOT NULL,
+ UNIQUE(owner_id, sha256)
+);
+`,
+  },
 ];
