@@ -16,6 +16,7 @@ Labels: **Agreed** (owner decided), **Implemented** (code exists), **Verified** 
 | Runtime: one persistent Node 24 service (Next.js + `/api` + `/ws`) with SQLite, deployed with Docker behind the shared Caddy on the Oracle host | Agreed, implemented. Not deployed |
 | Introspection: fresh on every HTTP request, WebSocket connect and `startGame`; ≤ 30 s lease for other in-socket commands | Agreed; see [security decisions](SECURITY.md) |
 | Original HAM "Cut & Paste" look; no imitation of the TV show | Agreed, implemented |
+| Picture clues have one optional JPEG; bytes live in SQLite, URLs are public and unguessable, phones show pictures where there is no buzzer | Agreed; backend implemented and verified by content, engine, HTTP and socket tests. Screen and editor work follows |
 | Players 2–6, one non-playing host, verbal answers judged by the host | Agreed, implemented |
 
 The game rules themselves live in [RULES.md](RULES.md). Change rules there first, then the engine and its tests.
@@ -33,6 +34,7 @@ Host / player action → server identity and permission checks → engine rules
 - **Safe retries.** A unique command id prevents a retry from applying an action twice. Clue-stage commands name their clue and attempt, so a delayed request cannot affect a newer clue. The server derives the actor from credentials, never from the payload.
 - **Ordered updates.** Each accepted change increments the state revision. Clients ignore older revisions and get a fresh view on reconnect.
 - **Private views.** Host, player and display receive different data. Answers appear publicly only after reveal. Credentials, HAM subjects and private wagers never leave the server in public payloads. Hiding a field on screen is not enough.
+- **Pictures.** Packs hold picture references. The engine copies them next to the prompt and sends a picture URL only under the same visibility gate as the prompt. The host sees both throughout. The server owns uploads, ownership checks, quotas and cleanup. Anyone holding a picture URL can fetch it without signing in.
 - **Stable content.** Packs are validated before use. A running game keeps a fixed copy; used clues and scores belong to live state, not the editable pack.
 - **Honest recovery.** An action is acknowledged only after it is saved. Reconnect preserves identity and score. After a restart, games resume paused.
 
@@ -44,7 +46,7 @@ HAM System A ("Cut & Paste", `organization-docs/BRAND.md`): paper, ink and surfa
 
 ## Fair buzzing handoff
 
-The wire protocol is version 2. `GameSettings` and `SettingsPatch` add `fairBuzzing` and `falseStartLockout`, both default on and editable only in the lobby. Every audience receives these two public booleans under `view.buzzing`; the host also receives the full `view.settings`.
+The wire protocol is version 3. Version 2 clients must reload to receive picture clues. `GameSettings` and `SettingsPatch` add `fairBuzzing` and `falseStartLockout`, both default on and editable only in the lobby. Every audience receives these two public booleans under `view.buzzing`; the host also receives the full `view.settings`.
 
 Every `ClueView` adds `opensAt: number | null`, in server epoch milliseconds, and `buzzResult: { winnerId: PlayerId; marginMs: number | null; contenderCount: number } | null`. `buzzResult` is set after a fair decision and cleared on reopening. Collection stays in the `open` stage. Private candidates are persisted for recovery and are never copied into a view. `can.buzz` becomes false for a player who has already submitted a candidate. The ordinary buzz countdown disappears during collection; the collection deadline still runs with game timers disabled.
 
@@ -67,4 +69,4 @@ The front end on top of this (see [DESIGN.md](../DESIGN.md), "The Buzzer", "Ping
 
 Timing choices are documented in [Rules](RULES.md#standard-clue): 300 ms fallback RTT, p90/2 uplink estimate capped at 250 ms, 40 ms tolerance, 120–400 ms opening lead including 60 ms delivery slack, at most 250 ms collection, and a 250 ms lockout for taps in the preceding second. These bounds limit waiting and dishonest timing gains while allowing ordinary Wi-Fi/mobile jitter. They assume roughly symmetric network travel. Clock estimates, browser scheduling and self-reported false starts cannot prove a phone is honest. Live mixed-network behavior still needs a real-device playtest.
 
-Pause during collection preserves candidates and decides immediately on resume. Pause before opening preserves the unused lead; resuming an open window without candidates resets the reaction epoch and preserves the remaining buzz duration. Restart restores paused at the last saved game clock, including the original pause time if already paused. Old saved games receive missing default settings and empty timing fields. Transport samples start over after reconnect or restart. Protocol version 1 clients must reload.
+Pause during collection preserves candidates and decides immediately on resume. Pause before opening preserves the unused lead; resuming an open window without candidates resets the reaction epoch and preserves the remaining buzz duration. Restart restores paused at the last saved game clock, including the original pause time if already paused. Old saved games receive missing default settings and empty timing fields. Transport samples start over after reconnect or restart. Protocol versions 1 and 2 must reload.
