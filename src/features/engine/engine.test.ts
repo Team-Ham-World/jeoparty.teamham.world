@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { parseQuestionPackJson, type QuestionPack } from "@/features/content";
+import {
+  parseQuestionPackJson,
+  parsePictureId,
+  pictureSrc,
+  type QuestionPack,
+} from "@/features/content";
 import { engine } from "./engine";
 import type { Actor, Command, RejectionCode, SettingsPatch } from "./contract";
 
@@ -35,6 +40,15 @@ function game(seed = 123) {
     if (!result.ok) throw new Error(`${command.type}: ${result.rejection.code}`);
     expect(result.state.revision).toBe(s.revision + 1);
     s = result.state;
+    for (const view of [
+      engine.hostView(s, now),
+      engine.displayView(s, now),
+      ...s.players.map((p) => engine.playerView(s, p.id, now)),
+    ]) {
+      for (const shown of [view?.clue, view?.final]) {
+        if (shown?.prompt === null) expect(shown.picture).toBeNull();
+      }
+    }
     expect(
       engine.restore(JSON.parse(JSON.stringify(s))),
       `restore after ${command.type}`,
@@ -1051,4 +1065,81 @@ describe("persisted final-state consistency", () => {
     expect(engine.restore({ ...g.s, updatedAt: Infinity })).toBeNull();
     expect(engine.restore({ ...g.s, extra: undefined })).toBeNull();
   });
+});
+
+describe("picture privacy and recovery", () => {
+  const id = parsePictureId(`pic_${"b".repeat(43)}`)!;
+  const picture = { id, alt: "A red barn" };
+  const shown = { src: pictureSrc(id), alt: picture.alt };
+  function picturedPack() {
+    const p = pack();
+    for (const category of p.categories) {
+      for (const clue of category.clues) clue.picture = { ...picture };
+      category.finalClue.picture = { ...picture };
+    }
+    return p;
+  }
+  function publicViews(g: ReturnType<typeof game>) {
+    return [
+      engine.displayView(g.s, 100),
+      engine.playerView(g.s, "a", 100)!,
+      engine.playerView(g.s, "b", 100)!,
+    ];
+  }
+  it("hides wager pictures with the prompt, then publishes both after the wager", () => {
+    const g = game();
+    g.start(picturedPack());
+    const clueId = g.select(true);
+    expect(g.s.clue!.picture).toEqual(picture);
+    expect(engine.hostView(g.s, 100).clue!.picture).toEqual(shown);
+    for (const v of publicViews(g)) {
+      expect(v.clue).toMatchObject({ prompt: null, picture: null });
+      expect(JSON.stringify(v)).not.toContain(id);
+    }
+    g.run({ type: "submitWager", clueId, amount: 5 });
+    for (const v of publicViews(g))
+      expect(v.clue).toMatchObject({ prompt: g.s.clue!.prompt, picture: shown });
+  });
+  it("hides final pictures with the prompt, then publishes both when the host shows the clue", () => {
+    const g = game();
+    toFinal(g, picturedPack(), [1000, 2000]);
+    expect(g.s.final!.picture).toEqual(picture);
+    expect(engine.hostView(g.s, 100).final!.picture).toEqual(shown);
+    for (const v of publicViews(g)) {
+      expect(v.final).toMatchObject({ prompt: null, picture: null });
+      expect(JSON.stringify(v)).not.toContain(id);
+    }
+    g.run({ type: "showFinalClue" });
+    for (const v of publicViews(g))
+      expect(v.final).toMatchObject({ prompt: g.s.final!.prompt, picture: shown });
+  });
+  it.each(["clue", "final"] as const)(
+    "fills only a missing %s picture and rejects malformed present pictures",
+    (field) => {
+      const g = game();
+      if (field === "clue") {
+        g.start(picturedPack());
+        g.select();
+      } else toFinal(g, picturedPack(), [1000, 2000]);
+      const saved = structuredClone(g.s);
+      const active: { picture?: unknown } = saved[field]!;
+      delete active.picture;
+      expect(engine.restore(saved)?.[field]?.picture).toBeNull();
+      for (const malformed of [
+        undefined,
+        false,
+        {},
+        { id: "bad", alt: "" },
+        { id, alt: 1 },
+        { id, alt: "", src: "/x" },
+      ]) {
+        active.picture = malformed;
+        expect(engine.restore(saved)).toBeNull();
+      }
+      active.picture = null;
+      expect(engine.restore(saved)?.[field]?.picture).toBeNull();
+      active.picture = picture;
+      expect(engine.restore(saved)?.[field]?.picture).toEqual(picture);
+    },
+  );
 });

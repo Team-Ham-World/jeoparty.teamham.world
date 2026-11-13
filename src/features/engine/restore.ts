@@ -1,4 +1,4 @@
-import { validateQuestionPack } from "@/features/content";
+import { parsePictureId, validateQuestionPack } from "@/features/content";
 import { MAX_FINAL_ANSWER_LENGTH, MAX_NAME_LENGTH, MAX_PLAYERS, MIN_PLAYERS } from "./contract";
 import type { GameState } from "./state";
 import { freezeAfterRestart, validSettings } from "./rules";
@@ -70,6 +70,7 @@ const board = object({
   roundTitle: string,
   categories: array(object({ id: string, title: string, cells: array(cell) })),
 });
+const picture = nullable(object({ id: (v) => parsePictureId(v) !== null, alt: string }));
 const clue = object({
   clueId: string,
   categoryTitle: string,
@@ -77,6 +78,7 @@ const clue = object({
   kind: oneOf("standard", "wager"),
   stage: oneOf("wager", "reading", "open", "answering", "closed", "revealed"),
   prompt: string,
+  picture,
   answer: string,
   wager: nullable(nonnegative),
   answeringPlayerId: nullable(string),
@@ -103,6 +105,7 @@ const final = object({
   stage: oneOf("wagers", "answering", "judging", "done"),
   categoryTitle: string,
   prompt: string,
+  picture,
   answer: string,
   eligiblePlayerIds: array(string),
   startingScores: record(integer),
@@ -227,9 +230,20 @@ export function restore(raw: unknown): GameState | null {
                 ? migratedOpensAt(json.updatedAt, "paused" in json ? json.paused : null)
                 : null,
           });
+        if (!("picture" in json.clue)) Object.assign(json.clue, { picture: null });
         if (!("collection" in json.clue)) Object.assign(json.clue, { collection: null });
         if (!("buzzResult" in json.clue)) Object.assign(json.clue, { buzzResult: null });
       }
+    }
+    if (
+      json &&
+      typeof json === "object" &&
+      "final" in json &&
+      json.final &&
+      typeof json.final === "object" &&
+      !("picture" in json.final)
+    ) {
+      Object.assign(json.final, { picture: null });
     }
     if (!stateShape(json)) return null;
     const s = json as GameState; // All fields checked above; relations checked below.

@@ -1,5 +1,6 @@
+import { pictureSrc } from "@/features/content";
 import type { Command, FinalView, HostView, PlayerView, ViewCommon } from "./contract";
-import { MIN_WAGER } from "./contract";
+import { MIN_WAGER, promptView } from "./contract";
 import type { GameState } from "./state";
 import { currentBoard, eligibleBuzzers, ownValue, standings, wagerBounds } from "./rules";
 import { execute, hostCommands } from "./commands";
@@ -25,7 +26,10 @@ function finalView(s: GameState, host: boolean): FinalView | null {
   return {
     stage: f.stage,
     categoryTitle: f.categoryTitle,
-    prompt: host || f.stage !== "wagers" ? f.prompt : null,
+    ...promptView(host || f.stage !== "wagers", {
+      prompt: f.prompt,
+      picture: f.picture ? { src: pictureSrc(f.picture.id), alt: f.picture.alt } : null,
+    }),
     eligiblePlayerIds: f.eligiblePlayerIds,
     wagerSubmittedIds: Object.keys(f.wagers),
     answerSubmittedIds: Object.keys(f.answers),
@@ -70,7 +74,12 @@ function common(s: GameState, now: number, host: boolean): ViewCommon {
           value: clue.value,
           kind: clue.kind,
           stage: clue.stage,
-          prompt: host || clue.stage !== "wager" ? clue.prompt : null,
+          ...promptView(host || clue.stage !== "wager", {
+            prompt: clue.prompt,
+            picture: clue.picture
+              ? { src: pictureSrc(clue.picture.id), alt: clue.picture.alt }
+              : null,
+          }),
           wager: clue.wager,
           answeringPlayerId: clue.answeringPlayerId,
           opensAt: clue.opensAt,

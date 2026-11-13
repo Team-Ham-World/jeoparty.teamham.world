@@ -1,3 +1,4 @@
+import { promptView } from "@/features/engine/contract";
 /**
  * Typed example views for the /preview gallery and component tests.
  *
@@ -117,7 +118,10 @@ const PROMPT =
   "This text-only web browser from 1992 still installs today and draws every page right inside your terminal.";
 const ANSWER = "What is Lynx?";
 
-function clue(stage: ClueView["stage"], extra: Partial<ClueView> = {}): ClueView {
+function clue(
+  stage: ClueView["stage"],
+  extra: Partial<Omit<ClueView, "prompt">> & { prompt?: string } = {},
+): ClueView {
   return {
     clueId: "clue-0-3-2",
     categoryTitle: "Pixel Games",
@@ -125,6 +129,7 @@ function clue(stage: ClueView["stage"], extra: Partial<ClueView> = {}): ClueView
     kind: "standard",
     stage,
     prompt: PROMPT,
+    picture: null,
     wager: null,
     answeringPlayerId: null,
     opensAt: stage === "open" ? 0 : null,
@@ -177,6 +182,7 @@ function timer(
 
 const FINAL_BASE: FinalView = {
   stage: "wagers",
+  picture: null,
   categoryTitle: "Famous Last Words",
   prompt: "In 1997 this chess computer won a six-game match against the reigning world champion.",
   eligiblePlayerIds: ["p-ivvy", "p-medchu", "p-max"],
@@ -297,7 +303,7 @@ function publicClue(c: ClueView | null | undefined): ClueView | null {
   if (!c) return null;
   return {
     ...c,
-    prompt: c.stage === "wager" ? null : c.prompt,
+    ...promptView(c.stage !== "wager", c),
     answer: c.stage === "revealed" ? c.answer : null,
   };
 }
@@ -306,7 +312,7 @@ function publicFinal(f: FinalView | null | undefined): FinalView | null {
   if (!f) return null;
   return {
     ...f,
-    prompt: f.stage === "wagers" ? null : f.prompt,
+    ...promptView(f.stage !== "wagers", f),
     answer: f.stage === "done" ? f.answer : null,
     responses: f.responses.map((r) => ({
       ...r,

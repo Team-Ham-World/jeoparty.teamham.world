@@ -1,4 +1,4 @@
-import type { QuestionPack } from "@/features/content";
+import type { CluePicture, QuestionPack } from "@/features/content";
 import type {
   AttemptView,
   BoardView,
@@ -18,6 +18,7 @@ export interface FinalState {
   stage: "wagers" | "answering" | "judging" | "done";
   categoryTitle: string;
   prompt: string;
+  picture: CluePicture | null;
   answer: string;
   eligiblePlayerIds: string[];
   startingScores: Record<string, number>;
@@ -45,8 +46,9 @@ export interface GameState {
   roundIndex: number;
   boards: BoardView<HostBoardCellView>[];
   clue:
-    | (Omit<ClueView, "prompt" | "answer"> & {
+    | (Omit<ClueView, "prompt" | "answer" | "picture"> & {
         prompt: string;
+        picture: CluePicture | null;
         answer: string;
         attempts: AttemptView[];
         ended: boolean;

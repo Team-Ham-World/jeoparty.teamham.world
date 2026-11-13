@@ -261,14 +261,24 @@ export interface AttemptView {
   delta: number | null;
 }
 
-export interface ClueView {
+export interface PictureView {
+  src: string;
+  alt: string;
+}
+
+export type PromptView =
+  { prompt: null; picture: null } | { prompt: string; picture: PictureView | null };
+
+export function promptView(visible: boolean, shown: PromptView): PromptView {
+  return visible ? shown : { prompt: null, picture: null };
+}
+
+export type ClueView = {
   clueId: ClueId;
   categoryTitle: string;
   value: number;
   kind: "standard" | "wager";
   stage: ClueStage;
-  /** Null for public views during the `wager` stage. The host always sees it. */
-  prompt: string | null;
   /** Public once submitted. */
   wager: number | null;
   answeringPlayerId: PlayerId | null;
@@ -279,7 +289,7 @@ export interface ClueView {
   lockedOutPlayerIds: PlayerId[];
   /** Public only at `revealed`. The host always sees it. */
   answer: string | null;
-}
+} & PromptView;
 
 export interface FinalResponseView {
   playerId: PlayerId;
@@ -292,11 +302,9 @@ export interface FinalResponseView {
   delta: number | null;
 }
 
-export interface FinalView {
+export type FinalView = {
   stage: FinalStage;
   categoryTitle: string;
-  /** Null for public views during `wagers`. */
-  prompt: string | null;
   eligiblePlayerIds: PlayerId[];
   wagerSubmittedIds: PlayerId[];
   answerSubmittedIds: PlayerId[];
@@ -305,7 +313,7 @@ export interface FinalView {
   nextResponderId: PlayerId | null;
   /** Public at `done`. The host always sees it. */
   answer: string | null;
-}
+} & PromptView;
 
 export interface StandingView {
   playerId: PlayerId;

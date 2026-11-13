@@ -1,3 +1,4 @@
+import { pictureOf } from "@/features/content";
 import type { QuestionPack } from "@/features/content";
 import { MIN_WAGER } from "./contract";
 import type { GameEvent, GameSettings, PauseReason, ResultsView, TimerKind } from "./contract";
@@ -225,6 +226,7 @@ export function advanceRound(state: GameState, now: number, events: GameEvent[])
       stage: "wagers",
       categoryTitle: category.title,
       prompt: category.finalClue.prompt,
+      picture: pictureOf(category.finalClue),
       answer: category.finalClue.answer,
       eligiblePlayerIds: eligible.map((p) => p.id),
       startingScores: Object.fromEntries(eligible.map((p) => [p.id, p.score])),
