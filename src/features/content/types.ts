@@ -9,13 +9,19 @@ export interface ContentMetadata {
   [key: string]: unknown;
 }
 
-/** Text only. Other clue types require a format extension. */
+export type PictureId = string & { readonly __brand: "PictureId" };
+
+export interface CluePicture {
+  id: PictureId;
+  alt: string;
+}
 export interface Clue extends ContentMetadata {
   id: string;
   tier: DifficultyTier;
   type?: "text";
   prompt: string;
   answer: string;
+  picture?: CluePicture;
 }
 
 export interface FinalClue extends ContentMetadata {
@@ -24,6 +30,7 @@ export interface FinalClue extends ContentMetadata {
   type?: "text";
   prompt: string;
   answer: string;
+  picture?: CluePicture;
 }
 
 export interface Category extends ContentMetadata {

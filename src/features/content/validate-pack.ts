@@ -1,3 +1,4 @@
+import { MAX_PICTURE_ALT, parsePictureId } from "./pictures";
 import type { QuestionPack, ValidationError, ValidationResult } from "./types";
 
 const liveStateFields = new Set([
@@ -117,6 +118,25 @@ export function validateQuestionPack(input: unknown): ValidationResult {
     text(value.prompt, `${path}.prompt`, 500);
     text(value.answer, `${path}.answer`, 500);
     metadata(value, path);
+    if (value.picture !== undefined) {
+      const picture = value.picture;
+      const picturePath = `${path}.picture`;
+      if (!isObject(picture)) {
+        error(picturePath, "A picture needs an id and a description.");
+      } else {
+        for (const key of Object.keys(picture)) {
+          if (key !== "id" && key !== "alt") error(picturePath, `Unknown picture field "${key}".`);
+        }
+        if (!parsePictureId(picture.id))
+          error(
+            picturePath,
+            "This picture reference isn't valid. Remove the picture and add it again.",
+          );
+        if (typeof picture.alt !== "string") error(`${picturePath}.alt`, "Expected a string.");
+        else if (picture.alt.length > MAX_PICTURE_ALT)
+          error(`${picturePath}.alt`, `Must be at most ${MAX_PICTURE_ALT} characters.`);
+      }
+    }
     if (final) {
       if (value.tier !== "final") error(`${path}.tier`, 'Expected the tier "final".');
     } else if (
@@ -128,7 +148,7 @@ export function validateQuestionPack(input: unknown): ValidationResult {
       error(`${path}.tier`, "Expected an integer tier between 1 and 5.");
     }
     if (Object.hasOwn(value, "type") && value.type !== "text") {
-      error(`${path}.type`, 'Only text clues are supported in F0; omit type or use "text".');
+      error(`${path}.type`, 'Only text clues are supported; omit type or use "text".');
     }
     for (const key of ["points", "defaultPoints"] as const) {
       if (Object.hasOwn(value, key)) {
