@@ -154,3 +154,14 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
   }
   return req.socket.remoteAddress ?? "unknown";
 }
+
+export function sendPicture(res: ServerResponse, bytes: Uint8Array, headOnly: boolean): void {
+  res.writeHead(200, {
+    ...BASE_HEADERS,
+    "content-type": "image/jpeg",
+    "content-length": bytes.length,
+    "cache-control": "private, max-age=31536000, immutable",
+    "cross-origin-resource-policy": "same-origin",
+  });
+  res.end(headOnly ? undefined : bytes);
+}

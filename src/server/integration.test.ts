@@ -4,10 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
+import type { QuestionPack } from "@/features/content";
 import { engine } from "@/features/engine";
 import type { AnyView, ClientCommand, ServerMessage } from "@/features/network/protocol";
 import snack from "@/features/content/samples/sample-pack-3x3.json";
 import starter from "@/features/content/samples/ham-starter-pack.json";
+import { validatedPack } from "./packs";
 import { Browser, harness, type Harness } from "./test-harness";
 import { connect, finishClue, start, table, type Wire } from "./integration-harness";
 
@@ -37,7 +39,7 @@ async function converged(a: Wire, clients: Wire[]) {
 }
 
 /** Audit EVERY received frame, with the host's view at that revision as the oracle. */
-function privateFrames(a: Wire, clients: Wire[], pack: typeof snack | typeof starter = snack) {
+function privateFrames(a: Wire, clients: Wire[], pack: QuestionPack = validatedPack(snack)) {
   const hostViews = new Map(
     a.messages.flatMap((m) => (m.t === "view" ? [[m.view.revision, m.view] as const] : [])),
   );
@@ -62,6 +64,13 @@ function privateFrames(a: Wire, clients: Wire[], pack: typeof snack | typeof sta
         if (hv?.clue && hv.clue.stage !== "revealed") expect(v.clue?.answer).toBeNull();
         if (hv?.clue?.stage === "wager") expect(raw).not.toContain(hv.clue.prompt!);
         if (hv?.final?.stage === "wagers") expect(raw).not.toContain(hv.final.prompt!);
+        for (const shown of [v.clue, v.final]) {
+          if (shown?.prompt === null) expect(shown.picture).toBeNull();
+        }
+        if (hv?.clue?.stage === "wager" && hv.clue.picture)
+          expect(raw).not.toContain(hv.clue.picture.src.split("/").at(-1)!);
+        if (hv?.final?.stage === "wagers" && hv.final.picture)
+          expect(raw).not.toContain(hv.final.picture.src.split("/").at(-1)!);
         for (const cell of v.board?.categories.flatMap((c) => c.cells) ?? [])
           expect(cell).not.toHaveProperty("wager");
         if (v.final) {
@@ -123,6 +132,66 @@ async function judge(a: Wire, correct: boolean) {
 }
 
 describe("real engine through HTTP and WebSocket", () => {
+  it("gates uploaded pictures in every public frame through a wager clue and the final round", async () => {
+    const h = await server();
+    const { host, a, players, d } = await table(h);
+    const ids: string[] = [];
+    for (const value of [1, 2]) {
+      const uploaded = await host.request("/api/pictures", {
+        method: "POST",
+        headers: {
+          origin: h.app.config.publicOrigin,
+          "x-quiz-csrf": host.csrf,
+          "content-type": "image/jpeg",
+        },
+        body: new Uint8Array([255, 216, 255, value]),
+      });
+      expect(uploaded.status).toBe(201);
+      ids.push((await uploaded.json()).id);
+    }
+    const raw = structuredClone(snack);
+    raw.dimensions.cluesPerCategory = 1;
+    for (const category of raw.categories) {
+      category.clues = category.clues.slice(0, 1);
+      Object.assign(category.clues[0], { picture: { id: ids[0], alt: "Wager picture" } });
+      Object.assign(category.finalClue, { picture: { id: ids[1], alt: "Final picture" } });
+    }
+    const pack = validatedPack(raw);
+    const saved = await host.mutate("/api/packs", { pack });
+    expect(saved.status).toBe(201);
+    const doc = await saved.json();
+    await start(a, doc.id, { rounds: 1, categoriesPerRound: 1, wagerClues: [1, 0] });
+    await a.ok({ type: "selectClue", clueId: cells(a)[0].clueId });
+    expect(a.host.clue!.picture?.src).toContain(ids[0]);
+    await converged(a, [...players, d.wire]);
+    for (const client of [...players, d.wire]) expect(client.view.clue!.picture).toBeNull();
+    await a.ok({ type: "submitWager", clueId: a.host.clue!.clueId, amount: 137 });
+    await converged(a, [...players, d.wire]);
+    for (const client of [...players, d.wire])
+      expect(client.view.clue!.picture?.src).toContain(ids[0]);
+    await judge(a, true);
+    await finishClue(a);
+    expect(a.host.final!.stage).toBe("wagers");
+    expect(a.host.final!.picture?.src).toContain(ids[1]);
+    await converged(a, [...players, d.wire]);
+    for (const client of [...players, d.wire]) expect(client.view.final!.picture).toBeNull();
+    const finalist = players.find((p) => a.host.final!.eligiblePlayerIds.includes(p.player.me.id))!;
+    await finalist.ok({ type: "submitFinalWager", amount: 113 });
+    await a.waitView((v) => v.final?.wagerSubmittedIds.length === 1);
+    await a.ok({ type: "showFinalClue" });
+    await converged(a, [...players, d.wire]);
+    for (const client of [...players, d.wire])
+      expect(client.view.final!.picture?.src).toContain(ids[1]);
+    await finalist.ok({ type: "submitFinalAnswer", text: "private-picture-response" });
+    await a.waitView((v) => v.final?.answerSubmittedIds.length === 1);
+    await a.ok({ type: "lockFinalAnswers" });
+    const playerId = a.host.final!.nextResponderId!;
+    await a.ok({ type: "revealFinalResponse", playerId });
+    await a.ok({ type: "judgeFinal", playerId, correct: true });
+    await a.ok({ type: "finishGame" });
+    await converged(a, [...players, d.wire]);
+    privateFrames(a, [...players, d.wire], pack);
+  });
   it("plays all nine clues, arbitrates simultaneous buzzes, judges private final responses and plays again", async () => {
     const h = await server();
     const { a, players, d } = await table(h);
@@ -347,7 +416,7 @@ describe("real engine through HTTP and WebSocket", () => {
     expect(a.host.phase).toBe("results");
     expect(scores(a.host)).toEqual(expected);
     await converged(a, [...players, d.wire]);
-    privateFrames(a, [...players, d.wire], starter);
+    privateFrames(a, [...players, d.wire], validatedPack(starter));
   }, 20_000); // Two full rounds: slow on small CI machines.
 
   it("rejects unauthorized roles and privileged payloads and revokes rotated display links", async () => {

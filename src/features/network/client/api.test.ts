@@ -10,6 +10,7 @@ import {
   listMyRooms,
   logout,
   updatePack,
+  uploadPicture,
 } from "./api";
 
 type Call = [string, RequestInit];
@@ -112,4 +113,17 @@ describe("api helpers", () => {
     );
     await expect(getSession()).rejects.toMatchObject({ code: "network", status: 0 });
   });
+});
+
+it("uploads the Blob itself with its content type and CSRF token", async () => {
+  const id = `pic_${"a".repeat(43)}`;
+  const calls = stubFetch(() => new Response(JSON.stringify({ id }), { status: 201 }));
+  const jpeg = new Blob([new Uint8Array([255, 216, 255])], { type: "image/jpeg" });
+  await expect(uploadPicture("csrf-picture", jpeg)).resolves.toEqual({ id });
+  const [path, init] = calls()[0];
+  expect(path).toBe("/api/pictures");
+  expect(init.method).toBe("POST");
+  expect(init.body).toBe(jpeg);
+  expect(headersOf(init)["content-type"]).toBe("image/jpeg");
+  expect(headersOf(init)[CSRF_HEADER]).toBe("csrf-picture");
 });

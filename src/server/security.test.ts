@@ -13,6 +13,7 @@ import { connect, start, table } from "./integration-harness";
 import { loadConfig } from "./config";
 import { securityHeaders } from "./http";
 import { Packs } from "./packs";
+import { Pictures } from "./pictures";
 import { Database } from "./db";
 import { createHamClient } from "./ham/client";
 
@@ -267,7 +268,7 @@ describe("security review regressions", () => {
     await b.signIn("host");
     const owner = h.app.auth.identityFor(h.app.auth.sessionFromCookieHeader(b.cookie))!.account
       .account_id;
-    const packs = new Packs(h.app.db);
+    const packs = new Packs(h.app.db, h.app.pictures);
     const docs = Array.from({ length: 50 }, () => packs.save(sample, owner));
     const full = await b.mutate(`/api/packs/${sample.id}/duplicate`);
     expect(full.status).toBe(409);
@@ -307,13 +308,13 @@ describe("security review regressions", () => {
         "INSERT INTO packs(id, owner_id, pack_json, updated_at) VALUES ('old', 'a', ?, 'date')",
         JSON.stringify(sample),
       );
-      const packs = new Packs(db);
+      const packs = new Packs(db, new Pictures(db, Date.now));
       const legacy = { ...sample, title: "x".repeat(121) };
       db.run(
         "INSERT INTO packs(id, owner_id, pack_json, updated_at) VALUES ('legacy', 'a', ?, 'date')",
         JSON.stringify(legacy),
       );
-      const upgraded = new Packs(db); // Older packs need not meet the new limits to boot/list.
+      const upgraded = new Packs(db, new Pictures(db, Date.now)); // Older packs need not meet the new limits to boot/list.
       expect(upgraded.list("a").find((pack) => pack.id === "legacy")?.title).toBe(legacy.title);
       upgraded.save(sample, "a", "legacy"); // Replacement and deletion still work for invalid old packs.
       db.run("UPDATE packs SET pack_json = ? WHERE id = 'legacy'", JSON.stringify(legacy));

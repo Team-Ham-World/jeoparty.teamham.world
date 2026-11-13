@@ -30,7 +30,7 @@ class FakeSocket {
   receive(message: unknown) {
     this.onmessage?.({ data: JSON.stringify(message) });
   }
-  hello(role = "host", protocol = 2) {
+  hello(role = "host", protocol = 3) {
     this.receive({
       t: "hello",
       protocol,

@@ -4,6 +4,8 @@ import { validateQuestionPack } from "./validate-pack";
 export type {
   Category,
   Clue,
+  CluePicture,
+  PictureId,
   ContentMetadata,
   DifficultyTier,
   FinalClue,
@@ -13,6 +15,15 @@ export type {
   ValidationError,
   ValidationResult,
 } from "./types";
+export {
+  PICTURE_ROUTE,
+  MAX_PICTURE_BYTES,
+  MAX_PICTURE_ALT,
+  parsePictureId,
+  pictureSrc,
+  pictureOf,
+  pictureRefs,
+} from "./pictures";
 export { validateQuestionPack } from "./validate-pack";
 
 /** Parse v3 pack JSON without importing answer-bearing content or doing I/O. */

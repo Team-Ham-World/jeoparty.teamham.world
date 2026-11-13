@@ -42,7 +42,13 @@ Room codes use five consonants. Rooms close after 12 hours without persisted act
 
 ## Resource and browser limits
 
-Each account can save 50 packs, each at most 256 KiB of serialized UTF-8 JSON. Updates at the count limit are allowed; delete a pack to make room. Duplicate also counts toward the limit. Count errors return `409 conflict`; oversized packs return `413 badRequest`. Pack uploads accept request bodies up to 1 MiB; other API mutations, including display claim, accept at most 4 KiB, including chunked bodies.
+Each account can save 50 packs, each at most 256 KiB of serialized UTF-8 JSON. Updates at the count limit are allowed; delete a pack to make room. Duplicate also counts toward the limit. Count errors return `409 conflict`; oversized packs return `413 badRequest`. Pack uploads accept JSON request bodies up to 1 MiB. Picture uploads use the limits below; other API mutations, including display claim, accept at most 4 KiB, including chunked bodies.
+
+Pictures are JPEG BLOBs in the `pictures` table of the existing SQLite database. Uploads accept at most 1 MiB, with a 100 MiB total per account and 30 uploads per minute per account. Uploading identical bytes for the same account returns the same random `pic_` id and restarts its grace period. The server checks the JPEG content type and signature without decoding it. The browser editor is responsible for re-encoding images and stripping metadata.
+
+An hourly sweep removes pictures older than 7 days after their last upload when no saved pack, live room or quarantined room references them. It parses stored JSON and walks string values, including escaped ids; malformed JSON uses a text match instead. Unsaved browser drafts do not keep pictures alive past that grace period. Pack saves reject missing pictures and pictures owned by another account with a field error. A running game's fixed pack copy protects pictures until its room is removed.
+
+`GET` and `HEAD /api/pictures/:id` are public. The random URL reaches players and the TV only when the prompt is public; anyone who has already seen it can fetch it again. Responses use `Content-Type: image/jpeg`, `Content-Length`, `Cache-Control: private, max-age=31536000, immutable`, `Cross-Origin-Resource-Policy: same-origin`, and the normal security headers. Browser caches may retain a picture after cleanup. Shared caches must respect `private`; the extensionless route also falls outside Cloudflare's default static-file cache. No fetch-time room or stage check is performed.
 
 Content validation rejects titles/IDs/authors/tags over 120 characters, prompts/answers over 500, notes/descriptions over 1000, more than 12 categories, more than 5 clues per category, or more than 4 scoring rounds. Validation returns `400 invalidPack` with field errors. Both built-in packs meet these limits. Pack lists read stored summaries; existing summaries are backfilled once on startup. The server indexes player/waiting membership by public ID for name synchronization.
 
@@ -95,6 +101,18 @@ Not yet verified: a real HAM sign-in, and a game played on real phones.
 Wait for games to finish when possible. SIGTERM sends `serverShutdown`, drains room queues and closes SQLite. After restarting, active games restore paused through the engine.
 
 Stop the app before a filesystem backup. Archive the entire `quiz-data` volume, including the database, WAL and SHM files. Back up the private environment file separately and encrypt both backups. Restart after the copy. Restore into an empty volume with the matching encryption key and application version. Never mix SQLite files from different snapshots or use `docker compose down -v` against real data.
+
+Picture BLOBs are part of SQLite, so the same database backup covers them. There is no separate picture directory to copy.
+
+Before the first picture-clue deployment, check for existing extension fields named `picture` while the app is stopped:
+
+```sql
+SELECT id FROM packs WHERE pack_json LIKE '%"picture"%';
+SELECT code FROM rooms WHERE state_json LIKE '%"picture"%';
+SELECT code FROM quarantined_rooms WHERE state_json LIKE '%"picture"%';
+```
+
+Inspect any returned rows and rename unrelated extension fields before deploying. The new validator reserves `picture`; incompatible stored packs fail validation and incompatible room states go to quarantine. Saves without a picture field restore with `picture: null` in the active clue and final state.
 
 Migrations are numbered in `src/server/storage.ts` and applied transactionally. Append new migrations after release; do not edit an applied version. Roll back the image and database together if the old image cannot read the current schema.
 

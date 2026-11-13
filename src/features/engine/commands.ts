@@ -1,3 +1,4 @@
+import { pictureOf } from "@/features/content";
 import { validateQuestionPack } from "@/features/content";
 import {
   MAX_ADJUSTMENT_DELTA,
@@ -238,6 +239,7 @@ export function execute(
         kind: cell.wager ? "wager" : "standard",
         stage: cell.wager ? "wager" : "reading",
         prompt: clue.prompt,
+        picture: pictureOf(clue),
         answer: clue.answer,
         wager: null,
         answeringPlayerId: cell.wager ? s.controllerId : null,

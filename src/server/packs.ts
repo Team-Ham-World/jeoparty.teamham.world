@@ -1,10 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { parseQuestionPackJson, type QuestionPack } from "@/features/content";
+import { parseQuestionPackJson, pictureRefs, type QuestionPack } from "@/features/content";
 import type { PackDocument, PackSummary } from "@/features/network/protocol";
 import type { SqlDatabase } from "./storage";
 import { HttpError } from "./http";
+import type { Pictures } from "./pictures";
 
 const MAX_PACK_BYTES = 256 * 1024;
 const MAX_PACKS_PER_ACCOUNT = 50;
@@ -34,6 +35,7 @@ export class Packs {
   readonly builtIns = new Map<string, QuestionPack>();
   constructor(
     private db: SqlDatabase,
+    private pictures: Pictures,
     directory = path.resolve("src/features/content/samples"),
   ) {
     for (const file of readdirSync(directory)
@@ -133,6 +135,15 @@ export class Packs {
     const id = existingId ?? randomUUID();
     if (this.builtIns.has(id)) throw new HttpError(409, "conflict", "Built-in ids are reserved.");
     const pack = validatedPack({ ...validatedPack(raw), id });
+    const owned = this.pictures.ownedIds(ownerId);
+    const validationErrors = pictureRefs(pack)
+      .filter((ref) => !owned.has(ref.id))
+      .map(({ path }) => ({
+        path,
+        message: "This picture isn't in your account any more. Add it again.",
+      }));
+    if (validationErrors.length)
+      throw new HttpError(400, "invalidPack", "The pack is invalid.", { validationErrors });
     const updatedAt = new Date().toISOString();
     this.db.run(
       "INSERT INTO packs(id, owner_id, pack_json, updated_at, summary_json) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET pack_json = excluded.pack_json, updated_at = excluded.updated_at, summary_json = excluded.summary_json",

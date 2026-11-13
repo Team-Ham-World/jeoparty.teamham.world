@@ -10,6 +10,10 @@ Every scoring round defines positive integer points for all five tiers, each at
 most 1,000,000; `defaultRoundId` references one of those rounds. IDs are unique across all
 pack, round, category, and clue definitions within a pack.
 
+An ordinary or final clue may include `picture: { id, alt }`. These are the only two keys. The id must match `pic_` followed by 43 base64url characters and comes from `POST /api/pictures`. The description is a string of 0–200 characters; it may be empty. `picture: undefined` counts as absent. The prompt is still required and the pack schema version stays `"3.0.0"`.
+
+`pictureSrc` builds the public URL. `pictureOf` copies a reference into engine state, and `pictureRefs` lists references with validator field paths. The engine's `promptView` hides pictures whenever it hides their prompt. Bytes live as JPEG BLOBs in SQLite. Exports carry references, not pictures. Importing into another account or after an unused picture is swept requires uploading the picture again.
+
 Validation reports exact field paths. Blank required text, invalid dimensions,
 unsupported clue types, static clue points, circular objects, and live game
 state keys are rejected, including inside extension metadata.

@@ -1,12 +1,13 @@
 /**
  * Typed fetch helpers for every HTTP endpoint in ../protocol.ts.
  *
- * - JSON in, JSON out. Errors become an `ApiError` with the server's code,
+ * - JSON or a JPEG Blob in, JSON out. Errors become an `ApiError` with the server's code,
  *   message and (for packs) validation errors.
  * - Every mutating request sends the CSRF token from GET /api/session in the
  *   `CSRF_HEADER`. Pass the token you got from `getSession()`.
  * - Requests are same-origin, so cookies travel automatically.
  */
+import { PICTURE_ROUTE } from "@/features/content";
 import type { ValidationError } from "@/features/content";
 import {
   CSRF_HEADER,
@@ -22,6 +23,7 @@ import {
   type RoomCode,
   type RoomSummary,
   type SessionInfo,
+  type UploadPictureResponse,
 } from "../protocol";
 
 export class ApiError extends Error {
@@ -63,7 +65,8 @@ async function request<T>(
   { method = "GET", body, csrf }: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = { accept: "application/json" };
-  if (body !== undefined) headers["content-type"] = "application/json";
+  if (body !== undefined)
+    headers["content-type"] = body instanceof Blob ? body.type : "application/json";
   if (method !== "GET" && csrf) headers[CSRF_HEADER] = csrf;
 
   let response: Response;
@@ -71,7 +74,7 @@ async function request<T>(
     response = await fetch(path, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body instanceof Blob ? body : body === undefined ? undefined : JSON.stringify(body),
       credentials: "same-origin",
       cache: "no-store",
     });
@@ -212,4 +215,8 @@ export function duplicatePack(csrf: string, id: string): Promise<PackDocument> {
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return "Something went wrong. Try again.";
+}
+
+export function uploadPicture(csrf: string, jpeg: Blob): Promise<UploadPictureResponse> {
+  return request<UploadPictureResponse>(PICTURE_ROUTE, { method: "POST", body: jpeg, csrf });
 }

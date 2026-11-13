@@ -744,6 +744,7 @@ function FinalVerdict({ response }: { response: FinalResponseView }) {
 
 function finalAsClue(final: FinalView): ClueView {
   return {
+    ...final,
     clueId: "final",
     opensAt: null,
     buzzResult: null,
@@ -751,7 +752,6 @@ function finalAsClue(final: FinalView): ClueView {
     value: 0,
     kind: "standard",
     stage: "reading",
-    prompt: final.prompt,
     wager: null,
     answeringPlayerId: null,
     attempts: [],

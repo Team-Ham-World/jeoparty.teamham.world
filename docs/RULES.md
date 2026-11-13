@@ -44,6 +44,7 @@ Changing the pack resets settings to that pack's defaults.
 - Values: round 0 uses the scoring round `defaultRoundId`. Round 1 uses the first *other* scoring round in pack order, otherwise the default values × 2. A clue's value is `pointsByTier[clue.tier]` of its round. Each `pointsByTier` value in a pack is at most 1,000,000. Clue IDs never determine points.
 - Wager clues: `wagerClues[r]` cells per round, placed by the game's seeded random generator, preferring cells that are not the round's lowest tier. Players and the display cannot see where they are until selected. The host can.
 - Final round clue: the `finalClue` of the first pack category not used on any board. If every category is used, use a seeded-random used category's final clue.
+- A clue or final clue may have one picture. The picture is public exactly when its prompt is public. The host always sees both. Phones show pictures on wager clues and the final round, where there is no buzzer.
 - The running game keeps a fixed copy of the pack. Editing a saved pack never changes a game in progress.
 
 ## Control

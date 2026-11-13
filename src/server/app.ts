@@ -3,6 +3,7 @@ import type { Duplex } from "node:stream";
 import { randomInt, randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
+import { PICTURE_ROUTE, MAX_PICTURE_BYTES, parsePictureId } from "@/features/content";
 import { type EngineApi } from "@/features/engine/contract";
 import {
   CSRF_HEADER,
@@ -12,6 +13,7 @@ import {
   WS_CLOSE,
   type ConnectionRole,
   type ServerMessage,
+  type UploadPictureResponse,
 } from "@/features/network/protocol";
 import { AuthService, clearedSessionCookie, type Identity, type SessionRow } from "./auth";
 import type { Config } from "./config";
@@ -25,12 +27,15 @@ import {
   securityHeaders,
   parseCookies,
   readJson,
+  readBody,
+  sendPicture,
   redirect,
   sendFetchResponse,
   sendJson,
   toFetchRequest,
 } from "./http";
 import { Packs } from "./packs";
+import { Pictures } from "./pictures";
 import { Room, type Connection, type RoomRow, type RoomDeps } from "./rooms/room";
 import { parseClientMessage } from "./validation";
 import { RateLimiter } from "./rate-limit";
@@ -67,7 +72,8 @@ export async function createApp(config: Config, options: Options) {
     void task.finally(() => pendingRequests.delete(task));
   }
   const db = new Database(config.databasePath);
-  const packs = new Packs(db);
+  const pictures = new Pictures(db, now);
+  const packs = new Packs(db, pictures);
   const rooms = new Map<string, Room>();
   const memberRooms = new Map<string, Set<string>>();
   const sessionConnections = new Map<string, Set<Connection>>();
@@ -252,6 +258,24 @@ export async function createApp(config: Config, options: Options) {
       throw new HttpError(404, "notFound", "Not found.");
     }
     limit(`api:${ip}`, 600);
+    if (route === PICTURE_ROUTE) {
+      if (method !== "POST") throw new HttpError(405, "badRequest", "Method not allowed.");
+      const user = await mutation(req);
+      limit(`picture:${user.account.account_id}`, 30);
+      const bytes = await readBody(req, MAX_PICTURE_BYTES);
+      const id = pictures.add(user.account.account_id, req.headers["content-type"], bytes);
+      sendJson(res, 201, { id } satisfies UploadPictureResponse);
+      return;
+    }
+    if (route.startsWith(`${PICTURE_ROUTE}/`)) {
+      if (method !== "GET" && method !== "HEAD")
+        throw new HttpError(405, "badRequest", "Method not allowed.");
+      const id = parsePictureId(route.slice(PICTURE_ROUTE.length + 1));
+      const bytes = id ? pictures.bytes(id) : null;
+      if (!bytes) throw new HttpError(404, "notFound", "Picture not found.");
+      sendPicture(res, bytes, method === "HEAD");
+      return;
+    }
     const knownMethods =
       route === "/api/health" ||
       route === "/api/session" ||
@@ -782,6 +806,11 @@ export async function createApp(config: Config, options: Options) {
         } catch (error) {
           console.error("Auth sweep failed; skipping until the next one:", error);
         }
+        try {
+          pictures.sweep();
+        } catch (error) {
+          console.error("Picture sweep failed; skipping until the next one:", error);
+        }
       }, 3_600_000),
     );
     intervals.forEach((timer) => timer.unref());
@@ -790,6 +819,7 @@ export async function createApp(config: Config, options: Options) {
     server,
     db,
     auth,
+    pictures,
     rooms,
     fixture,
     config,

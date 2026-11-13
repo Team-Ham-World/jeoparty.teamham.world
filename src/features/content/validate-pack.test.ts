@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { parseQuestionPackJson, validateQuestionPack } from "./index";
+import { parsePictureId, pictureOf, pictureRefs, pictureSrc } from "./pictures";
 import type { QuestionPack, ValidationError } from "./types";
 
 // Node-only test fixture: never import the answer-bearing pack in a UI module.
@@ -258,7 +259,7 @@ describe("validateQuestionPack", () => {
         { path: "schemaVersion", message: 'Expected schema version "3.0.0".' },
         {
           path: "categories[0].clues[0].type",
-          message: 'Only text clues are supported in F0; omit type or use "text".',
+          message: 'Only text clues are supported; omit type or use "text".',
         },
         {
           path: "categories[0].clues[0].points",
@@ -396,5 +397,67 @@ describe("content resource limits", () => {
           message: expect.stringContaining("Must be at most"),
         }),
       );
+  });
+});
+
+describe("picture references", () => {
+  const id = parsePictureId(`pic_${"a".repeat(43)}`)!;
+  it.each(["clue", "final"])(
+    "accepts an optional picture on a %s and copies only its fields",
+    (kind) => {
+      const pack = sample();
+      const clue = kind === "clue" ? pack.categories[0].clues[0] : pack.categories[0].finalClue;
+      expect(pictureOf(clue)).toBeNull();
+      clue.picture = undefined;
+      expect(validateQuestionPack(pack).ok).toBe(true);
+      clue.picture = { id, alt: "" };
+      expect(validateQuestionPack(pack).ok).toBe(true);
+      const copy = pictureOf(clue);
+      expect(copy).toEqual({ id, alt: "" });
+      expect(copy).not.toBe(clue.picture);
+      expect(pictureRefs(pack)).toEqual([
+        {
+          path:
+            kind === "clue" ? "categories[0].clues[0].picture" : "categories[0].finalClue.picture",
+          id,
+        },
+      ]);
+      expect(pictureSrc(id)).toBe(`/api/pictures/${id}`);
+      clue.picture.alt = "a".repeat(200);
+      expect(validateQuestionPack(pack).ok).toBe(true);
+    },
+  );
+  it.each([
+    [null, "", "A picture needs an id and a description."],
+    [[], "", "A picture needs an id and a description."],
+    [
+      { id: "bad", alt: "" },
+      "",
+      "This picture reference isn't valid. Remove the picture and add it again.",
+    ],
+    [{ id, alt: "", src: "/x" }, "", 'Unknown picture field "src".'],
+    [{ id }, ".alt", "Expected a string."],
+    [{ id, alt: 1 }, ".alt", "Expected a string."],
+    [{ id, alt: "a".repeat(201) }, ".alt", "Must be at most 200 characters."],
+  ])("rejects malformed pictures %# on ordinary and final clues", (picture, suffix, message) => {
+    const pack = sample();
+    for (const [clue, path] of [
+      [pack.categories[0].clues[0], "categories[0].clues[0]"],
+      [pack.categories[0].finalClue, "categories[0].finalClue"],
+    ] as const) {
+      const raw: Record<string, unknown> = clue;
+      raw.picture = picture;
+      expect(errorsFor(pack)).toContainEqual({ path: `${path}.picture${suffix}`, message });
+    }
+  });
+  it.each([
+    null,
+    1,
+    "a".repeat(43),
+    `pic_${"a".repeat(42)}`,
+    `pic_${"a".repeat(44)}`,
+    `pic_${"a".repeat(42)}!`,
+  ])("rejects invalid id %s", (value) => {
+    expect(parsePictureId(value)).toBeNull();
   });
 });
