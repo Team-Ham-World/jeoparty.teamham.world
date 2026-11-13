@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type DragEvent,
+} from "react";
 import {
   parseQuestionPackJson,
   validateQuestionPack,
   type DifficultyTier,
+  type PictureId,
   type QuestionPack,
   type ValidationError,
 } from "@/features/content";
@@ -30,14 +39,17 @@ import {
   updateCategory,
   updateClue,
   updateFinal,
+  withPicture,
 } from "./pack-draft";
 import { FINAL_CLUE_FIELD, finalClueOf, finalCluePath } from "./pack-fields";
+import { PictureField, firstImageFile, storePicture } from "./picture-field";
 
 export interface PackEditorProps {
   initial: QuestionPack;
   isNew: boolean;
   /** Saves via the API. Throw an ApiError-like `{ validationErrors }` to show field errors. */
   onSave: (pack: QuestionPack) => Promise<void>;
+  onUploadPicture: (jpeg: Blob) => Promise<PictureId>;
   /** Navigate in-app (used after "Leave without saving?"). */
   onNavigate: (href: string) => void;
   /** Show these errors on first render (previews and tests). */
@@ -55,6 +67,7 @@ export function PackEditor({
   initial,
   isNew,
   onSave,
+  onUploadPicture,
   onNavigate,
   initialErrors = [],
   draftKey,
@@ -81,8 +94,12 @@ export function PackEditor({
     return differs ? draft : null;
   });
   const fileInput = useRef<HTMLInputElement>(null);
+  const pictureActionCount = useRef(0);
+  const latestPictureAction = useRef(new Map<string, number>());
+  const [uploading, setUploading] = useState<ReadonlySet<string>>(() => new Set());
   const dirty = JSON.stringify(packForSave(pack)) !== saved;
-  const canSave = !saving && !created && (dirty || isNew || errors.length > 0);
+  const canSave =
+    !saving && !created && uploading.size === 0 && (dirty || isNew || errors.length > 0);
   const guard = useUnsavedGuard(dirty && !saving);
   const fieldErrors = useMemo(() => errorsByPath(errors), [errors]);
   const err = (path: string) => fieldErrors.get(path);
@@ -128,6 +145,62 @@ export function PackEditor({
     }
   }
 
+  function startPictureAction(clueId: string): () => boolean {
+    const action = ++pictureActionCount.current;
+    latestPictureAction.current.set(clueId, action);
+    return () => latestPictureAction.current.get(clueId) === action;
+  }
+
+  function markUploading(clueId: string, on: boolean) {
+    setUploading((current) => {
+      const next = new Set(current);
+      if (on) next.add(clueId);
+      else next.delete(clueId);
+      return next;
+    });
+  }
+
+  async function attachPicture(clueId: string, file: File) {
+    const isLatest = startPictureAction(clueId);
+    markUploading(clueId, true);
+    try {
+      const id = await storePicture(file, onUploadPicture);
+      if (isLatest())
+        setPack((current) => withPicture(current, clueId, (old) => ({ id, alt: old?.alt ?? "" })));
+    } catch (error) {
+      if (isLatest())
+        toast(error instanceof Error ? error.message : "Couldn't add the picture. Try again.");
+    } finally {
+      if (isLatest()) markUploading(clueId, false);
+    }
+  }
+
+  function removePicture(clueId: string) {
+    startPictureAction(clueId);
+    markUploading(clueId, false);
+    setPack((current) => withPicture(current, clueId, () => undefined));
+  }
+
+  function pictureTarget(clueId: string) {
+    return {
+      onPaste(event: ClipboardEvent<HTMLElement>) {
+        const file = firstImageFile(event.clipboardData.files);
+        if (!file) return;
+        event.preventDefault();
+        void attachPicture(clueId, file);
+      },
+      onDragOver(event: DragEvent<HTMLElement>) {
+        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+      },
+      onDrop(event: DragEvent<HTMLElement>) {
+        const file = firstImageFile(event.dataTransfer.files);
+        if (!file) return;
+        event.preventDefault();
+        void attachPicture(clueId, file);
+      },
+    };
+  }
+
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -158,6 +231,9 @@ export function PackEditor({
   }
 
   function applyImport(imported: QuestionPack, fileName: string) {
+    // Uploads still running belong to the draft being replaced, even where a clue id matches.
+    latestPictureAction.current.clear();
+    setUploading(new Set());
     // Keep this pack's id so saving updates it instead of creating a twin.
     setPack({ ...imported, id: pack.id });
     setErrors([]);
@@ -522,7 +598,7 @@ export function PackEditor({
                   const base = `categories[${c}].clues[${k}]`;
                   const value = defaultRound?.pointsByTier[clue.tier];
                   return (
-                    <li key={clue.id} className="ed-clue">
+                    <li key={clue.id} className="ed-clue" {...pictureTarget(clue.id)}>
                       <div className="field ed-clue__tier">
                         <label className="field__label" htmlFor={fieldId(`${base}.tier`)}>
                           Tier
@@ -621,6 +697,29 @@ export function PackEditor({
                           ✕
                         </button>
                       </div>
+                      <PictureField
+                        cluePath={base}
+                        clueName={`clue ${k + 1}`}
+                        picture={clue.picture}
+                        uploading={uploading.has(clue.id)}
+                        error={err(`${base}.picture`)}
+                        onFile={(file) => void attachPicture(clue.id, file)}
+                        onRemove={() => removePicture(clue.id)}
+                        description={
+                          clue.picture ? (
+                            <TextField
+                              label="Picture description"
+                              path={`${base}.picture.alt`}
+                              value={clue.picture.alt}
+                              error={err(`${base}.picture.alt`)}
+                              onChange={(alt) =>
+                                setPack(withPicture(pack, clue.id, (old) => old && { ...old, alt }))
+                              }
+                              placeholder="What's in it, without giving away the answer"
+                            />
+                          ) : null
+                        }
+                      />
                     </li>
                   );
                 })}
@@ -640,7 +739,7 @@ export function PackEditor({
                 + Add clue
               </button>
 
-              <div className="ed-final">
+              <div className="ed-final" {...pictureTarget(final.id)}>
                 <h4 className="eyebrow">Final-round clue</h4>
                 <div className="ed-grid">
                   <TextField
@@ -659,6 +758,29 @@ export function PackEditor({
                     error={err(`${finalCluePath(c)}.answer`)}
                     onChange={(answer) => setPack(updateFinal(pack, c, { answer }))}
                     placeholder="What is…?"
+                  />
+                  <PictureField
+                    cluePath={finalCluePath(c)}
+                    clueName="the final clue"
+                    picture={final.picture}
+                    uploading={uploading.has(final.id)}
+                    error={err(`${finalCluePath(c)}.picture`)}
+                    onFile={(file) => void attachPicture(final.id, file)}
+                    onRemove={() => removePicture(final.id)}
+                    description={
+                      final.picture ? (
+                        <TextField
+                          label="Picture description"
+                          path={`${finalCluePath(c)}.picture.alt`}
+                          value={final.picture.alt}
+                          error={err(`${finalCluePath(c)}.picture.alt`)}
+                          onChange={(alt) =>
+                            setPack(withPicture(pack, final.id, (old) => old && { ...old, alt }))
+                          }
+                          placeholder="What's in it, without giving away the answer"
+                        />
+                      ) : null
+                    }
                   />
                 </div>
               </div>

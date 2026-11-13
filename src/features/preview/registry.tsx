@@ -290,12 +290,17 @@ function StoredDraftEditor({
       isNew={false}
       draftKey={draftKey}
       onSave={onSave}
+      onUploadPicture={noUploads}
       onNavigate={() => {}}
     />
   );
 }
 
 const ME = "p-medchu";
+
+async function noUploads(): Promise<never> {
+  throw new Error("The preview gallery can't upload pictures.");
+}
 
 const RESTORE_THEN_SAVE = ["Restore", "Save changes"];
 
@@ -665,6 +670,7 @@ export const PREVIEWS: PreviewEntry[] = [
             initial={samplePack()}
             isNew={false}
             onSave={async () => {}}
+            onUploadPicture={noUploads}
             onNavigate={() => {}}
           />
         </main>
@@ -684,6 +690,7 @@ export const PREVIEWS: PreviewEntry[] = [
             initial={samplePack()}
             isNew={false}
             onSave={async () => {}}
+            onUploadPicture={noUploads}
             onNavigate={() => {}}
             initialErrors={[
               { path: "categories[0].clues[2].answer", message: "Expected a non-empty string." },
@@ -740,7 +747,13 @@ export const PREVIEWS: PreviewEntry[] = [
       <ToastProvider>
         <PageHeader session={SESSION_SIGNED_IN} onSignOut={() => {}} />
         <main id="main-content" className="page">
-          <PackEditor initial={blankPack()} isNew onSave={async () => {}} onNavigate={() => {}} />
+          <PackEditor
+            initial={blankPack()}
+            isNew
+            onSave={async () => {}}
+            onUploadPicture={noUploads}
+            onNavigate={() => {}}
+          />
         </main>
       </ToastProvider>
     ),
