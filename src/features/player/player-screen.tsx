@@ -6,7 +6,9 @@ import {
   type ClueView,
   type FinalResponseView,
   type FinalView,
+  type PictureView,
   type PlayerView,
+  type PromptView,
   type PublicPlayer,
 } from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
@@ -14,6 +16,7 @@ import { errorMessage } from "@/features/network/client/api";
 import { BoardGrid } from "@/features/board/board-grid";
 import { HotHam, Lockup } from "@/features/ui/brand";
 import { useRemaining } from "@/features/ui/clock";
+import { CluePicture } from "@/features/ui/clue-picture";
 import { ClosedNotice, ConnectionPill, StaleBanner } from "@/features/ui/connection-status";
 import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
@@ -401,11 +404,13 @@ function PlayerBoard({ view }: { view: PlayerView }) {
 
 function ClueCard({
   clue,
+  picture,
   title,
   valueLabel,
   children,
 }: {
   clue: ClueView;
+  picture: PictureView | null;
   title?: string;
   valueLabel?: string;
   children?: React.ReactNode;
@@ -424,6 +429,7 @@ function ClueCard({
               : formatScore(clue.value))}
         </span>
       </header>
+      {picture ? <CluePicture picture={picture} className="pl-picture" /> : null}
       {prompt ? (
         <p className={`pl-clue__prompt ${prompt.length > 160 ? "pl-clue__prompt--long" : ""}`}>
           {prompt}
@@ -496,7 +502,7 @@ function PlayerClue({
 
   return (
     <div className="pl-clue-wrap">
-      <ClueCard clue={clue}>
+      <ClueCard clue={clue} picture={clue.kind === "wager" ? clue.picture : null}>
         {clue.stage === "revealed" && clue.answer ? (
           <div className="pl-answer">
             <span className="eyebrow">Answer</span>
@@ -594,6 +600,7 @@ function PlayerFinal({
         {final.prompt ? (
           <ClueCard
             clue={finalAsClue(final)}
+            picture={final.picture}
             title="Final clue"
             valueLabel={
               view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""
@@ -652,6 +659,7 @@ function PlayerFinal({
         {header}
         <ClueCard
           clue={finalAsClue(final)}
+          picture={final.picture}
           title="Final clue"
           valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}
         />
@@ -686,6 +694,7 @@ function PlayerFinal({
       {header}
       <ClueCard
         clue={finalAsClue(final)}
+        picture={final.picture}
         title="Final clue"
         valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}
       >
@@ -743,8 +752,7 @@ function FinalVerdict({ response }: { response: FinalResponseView }) {
 }
 
 function finalAsClue(final: FinalView): ClueView {
-  return {
-    ...final,
+  const clue: Omit<ClueView, keyof PromptView> = {
     clueId: "final",
     opensAt: null,
     buzzResult: null,
@@ -758,6 +766,9 @@ function finalAsClue(final: FinalView): ClueView {
     lockedOutPlayerIds: [],
     answer: null,
   };
+  return final.prompt === null
+    ? { ...clue, prompt: null, picture: null }
+    : { ...clue, prompt: final.prompt, picture: final.picture };
 }
 
 function PlayerResults({ view }: { view: PlayerView }) {

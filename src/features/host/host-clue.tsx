@@ -6,9 +6,11 @@ import type {
   ClueView,
   FinalView,
   HostView,
+  PromptView,
   TimerView,
 } from "@/features/engine/contract";
 import { HotHam } from "@/features/ui/brand";
+import { CluePicture } from "@/features/ui/clue-picture";
 import { Countdown } from "@/features/ui/countdown";
 import {
   answeringMargin,
@@ -122,6 +124,10 @@ function ActionStatus({
   );
 }
 
+function promptLabel(shown: PromptView, where: string): string {
+  return `${shown.picture ? "Prompt and picture" : "Prompt"} · ${where}`;
+}
+
 export function HostClue({
   view,
   clue,
@@ -211,10 +217,14 @@ export function HostClue({
           className={`host-prompt ${(clue.prompt ?? "").length > 160 ? "host-prompt--long" : ""}`}
         >
           <span className="eyebrow">
-            {clue.kind === "wager" && clue.stage === "wager"
-              ? "Prompt · hidden from everyone else"
-              : "Prompt · read this aloud"}
+            {promptLabel(
+              clue,
+              clue.kind === "wager" && clue.stage === "wager"
+                ? "hidden from everyone else"
+                : "read this aloud",
+            )}
           </span>
+          {clue.picture ? <CluePicture picture={clue.picture} className="host-picture" /> : null}
           <p>{clue.prompt}</p>
         </div>
 
@@ -474,10 +484,12 @@ export function HostFinal({
       <div className="host-clue__body">
         <div className="host-prompt">
           <span className="eyebrow">
-            {final.stage === "wagers"
-              ? "Prompt · hidden until wagers lock"
-              : "Prompt · on the big screen"}
+            {promptLabel(
+              final,
+              final.stage === "wagers" ? "hidden until wagers lock" : "on the big screen",
+            )}
           </span>
+          {final.picture ? <CluePicture picture={final.picture} className="host-picture" /> : null}
           <p>{final.prompt}</p>
         </div>
         <div className="host-answer">

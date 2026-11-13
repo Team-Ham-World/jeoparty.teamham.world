@@ -1,10 +1,17 @@
 "use client";
 
 import { Fragment } from "react";
-import type { ClueView, DisplayView, FinalView, PublicPlayer } from "@/features/engine/contract";
+import type {
+  ClueView,
+  DisplayView,
+  FinalView,
+  PromptView,
+  PublicPlayer,
+} from "@/features/engine/contract";
 import type { RoomConnection } from "@/features/network/connection";
 import { BoardGrid } from "@/features/board/board-grid";
 import { HotHam, Lockup } from "@/features/ui/brand";
+import { CluePicture } from "@/features/ui/clue-picture";
 import { closedCopy } from "@/features/ui/connection-status";
 import { useOpeningLit } from "@/features/ui/clock";
 import { Countdown } from "@/features/ui/countdown";
@@ -287,12 +294,24 @@ function DisplayLobby({ view, joinUrl }: { view: DisplayView; joinUrl: string })
   );
 }
 
-function promptSize(prompt: string): string {
-  const n = prompt.length;
-  if (n <= 70) return "tv-prompt--xl";
-  if (n <= 140) return "tv-prompt--l";
-  if (n <= 220) return "tv-prompt--m";
-  return "tv-prompt--s";
+function promptSize(prompt: string, besidePicture: boolean): string {
+  const fullWidthLength = prompt.length * (besidePicture ? 2 : 1);
+  if (fullWidthLength <= 70) return "tv-prompt--xl";
+  if (fullWidthLength <= 140) return "tv-prompt--l";
+  if (fullWidthLength <= 220) return "tv-prompt--m";
+  if (fullWidthLength <= 540) return "tv-prompt--s";
+  return "tv-prompt--xs";
+}
+
+function TvPrompt({ shown }: { shown: PromptView }) {
+  const prompt = shown.prompt ?? "";
+  if (!shown.picture) return <p className={`tv-prompt ${promptSize(prompt, false)}`}>{prompt}</p>;
+  return (
+    <div className="tv-media">
+      <CluePicture picture={shown.picture} className="tv-picture" />
+      <p className={`tv-prompt ${promptSize(prompt, true)}`}>{prompt}</p>
+    </div>
+  );
 }
 
 function DisplayClue({
@@ -348,7 +367,7 @@ function DisplayClue({
           )}
         </span>
       </header>
-      <p className={`tv-prompt ${promptSize(clue.prompt ?? "")}`}>{clue.prompt}</p>
+      <TvPrompt shown={clue} />
 
       {clue.stage === "revealed" && clue.answer !== null ? (
         <div className="tv-answer">
@@ -470,11 +489,11 @@ function DisplayFinal({
           Final round · {final.categoryTitle}
         </h1>
       </header>
-      <p
-        className={`tv-prompt ${final.stage === "answering" ? promptSize(final.prompt ?? "") : "tv-prompt--recap"}`}
-      >
-        {final.prompt}
-      </p>
+      {final.stage === "answering" ? (
+        <TvPrompt shown={final} />
+      ) : (
+        <p className="tv-prompt tv-prompt--recap">{final.prompt}</p>
+      )}
 
       {final.stage === "answering" ? (
         <footer className="tv-clue__foot">

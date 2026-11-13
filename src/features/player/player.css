@@ -302,6 +302,11 @@
     font-weight: 800;
   }
 
+  .pl-picture {
+    height: min(30dvh, 14rem);
+    margin: 0.9rem 0.9rem 0;
+  }
+
   .pl-clue__prompt {
     padding: 0.9rem 0.9rem 1rem;
     font-size: var(--fs-xl);
