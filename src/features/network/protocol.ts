@@ -2,7 +2,7 @@
  * HAM Quiz wire protocol shared by the server and browser code.
  * Types and constants only: safe to import from client components.
  */
-import type { QuestionPack, ValidationError } from "@/features/content";
+import type { PictureId, QuestionPack, ValidationError } from "@/features/content";
 import type {
   DisplayView,
   HostCommand,
@@ -12,7 +12,7 @@ import type {
   RejectionCode,
 } from "@/features/engine/contract";
 
-export const PROTOCOL_VERSION = 2 as const;
+export const PROTOCOL_VERSION = 3 as const;
 
 /** Room codes: 5 consonants (no vowels, so no accidental words). */
 export const ROOM_CODE_ALPHABET = "BCDFGHJKLMNPQRSTVWXZ";
@@ -93,10 +93,11 @@ export const WS_CLOSE = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// HTTP API. JSON bodies. Every mutating request needs the CSRF header with the
-// token from GET /api/session plus an exact Origin match.
+// HTTP API. JSON bodies, except the raw JPEG picture upload. Every mutating
+// request needs the CSRF header with the token from GET /api/session plus an
+// exact Origin match.
 //
-//   GET    /api/health                      → { ok: true }
+//   GET    /api/health                     → { ok: true }
 //   GET    /api/session                     → SessionInfo
 //   GET    /api/auth/login?return_to=PATH   → 302 to HAM (PATH must be allowlisted)
 //   GET    /api/auth/callback               → 302 to the stored return path
@@ -114,6 +115,8 @@ export const WS_CLOSE = {
 //   PUT    /api/packs/:id                   SavePackRequest → PackDocument (owner only)
 //   DELETE /api/packs/:id                   → 204 (owner only)
 //   POST   /api/packs/:id/duplicate         → PackDocument (copy of a built-in or own pack)
+//   POST   /api/pictures                    image/jpeg → UploadPictureResponse
+//   GET    /api/pictures/:id                → image/jpeg (also HEAD; public, unguessable id)
 //
 // Login return paths allowed: "/", "/r/CODE", "/host/CODE", "/packs", "/packs/ID".
 
@@ -208,3 +211,5 @@ export interface ApiError {
   message: string;
   validationErrors?: ValidationError[];
 }
+
+export type UploadPictureResponse = { id: PictureId };
