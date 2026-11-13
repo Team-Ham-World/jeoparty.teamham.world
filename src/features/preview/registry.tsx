@@ -290,12 +290,17 @@ function StoredDraftEditor({
       isNew={false}
       draftKey={draftKey}
       onSave={onSave}
+      onUploadPicture={noUploads}
       onNavigate={() => {}}
     />
   );
 }
 
 const ME = "p-medchu";
+
+async function noUploads(): Promise<never> {
+  throw new Error("The preview gallery can't upload pictures.");
+}
 
 const RESTORE_THEN_SAVE = ["Restore", "Save changes"];
 
@@ -403,6 +408,17 @@ export const PREVIEWS: PreviewEntry[] = [
   player("wager-other", "Wager clue: watching", SPECS.wager, ME),
   player("wager-answering", "Wager clue: you're up", SPECS.wagerAnswering, "p-ivvy"),
   player("long", "Long name + 300-character prompt", SPECS.longClue, "p-max"),
+  player(
+    "picture-reading",
+    "Picture clue: reading (no picture beside a buzzer)",
+    SPECS.pictureReading,
+    ME,
+  ),
+  player("picture-wager", "Picture clue: wager, you're up", SPECS.pictureWagerAnswering, "p-ivvy"),
+  player("picture-final", "Picture clue: final, type your answer", SPECS.pictureFinal, ME, {
+    can: { finalAnswer: true },
+    myFinal: { wager: 800, answer: null },
+  }),
   player("final-wager", "Final: wager", SPECS.finalWagers, "p-ivvy", {
     can: { finalWager: { min: 0, max: 1200 } },
   }),
@@ -538,6 +554,9 @@ export const PREVIEWS: PreviewEntry[] = [
   host("wager", "Wager clue: enter wager", "wager"),
   host("wager-answering", "Wager clue: judge", "wagerAnswering"),
   host("long", "Long name + 300-character prompt", "longClue"),
+  host("picture-reading", "Picture clue: reading", "pictureReading"),
+  host("picture-wager", "Picture clue: wager, only the host sees it", "pictureWager"),
+  host("picture-final", "Picture clue: final, answering", "pictureFinal"),
   host("final-wagers", "Final: wagers", "finalWagers"),
   host("final-answering", "Final: answering", "finalAnswering"),
   host("final-judging", "Final: reveal + judge", "finalJudging"),
@@ -605,6 +624,9 @@ export const PREVIEWS: PreviewEntry[] = [
   display("wager", "Wager clue: Hot HAM!", "wager"),
   display("wager-answering", "Wager clue: answering", "wagerAnswering"),
   display("long", "Long name + 300-character prompt", "longClue"),
+  display("picture-reading", "Picture clue: reading", "pictureReading"),
+  display("picture-wager", "Picture clue: wager, answering", "pictureWagerAnswering"),
+  display("picture-final", "Picture clue: final, answering", "pictureFinal"),
   display("final-wagers", "Final: wagers", "finalWagers"),
   display("final-answering", "Final: answering", "finalAnswering"),
   display("final-judging", "Final: reveal + judge", "finalJudging"),
@@ -648,6 +670,7 @@ export const PREVIEWS: PreviewEntry[] = [
             initial={samplePack()}
             isNew={false}
             onSave={async () => {}}
+            onUploadPicture={noUploads}
             onNavigate={() => {}}
           />
         </main>
@@ -667,6 +690,7 @@ export const PREVIEWS: PreviewEntry[] = [
             initial={samplePack()}
             isNew={false}
             onSave={async () => {}}
+            onUploadPicture={noUploads}
             onNavigate={() => {}}
             initialErrors={[
               { path: "categories[0].clues[2].answer", message: "Expected a non-empty string." },
@@ -723,7 +747,13 @@ export const PREVIEWS: PreviewEntry[] = [
       <ToastProvider>
         <PageHeader session={SESSION_SIGNED_IN} onSignOut={() => {}} />
         <main id="main-content" className="page">
-          <PackEditor initial={blankPack()} isNew onSave={async () => {}} onNavigate={() => {}} />
+          <PackEditor
+            initial={blankPack()}
+            isNew
+            onSave={async () => {}}
+            onUploadPicture={noUploads}
+            onNavigate={() => {}}
+          />
         </main>
       </ToastProvider>
     ),

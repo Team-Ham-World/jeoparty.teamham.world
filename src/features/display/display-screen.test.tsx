@@ -2,13 +2,18 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { DisplayView, FinalView, PublicPlayer } from "@/features/engine/contract";
-import { SPECS, displayFixture, hostFixture, type SpecId } from "@/features/preview/fixtures";
+import {
+  SPECS,
+  displayFixture,
+  displayOf,
+  hostFixture,
+  type SpecId,
+} from "@/features/preview/fixtures";
 import { mockConnection } from "@/features/preview/mock-connection";
 import { DisplayScreen, Name, podiumNameSize } from "./display-screen";
 
 const ids = Object.keys(SPECS) as SpecId[];
 
-/** Every answer-like string the host can see for this scenario. */
 function privateStrings(id: SpecId): string[] {
   const host = hostFixture(id);
   const strings = [
@@ -16,8 +21,10 @@ function privateStrings(id: SpecId): string[] {
     host.final?.answer,
     ...(host.final?.responses.map((r) => r.answer) ?? []),
   ];
-  if (host.clue?.stage === "wager") strings.push(host.clue.prompt);
-  if (host.final?.stage === "wagers") strings.push(host.final.prompt);
+  if (host.clue?.stage === "wager")
+    strings.push(host.clue.prompt, host.clue.picture?.src, host.clue.picture?.alt);
+  if (host.final?.stage === "wagers")
+    strings.push(host.final.prompt, host.final.picture?.src, host.final.picture?.alt);
   return strings.filter((s): s is string => typeof s === "string" && s.length > 0);
 }
 
@@ -61,7 +68,19 @@ describe("display privacy", () => {
     for (const secret of privateStrings(id)) {
       if (visible.includes(JSON.stringify(secret))) continue; // the view made it public
       expect(text).not.toContain(secret);
+      expect(container.innerHTML).not.toContain(secret);
     }
+  });
+
+  it("hides a wager clue's picture with its prompt, behind the Hot HAM! slip", () => {
+    const { container } = render(
+      <DisplayScreen
+        connection={mockConnection(displayFixture("pictureWager"))}
+        joinUrl="https://quiz.example/r/BCDFG"
+      />,
+    );
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.innerHTML).not.toContain("/preview/picture.svg");
   });
 
   it("shows the answer once the view reveals it", () => {
@@ -130,6 +149,43 @@ function renderView(view: DisplayView) {
     <DisplayScreen connection={mockConnection(view)} joinUrl="https://quiz.example/r/BCDFG" />,
   );
 }
+
+describe("display pictures", () => {
+  const alt = hostFixture("pictureReading").clue!.picture!.alt;
+
+  it("shows the picture beside the prompt, with its description only as alt text", () => {
+    const { container } = renderView(displayFixture("pictureReading"));
+    const picture = screen.getByRole("img", { name: alt });
+    expect(picture).toHaveAttribute("src", "/preview/picture.svg");
+    expect(picture.closest(".tv-media")).toHaveTextContent(
+      "Every cut-paper shape in this collage has corners except this one.",
+    );
+    expect(container.textContent).not.toContain(alt);
+  });
+
+  it("shows the final clue's picture while players answer, and leaves it out of the recap", () => {
+    renderView(displayFixture("pictureFinal"));
+    expect(screen.getByRole("img", { name: alt })).toHaveAttribute("src", "/preview/picture.svg");
+
+    const { container } = renderView(
+      displayOf({
+        ...SPECS.pictureFinal,
+        final: { ...SPECS.pictureFinal.final, stage: "judging" },
+      }),
+    );
+    expect(container.querySelector(".tv-prompt--recap")).toBeInTheDocument();
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("gives a long prompt beside a picture a smaller size than it gets alone", () => {
+    const view = displayFixture("pictureReading");
+    const prompt = "x".repeat(200);
+    const beside = renderView({ ...view, clue: { ...view.clue!, prompt } }).container;
+    expect(beside.querySelector(".tv-prompt")).toHaveClass("tv-prompt--s");
+    const alone = renderView({ ...view, clue: { ...view.clue!, prompt, picture: null } }).container;
+    expect(alone.querySelector(".tv-prompt")).toHaveClass("tv-prompt--m");
+  });
+});
 
 describe("display layout", () => {
   it("lets long usernames break between their parts without changing the text", () => {

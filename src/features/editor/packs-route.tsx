@@ -12,6 +12,7 @@ import {
   listPacks,
   logout,
   updatePack,
+  uploadPicture,
 } from "@/features/network/client/api";
 import type { PackSummary, SessionInfo } from "@/features/network/protocol";
 import { ErrorNotice, LoadingNotice, PageHeader, SignInNotice } from "@/features/ui/page-chrome";
@@ -194,6 +195,7 @@ function EditorPage({
         isNew={id === null}
         draftKey={packDraftKey(accountId, id)}
         onNavigate={(href) => router.push(href)}
+        onUploadPicture={async (jpeg) => (await uploadPicture(csrf, jpeg)).id}
         onSave={async (pack) => {
           if (id) {
             const doc = await updatePack(csrf, id, pack, baseUpdatedAt.current);

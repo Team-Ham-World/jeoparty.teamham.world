@@ -375,7 +375,8 @@
     grid-row: 1;
   }
 
-  .tv-clue:not(.tv-final) > .tv-prompt {
+  .tv-clue:not(.tv-final) > .tv-prompt,
+  .tv-clue:not(.tv-final) > .tv-media {
     grid-row: 2;
   }
 
@@ -454,6 +455,49 @@
 
   .tv-prompt--s {
     font-size: 1.4em;
+  }
+
+  .tv-prompt--xs {
+    font-size: 1em;
+  }
+
+  .tv-media {
+    display: flex;
+    gap: 1.2em;
+    min-height: 0;
+    padding: 0.8em 1em 0.5em;
+  }
+
+  .tv-picture {
+    flex: none;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+    max-width: 55%;
+    box-shadow: 0.15em 0.15em 0 var(--ink);
+  }
+
+  .tv-media > .tv-prompt {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    text-align: left;
+  }
+
+  /* The scrolling layout has no row height to fill, so the picture sits above the prompt. */
+  @media (max-width: 900px), (max-height: 520px) {
+    .tv-media {
+      flex-direction: column;
+    }
+
+    .tv-picture {
+      align-self: center;
+      height: 45vh;
+      max-width: 100%;
+    }
+
+    .tv-media > .tv-prompt {
+      text-align: center;
+    }
   }
 
   .tv-answer {

@@ -263,6 +263,41 @@ describe("player screen", () => {
     expect(screen.getByRole("link", { name: "Go home" })).toHaveAttribute("href", "/");
   });
 
+  describe("picture clues", () => {
+    it("shows no picture on a standard clue, so nothing crowds the buzzer", () => {
+      const { container } = renderView(playerOf(SPECS.pictureReading, "p-medchu"));
+      expect(screen.getByText(/has corners except this one/)).toBeVisible();
+      expect(screen.getByRole("button", { name: "Wait" })).toBeInTheDocument();
+      expect(container.querySelector("img")).toBeNull();
+    });
+
+    it("keeps a wager clue's picture hidden until the wager is in", () => {
+      const { container } = renderView(playerOf(SPECS.pictureWager, "p-medchu"));
+      expect(container.querySelector("img")).toBeNull();
+      expect(container.innerHTML).not.toContain("/preview/picture.svg");
+    });
+
+    it("shows a wager clue's picture while it is answered, where there is no buzzer", () => {
+      renderView(playerOf(SPECS.pictureWagerAnswering, "p-ivvy"));
+      const picture = screen.getByRole("img", { name: /^Cut-paper shapes/ });
+      expect(picture).toHaveAttribute("src", "/preview/picture.svg");
+      expect(screen.queryByRole("button", { name: /Buzz|Wait/ })).toBeNull();
+    });
+
+    it("shows the final clue's picture above the answer form", () => {
+      renderView(
+        playerOf(SPECS.pictureFinal, "p-medchu", {
+          can: { finalAnswer: true },
+          myFinal: { wager: 800, answer: null },
+        }),
+      );
+      expect(screen.getByRole("img", { name: /^Cut-paper shapes/ })).toHaveAttribute(
+        "src",
+        "/preview/picture.svg",
+      );
+    });
+  });
+
   it("never shows pings, even if a connection carried them", () => {
     for (const spec of [SPECS.lobby, SPECS.board, SPECS.answeringRace]) {
       const { container, unmount } = render(

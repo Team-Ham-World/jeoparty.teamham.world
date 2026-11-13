@@ -1,4 +1,3 @@
-import { promptView } from "@/features/engine/contract";
 /**
  * Typed example views for the /preview gallery and component tests.
  *
@@ -28,6 +27,7 @@ import type {
   TimerView,
   WaitingPlayer,
 } from "@/features/engine/contract";
+import { promptView } from "@/features/engine/contract";
 import type { PackSummary, RoomSummary, SessionInfo } from "@/features/network/protocol";
 
 export const FIXTURE_NOW = Date.UTC(2026, 10, 7, 20, 30, 0);
@@ -117,6 +117,11 @@ export const BOARD_WAGER_ACTIVE = makeBoard(0, "Round 1", WAGER_ACTIVE_PLAN);
 const PROMPT =
   "This text-only web browser from 1992 still installs today and draws every page right inside your terminal.";
 const ANSWER = "What is Lynx?";
+
+const PICTURE = {
+  src: "/preview/picture.svg",
+  alt: "Cut-paper shapes: a blue circle, a pink triangle, a white square and a yellow strip",
+};
 
 function clue(
   stage: ClueView["stage"],
@@ -523,6 +528,69 @@ export const SPECS = {
     timer: timer("answer", 10_000, 8_100),
     lastEvent: { kind: "wagerSubmitted", clueId: "clue-0-1-2", playerId: "p-ivvy", amount: 1000 },
   },
+  pictureReading: {
+    phase: "clue",
+    board: BOARD_ACTIVE,
+    controllerId: "p-ivvy",
+    clue: clue("reading", {
+      categoryTitle: "Cut & Paste",
+      value: 400,
+      prompt: "Every cut-paper shape in this collage has corners except this one.",
+      picture: PICTURE,
+      answer: "What is the circle?",
+    }),
+  },
+  pictureWager: {
+    phase: "clue",
+    board: BOARD_WAGER_ACTIVE,
+    controllerId: "p-ivvy",
+    clue: clue("wager", {
+      clueId: "clue-0-1-2",
+      categoryTitle: "Colour Theory",
+      kind: "wager",
+      prompt: "Mix the colours of the circle and the triangle in this picture to get this colour.",
+      picture: PICTURE,
+      answer: "What is purple?",
+    }),
+    lastEvent: { kind: "clueSelected", clueId: "clue-0-1-2", wager: true },
+  },
+  pictureWagerAnswering: {
+    phase: "clue",
+    board: BOARD_WAGER_ACTIVE,
+    controllerId: "p-ivvy",
+    clue: clue("answering", {
+      clueId: "clue-0-1-2",
+      categoryTitle: "Colour Theory",
+      kind: "wager",
+      wager: 1000,
+      prompt: "Mix the colours of the circle and the triangle in this picture to get this colour.",
+      picture: PICTURE,
+      answer: "What is purple?",
+      answeringPlayerId: "p-ivvy",
+      attempts: [
+        { id: "att-w", playerId: "p-ivvy", result: "pending", timedOut: false, delta: null },
+      ],
+    }),
+    timer: timer("answer", 10_000, 8_100),
+    lastEvent: { kind: "wagerSubmitted", clueId: "clue-0-1-2", playerId: "p-ivvy", amount: 1000 },
+  },
+  pictureFinal: {
+    phase: "final",
+    round: null,
+    final: {
+      ...FINAL_BASE,
+      stage: "answering",
+      categoryTitle: "Paper Craft",
+      prompt:
+        "This Japanese art of folding could turn the white square in this picture into a crane.",
+      picture: PICTURE,
+      answer: "What is origami?",
+      wagerSubmittedIds: ["p-ivvy", "p-medchu", "p-max"],
+      answerSubmittedIds: ["p-ivvy"],
+    },
+    timer: timer("finalAnswer", 45_000, 31_000),
+    lastEvent: { kind: "finalClueShown" },
+  },
   longClue: {
     phase: "clue",
     board: BOARD_ACTIVE,
@@ -700,6 +768,10 @@ export const HOST_ALLOWED: Record<SpecId, HostCommandType[]> = {
   revealed: ["returnToBoard", ...DURING_GAME],
   wager: ["submitWager", "endAttempts", ...DURING_GAME],
   wagerAnswering: ["judge", ...DURING_GAME],
+  pictureReading: ["openBuzzers", "endAttempts", "reveal", ...DURING_GAME],
+  pictureWager: ["submitWager", "endAttempts", ...DURING_GAME],
+  pictureWagerAnswering: ["judge", ...DURING_GAME],
+  pictureFinal: ["lockFinalAnswers", ...DURING_GAME],
   longClue: ["judge", ...DURING_GAME],
   finalWagers: ["showFinalClue", ...DURING_GAME],
   finalAnswering: ["lockFinalAnswers", ...DURING_GAME],
@@ -717,7 +789,7 @@ export function hostFixture(id: SpecId): HostView {
     allowedCommands: HOST_ALLOWED[id],
     startBlockers:
       id === "lobbyAlone" ? ["Choose a question pack.", "At least 2 players need to join."] : [],
-    wagerBounds: id === "wager" ? { min: 5, max: 1200 } : null,
+    wagerBounds: id === "wager" || id === "pictureWager" ? { min: 5, max: 1200 } : null,
     scoreLog: spec.phase === "lobby" ? [] : SCORE_LOG,
   });
 }

@@ -6,6 +6,7 @@
 import type {
   Category,
   Clue,
+  CluePicture,
   DifficultyTier,
   QuestionPack,
   ScoringRound,
@@ -151,6 +152,31 @@ export function updateFinal(
 }
 
 /**
+ * By clue id, not position: an upload can finish after its clue moved or was
+ * deleted, and then nothing changes.
+ */
+export function withPicture(
+  pack: QuestionPack,
+  clueId: string,
+  update: (picture: CluePicture | undefined) => CluePicture | undefined,
+): QuestionPack {
+  return {
+    ...pack,
+    categories: pack.categories.map((category) => {
+      const final = finalClueOf(category);
+      if (final.id === clueId)
+        return withFinalClue(category, { ...final, picture: update(final.picture) });
+      return {
+        ...category,
+        clues: category.clues.map((clue) =>
+          clue.id === clueId ? { ...clue, picture: update(clue.picture) } : clue,
+        ),
+      };
+    }),
+  };
+}
+
+/**
  * The shared validator speaks in schema terms ("Expected a non-empty
  * string."). Translate the common ones into what a pack author would say;
  * anything else passes through unchanged.
@@ -190,10 +216,14 @@ export function describePath(path: string, pack: QuestionPack, finalField: strin
     const i = Number(cat[1]);
     const name = pack.categories[i]?.title.trim() || `Category ${i + 1}`;
     const rest = cat[2];
+    const detail = rest.endsWith(".picture.alt") ? "picture description" : null;
     const clue = /^\.clues\[(\d+)\]\.?(\w*)/.exec(rest);
-    if (clue) return `${name} · clue ${Number(clue[1]) + 1}${clue[2] ? ` ${clue[2]}` : ""}`;
+    if (clue) {
+      const field = detail ?? clue[2];
+      return `${name} · clue ${Number(clue[1]) + 1}${field ? ` ${field}` : ""}`;
+    }
     if (rest.startsWith(`.${finalField}`))
-      return `${name} · final clue ${rest.split(".").pop() ?? ""}`;
+      return `${name} · final clue ${detail ?? rest.split(".").pop() ?? ""}`;
     if (rest === ".clues") return `${name} · clues`;
     if (rest === ".title") return `${name} · title`;
     return name;

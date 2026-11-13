@@ -551,3 +551,20 @@ describe("host final round", () => {
     expect(scroll.mock.contexts[0]).toHaveClass("is-next");
   });
 });
+
+describe("host picture clues", () => {
+  it("shows the host a wager clue's picture while everyone else waits for the wager", () => {
+    renderHost("pictureWager");
+    expect(screen.getByText("Prompt and picture · hidden from everyone else")).toBeVisible();
+    expect(screen.getByRole("img", { name: /^Cut-paper shapes/ })).toHaveAttribute(
+      "src",
+      "/preview/picture.svg",
+    );
+  });
+
+  it("keeps the plain prompt label when a clue has no picture", () => {
+    renderHost("reading");
+    expect(screen.getByText("Prompt · read this aloud")).toBeVisible();
+    expect(document.querySelector("img")).toBeNull();
+  });
+});
