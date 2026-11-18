@@ -22,20 +22,39 @@ function isEditablePack(value: unknown): value is QuestionPack {
   );
 }
 
-export function readStoredDraft(key: string): QuestionPack | null {
+interface StoredDraft {
+  pack: QuestionPack;
+  baseUpdatedAt: string | null;
+}
+
+export function readStoredDraft(key: string): StoredDraft | null {
   try {
     const text = sessionStorage.getItem(key);
     if (text === null) return null;
     const draft: unknown = JSON.parse(text);
-    return isEditablePack(draft) ? draft : null;
+    if (draft && typeof draft === "object" && "pack" in draft && isEditablePack(draft.pack)) {
+      return {
+        pack: draft.pack,
+        baseUpdatedAt:
+          "baseUpdatedAt" in draft && typeof draft.baseUpdatedAt === "string"
+            ? draft.baseUpdatedAt
+            : null,
+      };
+    }
+    // Drafts saved before revision tracking contain only the pack.
+    return isEditablePack(draft) ? { pack: draft, baseUpdatedAt: null } : null;
   } catch {
     return null;
   }
 }
 
-export function writeStoredDraft(key: string, pack: QuestionPack): void {
+export function writeStoredDraft(
+  key: string,
+  pack: QuestionPack,
+  baseUpdatedAt: string | null = null,
+): void {
   try {
-    sessionStorage.setItem(key, JSON.stringify(pack));
+    sessionStorage.setItem(key, JSON.stringify({ pack, baseUpdatedAt }));
   } catch {
     // The beforeunload and link guards still protect this draft.
   }

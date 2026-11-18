@@ -35,7 +35,7 @@ function renderPlayer(
 }
 
 describe("buzz button", () => {
-  it("sends { type: 'buzz', clueId } on press when the view allows it", async () => {
+  it("sends the clue and opening IDs on press when the view allows it", async () => {
     const { sent } = renderPlayer(true);
     const button = await screen.findByRole("button", { name: "Buzz!" });
     expect(button).toBeEnabled();
@@ -43,7 +43,13 @@ describe("buzz button", () => {
       fireEvent.pointerDown(button, { button: 0 });
     });
     expect(sent).toEqual([
-      { type: "buzz", clueId: "clue-0-3-2", reactionMs: expect.any(Number), falseStart: false },
+      {
+        type: "buzz",
+        clueId: "clue-0-3-2",
+        openingId: SPECS.open.clue.openingId,
+        reactionMs: expect.any(Number),
+        falseStart: false,
+      },
     ]);
     expect(screen.getByRole("button", { name: "Sent!" })).toBeInTheDocument();
     await act(async () => {
@@ -61,7 +67,13 @@ describe("buzz button", () => {
       fireEvent.click(button, { detail: 0 });
     });
     expect(sent).toEqual([
-      { type: "buzz", clueId: "clue-0-3-2", reactionMs: expect.any(Number), falseStart: false },
+      {
+        type: "buzz",
+        clueId: "clue-0-3-2",
+        openingId: SPECS.open.clue.openingId,
+        reactionMs: expect.any(Number),
+        falseStart: false,
+      },
     ]);
   });
 
@@ -162,10 +174,12 @@ describe("buzz button", () => {
         );
       const { rerender } = render(buzzer(view.clue));
       act(() => vi.advanceTimersByTime(0));
+      act(() => vi.advanceTimersByTime(200));
       await press();
       expect(screen.getByRole("button", { name: "Sent!" })).toBeInTheDocument();
-      rerender(buzzer({ ...view.clue!, opensAt: 1200 }));
-      act(() => vi.advanceTimersByTime(200));
+      const newId = view.clue!.openingId! + 1;
+      rerender(buzzer({ ...view.clue!, openingId: newId }));
+      act(() => vi.advanceTimersByTime(0));
       await press();
       expect(send).toHaveBeenCalledTimes(1);
       expect(screen.getByRole("button", { name: "Buzz!" })).toBeEnabled();
@@ -174,6 +188,9 @@ describe("buzz button", () => {
       );
       await press();
       expect(send).toHaveBeenCalledTimes(2);
+      expect(send).toHaveBeenLastCalledWith(
+        expect.objectContaining({ openingId: newId, reactionMs: 0 }),
+      );
       expect(screen.getByRole("button", { name: "Sent!" })).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -253,7 +270,13 @@ it.each(["mouse", "touch"])(
       expect(live).toHaveAccessibleDescription("Go! You were held back for tapping early.");
       await act(async () => fireEvent.pointerDown(live, { button: 0 }));
       expect(run).toHaveBeenCalledWith(
-        { type: "buzz", clueId: open.clue!.clueId, reactionMs: 250, falseStart: true },
+        {
+          type: "buzz",
+          clueId: open.clue!.clueId,
+          openingId: open.clue!.openingId,
+          reactionMs: 250,
+          falseStart: true,
+        },
         expect.anything(),
       );
     } finally {

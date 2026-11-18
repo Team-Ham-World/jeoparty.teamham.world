@@ -138,6 +138,7 @@ function clue(
     wager: null,
     answeringPlayerId: null,
     opensAt: stage === "open" ? 0 : null,
+    openingId: stage === "open" ? REVISION : null,
     buzzResult: null,
     attempts: [],
     lockedOutPlayerIds: [],
@@ -261,15 +262,21 @@ export interface Spec {
   hostConnected?: boolean;
   board?: BoardView<HostBoardCellView> | null;
   lastEvent?: GameEvent | null;
-  pack?: { id: string; title: string } | null;
+  pack?: HostView["pack"];
 }
 
 type ViewRound = { index: number; total: number; title: string } | null;
 
 const REVISION = 60;
 const ROUND_1: ViewRound = { index: 0, total: 2, title: "Round 1" };
+const DEFAULT_PACK = {
+  id: "pack-ham",
+  title: "HAM Party Pack",
+  dimensions: { categories: 12, cluesPerCategory: 5 },
+};
 
 function common(spec: Spec) {
+  const { pack = DEFAULT_PACK } = spec;
   return {
     revision: REVISION,
     serverNow: FIXTURE_NOW,
@@ -284,7 +291,7 @@ function common(spec: Spec) {
     round: spec.round === undefined ? (spec.phase === "lobby" ? null : ROUND_1) : spec.round,
     timer: spec.timer ?? null,
     results: spec.results ?? null,
-    pack: spec.pack === undefined ? { id: "pack-ham", title: "HAM Party Pack" } : spec.pack,
+    pack: pack ? { id: pack.id, title: pack.title } : null,
     lastEvent: spec.lastEvent ? { revision: REVISION, event: spec.lastEvent } : null,
   };
 }
@@ -348,6 +355,7 @@ export function hostOf(
   return {
     ...common(spec),
     audience: "host",
+    pack: spec.pack === undefined ? DEFAULT_PACK : spec.pack,
     board: spec.board ?? null,
     clue: spec.clue ?? null,
     final: spec.final ?? null,

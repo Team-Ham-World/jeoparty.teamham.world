@@ -35,7 +35,12 @@ export function WagerForm({
   function submit(event: FormEvent) {
     event.preventDefault();
     const amount = Number(text.trim());
-    if (text.trim() === "" || !Number.isInteger(amount) || amount < min || amount > max) {
+    if (
+      !/^\d+$/.test(text.trim()) ||
+      !Number.isSafeInteger(amount) ||
+      amount < min ||
+      amount > max
+    ) {
       setError(`Enter a whole number from ${range}.`);
       return;
     }
@@ -64,7 +69,7 @@ export function WagerForm({
           pattern="[0-9]*"
           autoComplete="off"
           value={text}
-          onChange={(event) => setText(event.target.value.replace(/[^0-9]/g, ""))}
+          onChange={(event) => setText(event.target.value)}
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={`${id}-hint ${error ? `${id}-error` : ""}`}

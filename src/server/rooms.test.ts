@@ -105,6 +105,7 @@ describe("HTTP room and pack boundaries", () => {
   });
   it("refuses a pack save based on a copy that has since changed", async () => {
     const { host } = await setup();
+    vi.useFakeTimers({ toFake: ["Date"] });
     const built = (await (await host.request("/api/packs")).json())[0];
     const doc = await (await host.mutate(`/api/packs/${built.id}/duplicate`)).json();
     const save = (body: object) => host.mutate(`/api/packs/${doc.id}`, body, "PUT");
@@ -125,6 +126,8 @@ describe("HTTP room and pack boundaries", () => {
       expectedUpdatedAt: doc.updatedAt,
     });
     expect(current.status).toBe(200);
+    // Both saves share a clock tick. The revision must still advance.
+    expect((await save({ pack: doc.pack, expectedUpdatedAt: doc.updatedAt })).status).toBe(409);
     expect((await save({ pack: { ...doc.pack, title: "No check" } })).status).toBe(200);
     expect((await save({ pack: doc.pack, expectedUpdatedAt: 5 })).status).toBe(400);
   });
@@ -222,7 +225,7 @@ describe("WebSocket and room actor", () => {
     expect(a.messages[0]).toMatchObject({
       t: "hello",
       role: "host",
-      protocol: 3,
+      protocol: 4,
     });
     expect(
       b.messages

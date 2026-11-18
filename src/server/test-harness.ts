@@ -124,16 +124,20 @@ export function fakeEngine() {
       };
     },
     nextDeadline: (raw) => read(raw).deadline,
-    hostView: (s, now): HostView => ({
-      ...common(s, now),
-      audience: "host",
-      board: null,
-      settings,
-      allowedCommands: [],
-      startBlockers: [],
-      wagerBounds: null,
-      scoreLog: [],
-    }),
+    hostView: (s, now): HostView => {
+      const { pack } = read(s);
+      return {
+        ...common(s, now),
+        pack: pack ? { id: pack.id, title: pack.title, dimensions: pack.dimensions } : null,
+        audience: "host",
+        board: null,
+        settings,
+        allowedCommands: [],
+        startBlockers: [],
+        wagerBounds: null,
+        scoreLog: [],
+      };
+    },
     playerView: (raw, id, now): PlayerView | null => {
       const s = read(raw),
         p = s.players.find((p) => p.id === id),

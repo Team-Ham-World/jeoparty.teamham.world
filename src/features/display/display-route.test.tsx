@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DisplayRoute, readDisplayKey } from "./display-route";
 
@@ -59,7 +59,26 @@ describe("display claim", () => {
     });
   });
 
-  it("still strips the fragment and explains when the claim fails", async () => {
+  it("retries a temporary failure with the original link", async () => {
+    window.history.replaceState(null, "", "/display/BCDFG#key=retry-key");
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Offline"))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DisplayRoute code="BCDFG" />);
+    const retry = await screen.findByRole("button", { name: "Try again" });
+    expect(window.location.hash).toBe("#key=retry-key");
+    fireEvent.click(retry);
+
+    await screen.findByText(/Connecting the big screen/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]).toEqual(fetchMock.mock.calls[0]);
+    expect(window.location.hash).toBe("");
+  });
+
+  it("strips the fragment and explains when the link is invalid", async () => {
     window.history.replaceState(null, "", "/display/BCDFG#key=stale-key");
     vi.stubGlobal(
       "fetch",

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PROTOCOL_VERSION } from "../protocol";
 import { useRoomConnection } from "./use-room-connection";
 
 class FakeSocket {
@@ -30,7 +31,7 @@ class FakeSocket {
   receive(message: unknown) {
     this.onmessage?.({ data: JSON.stringify(message) });
   }
-  hello(role = "host", protocol = 3) {
+  hello(role = "host", protocol: number = PROTOCOL_VERSION) {
     this.receive({
       t: "hello",
       protocol,
@@ -387,7 +388,7 @@ describe("refused connections", () => {
     await initial();
     act(() => {
       lastSocket().open();
-      lastSocket().hello("host", 1);
+      lastSocket().hello("host", 3);
     });
     expect(result.current).toMatchObject({ status: "closed", closeReason: null });
     await wait(60_000);
@@ -527,15 +528,31 @@ describe("waking a phone", () => {
     expect(FakeSocket.sockets).toHaveLength(1);
     unmount();
   });
-  it("holds a stale buzzer after a long hide until a fresh view, then resends commands", async () => {
+  it("holds a stale buzzer until a fresh view and retries with the original opening ID", async () => {
     const { result, unmount } = renderHook(() =>
-      useRoomConnection({ code: "BCDFG", role: "host" }),
+      useRoomConnection({ code: "BCDFG", role: "player" }),
     );
+    const open = (revision: number, openingId: number) =>
+      lastSocket().receive({
+        t: "view",
+        view: { audience: "player", revision, clue: { openingId } },
+      });
     await initial();
-    live();
+    act(() => {
+      lastSocket().open();
+      lastSocket().hello("player");
+      open(5, 4);
+    });
+    const buzz = {
+      type: "buzz",
+      clueId: "clue",
+      openingId: result.current.view!.clue!.openingId!,
+      reactionMs: 20,
+      falseStart: false,
+    } as const;
     let outcome!: ReturnType<typeof result.current.send>;
     act(() => {
-      outcome = result.current.send({ type: "pause" });
+      outcome = result.current.send(buzz);
     });
     const cmd = lastSocket().sent.find((m) => JSON.parse(m).t === "cmd")!;
     setVisibility("hidden");
@@ -544,12 +561,20 @@ describe("waking a phone", () => {
     setVisibility("visible");
     expect(result.current).toMatchObject({ status: "reconnecting", stale: true });
     expect(sentTypes()).toEqual(["resync", "ping"]);
-    expect(await result.current.send({ type: "resume" })).toMatchObject({ error: "offline" });
-    act(() => lastSocket().view(5));
+    expect(await result.current.send(buzz)).toMatchObject({ error: "offline" });
+    act(() => open(8, 8));
     expect(result.current).toMatchObject({ status: "live", stale: false });
     expect(lastSocket().sent).toContain(cmd);
-    act(() => lastSocket().receive({ t: "ack", id: JSON.parse(cmd).id, ok: true, revision: 6 }));
-    expect(await outcome).toEqual({ ok: true, revision: 6 });
+    act(() =>
+      lastSocket().receive({
+        t: "ack",
+        id: JSON.parse(cmd).id,
+        ok: false,
+        error: "staleOpening",
+        message: "This buzz was for an earlier opening.",
+      }),
+    );
+    expect(await outcome).toMatchObject({ ok: false, error: "staleOpening" });
     unmount();
   });
   it("leaves a short hide alone", async () => {

@@ -26,6 +26,7 @@ function tappedEarly(taps: EarlyTap[], opensAt: number | null, fairBuzzing: bool
 /** Timing only. The engine still decides whether a buzz is accepted. */
 export function useBuzzerTiming({
   opensAt,
+  openingId,
   active,
   clockOffsetMs,
   lockoutEnabled,
@@ -33,27 +34,27 @@ export function useBuzzerTiming({
   fairBuzzing = true,
 }: {
   opensAt: number | null;
+  openingId: number | null;
   active: boolean;
   clockOffsetMs: number;
   lockoutEnabled: boolean;
   clueId: string;
   fairBuzzing?: boolean;
 }) {
-  const key = `${clueId}:${opensAt}`;
   const earlyTaps = useRef<EarlyTap[]>([]);
-  const litAt = useRef<{ key: string; at: number } | null>(null);
-  const [light, setLight] = useState<{ key: string; falseStart: boolean } | null>(null);
-  const [unlockedKey, setUnlockedKey] = useState<string | null>(null);
-  const lit = active && light?.key === key;
+  const litAt = useRef<{ openingId: number; at: number } | null>(null);
+  const [light, setLight] = useState<{ openingId: number; falseStart: boolean } | null>(null);
+  const [unlockedOpening, setUnlockedOpening] = useState<number | null>(null);
+  const lit = active && light?.openingId === openingId;
   const falseStart = lit && light.falseStart;
-  const lockedOut = falseStart && unlockedKey !== key;
+  const lockedOut = falseStart && unlockedOpening !== openingId;
 
   useLayoutEffect(() => {
-    if (!active || litAt.current?.key === key) return;
+    if (!active || openingId === null || litAt.current?.openingId === openingId) return;
     const timer = setTimeout(
       () => {
         setLight({
-          key,
+          openingId,
           falseStart:
             lockoutEnabled &&
             tappedEarly(
@@ -66,19 +67,20 @@ export function useBuzzerTiming({
       Math.max(0, (opensAt ?? 0) - Date.now() - clockOffsetMs),
     );
     return () => clearTimeout(timer);
-  }, [active, opensAt, clockOffsetMs, key, lockoutEnabled, clueId, fairBuzzing]);
+  }, [active, opensAt, clockOffsetMs, openingId, lockoutEnabled, clueId, fairBuzzing]);
 
   useLayoutEffect(() => {
-    if (!lit) {
+    if (!lit || openingId === null) {
       litAt.current = null;
       return;
     }
     // The lit class has committed to the DOM. Start reaction timing here, never at view arrival.
-    if (litAt.current?.key !== key) litAt.current = { key, at: performance.now() };
+    if (litAt.current?.openingId !== openingId)
+      litAt.current = { openingId, at: performance.now() };
     if (!falseStart) return;
-    const timer = setTimeout(() => setUnlockedKey(key), 250);
+    const timer = setTimeout(() => setUnlockedOpening(openingId), 250);
     return () => clearTimeout(timer);
-  }, [lit, key, falseStart]);
+  }, [lit, openingId, falseStart]);
 
   return {
     lit,
@@ -100,7 +102,9 @@ export function useBuzzerTiming({
       };
     },
     reactionMs() {
-      return litAt.current?.key === key ? Math.max(0, performance.now() - litAt.current.at) : 0;
+      return litAt.current?.openingId === openingId
+        ? Math.max(0, performance.now() - litAt.current.at)
+        : 0;
     },
   };
 }

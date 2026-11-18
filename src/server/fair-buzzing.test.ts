@@ -56,12 +56,19 @@ describe("server fair buzzing", () => {
       id: "8f02cd25-6c4a-40ba-9d72-b75961bbf160",
       cmd,
     });
-    const buzz = { type: "buzz", clueId: "clue", reactionMs: 12, falseStart: false };
+    const legacyBuzz = { type: "buzz", clueId: "clue", reactionMs: 12, falseStart: false };
+    expect(parseClientMessage(message(legacyBuzz))).toBeNull();
+    const buzz = { ...legacyBuzz, openingId: 12 };
     expect(parseClientMessage(message(buzz))).not.toBeNull();
     for (const extra of [
       { arrivalMs: 0 },
       { uplinkBoundMs: 999 },
       { maxOtherUplinkMs: 999 },
+      { openingId: null },
+      { openingId: "12" },
+      { openingId: -1 },
+      { openingId: 12.5 },
+      { openingId: Number.MAX_SAFE_INTEGER + 1 },
       { reactionMs: -1 },
       { reactionMs: Infinity },
       { falseStart: 1 },
@@ -169,6 +176,7 @@ describe("server fair buzzing", () => {
     await a.ok({ type: "selectClue", clueId });
     await a.ok({ type: "openBuzzers", clueId });
     const opensAt = a.host.clue!.opensAt!;
+    const openingId = a.host.clue!.openingId!;
     expect(opensAt).toBe(now + 210);
     const hash = h.app.auth.sessionFromCookieHeader(browsers[0].cookie)!.session_hash;
     let release!: () => void, entered!: () => void;
@@ -187,10 +195,22 @@ describe("server fair buzzing", () => {
       return verify(session, options);
     });
     now = opensAt + 220;
-    const first = players[0].ok({ type: "buzz", clueId, reactionMs: 200, falseStart: false });
+    const first = players[0].ok({
+      type: "buzz",
+      clueId,
+      openingId,
+      reactionMs: 200,
+      falseStart: false,
+    });
     await waiting;
     now = opensAt + 300;
-    const second = players[1].ok({ type: "buzz", clueId, reactionMs: 150, falseStart: false });
+    const second = players[1].ok({
+      type: "buzz",
+      clueId,
+      openingId,
+      reactionMs: 150,
+      falseStart: false,
+    });
     // A resync on the same socket proves its buzz handler has run while the queue is blocked.
     const count = players[1].messages.filter((m) => m.t === "view").length;
     players[1].ws.send(JSON.stringify({ t: "resync" }));
@@ -224,7 +244,13 @@ it("fires fractional reaction deadlines without rounding the timer early and get
   await a.ok({ type: "openBuzzers", clueId });
   h.advance(430);
   await vi.advanceTimersByTimeAsync(430);
-  await players[0].ok({ type: "buzz", clueId, reactionMs: 200.25, falseStart: false });
+  await players[0].ok({
+    type: "buzz",
+    clueId,
+    openingId: a.host.clue!.openingId!,
+    reactionMs: 200.25,
+    falseStart: false,
+  });
   h.advance(170);
   await vi.advanceTimersByTimeAsync(170);
   expect(a.host.clue?.stage).toBe("open");
@@ -244,7 +270,13 @@ it("re-arms a deadline when the timer fires before the clock reaches it", async 
   await a.ok({ type: "openBuzzers", clueId });
   h.advance(430);
   await vi.advanceTimersByTimeAsync(430);
-  await players[0].ok({ type: "buzz", clueId, reactionMs: 200.25, falseStart: false });
+  await players[0].ok({
+    type: "buzz",
+    clueId,
+    openingId: a.host.clue!.openingId!,
+    reactionMs: 200.25,
+    falseStart: false,
+  });
   // The decision is due in 170.25 ms, so the timer is set for 171 ms. It fires with the clock
   // still at 170 ms: the engine refuses it, and without a re-arm the clue would hang.
   h.advance(170);

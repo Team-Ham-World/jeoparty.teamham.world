@@ -235,12 +235,16 @@ try {
     );
   }
   const opened = await a.send({ type: "openBuzzers", clueId: cell.clueId });
+  const phone = await players[0].wire.view((v) => v?.revision === opened.revision);
+  assert.equal(phone.clue.openingId, opened.clue.openingId);
+  assert.ok(Number.isSafeInteger(phone.clue.openingId));
   await new Promise((resolve) =>
     setTimeout(resolve, Math.max(0, opened.clue.opensAt - Date.now()) + 20),
   );
   await players[0].wire.send({
     type: "buzz",
-    clueId: cell.clueId,
+    clueId: phone.clue.clueId,
+    openingId: phone.clue.openingId,
     reactionMs: 20,
     falseStart: false,
   });

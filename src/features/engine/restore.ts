@@ -86,6 +86,7 @@ const clue = object({
   lockedOutPlayerIds: array(string),
   ended: bool,
   opensAt: nullable(number),
+  openingId: nullable(nonnegative),
   buzzResult: nullable(
     object({
       winnerId: string,
@@ -211,7 +212,7 @@ export function restore(raw: unknown): GameState | null {
         return value;
       }),
     );
-    // Additive migration for games saved before fair buzzing. Invalid present fields still fail validation.
+    // Additive migrations. Invalid present fields still fail validation.
     if (
       json &&
       typeof json === "object" &&
@@ -228,6 +229,13 @@ export function restore(raw: unknown): GameState | null {
             opensAt:
               "stage" in json.clue && json.clue.stage === "open" && "updatedAt" in json
                 ? migratedOpensAt(json.updatedAt, "paused" in json ? json.paused : null)
+                : null,
+          });
+        if (!("openingId" in json.clue))
+          Object.assign(json.clue, {
+            openingId:
+              "stage" in json.clue && json.clue.stage === "open" && "revision" in json
+                ? json.revision
                 : null,
           });
         if (!("picture" in json.clue)) Object.assign(json.clue, { picture: null });
@@ -308,7 +316,8 @@ export function restore(raw: unknown): GameState | null {
         new Set(c.attempts.map((a) => a.playerId)).size !== c.attempts.length
       )
         return null;
-      if (c.stage === "open" && c.opensAt === null) return null;
+      if (c.stage === "open" && (c.opensAt === null || c.openingId === null)) return null;
+      if (c.openingId !== null && c.openingId > s.revision) return null;
       if (
         c.buzzResult &&
         (!playing.has(c.buzzResult.winnerId) ||

@@ -108,6 +108,7 @@ export class Packs {
     existingId?: string,
     expectedUpdatedAt?: string,
   ): PackDocument {
+    let updatedMs = Date.now();
     if (existingId) {
       const stored = this.db.get<{ updated_at: string }>(
         "SELECT updated_at FROM packs WHERE id = ? AND owner_id = ?",
@@ -121,6 +122,9 @@ export class Packs {
           "conflict",
           "This pack was changed somewhere else since you opened it. Reload it before saving again.",
         );
+      // This timestamp is also the edit revision. Same-tick saves must get distinct revisions.
+      const previousMs = Date.parse(stored.updated_at);
+      if (updatedMs <= previousMs) updatedMs = previousMs + 1;
     }
     if (
       !existingId &&
@@ -144,7 +148,7 @@ export class Packs {
       }));
     if (validationErrors.length)
       throw new HttpError(400, "invalidPack", "The pack is invalid.", { validationErrors });
-    const updatedAt = new Date().toISOString();
+    const updatedAt = new Date(updatedMs).toISOString();
     this.db.run(
       "INSERT INTO packs(id, owner_id, pack_json, updated_at, summary_json) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET pack_json = excluded.pack_json, updated_at = excluded.updated_at, summary_json = excluded.summary_json",
       id,

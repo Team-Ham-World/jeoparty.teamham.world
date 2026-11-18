@@ -417,7 +417,13 @@ describe("security review regressions", () => {
           wire
             .send(
               index === 0
-                ? { type: "buzz", clueId: "missing", reactionMs: 0, falseStart: false } // engine rejection
+                ? {
+                    type: "buzz",
+                    clueId: "missing",
+                    openingId: 0,
+                    reactionMs: 0,
+                    falseStart: false,
+                  }
                 : { type: "pause" },
             )
             .then((ack) => expect(ack.ok).toBe(false)),
@@ -442,6 +448,7 @@ describe("security review regressions", () => {
       await (i % 2 ? other : players[0]).ok({
         type: "buzz",
         clueId: "fake-engine-accepts",
+        openingId: 1,
         reactionMs: 0,
         falseStart: false,
       });

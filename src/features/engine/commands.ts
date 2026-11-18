@@ -80,6 +80,7 @@ const messages: Record<RejectionCode, string> = {
   clueCompleted: "This clue is already completed.",
   staleClue: "This is not the current clue.",
   staleAttempt: "This is not the current attempt.",
+  staleOpening: "This buzz was for an earlier opening.",
   buzzersClosed: "Buzzers are closed.",
   alreadyAttempted: "You already attempted this clue.",
   mustJudgeFirst: "Judge the current attempt first.",
@@ -165,7 +166,7 @@ export function execute(
         return "invalidName";
       if (member) return "alreadyJoined";
       if (s.phase === "lobby" && s.players.length >= MAX_PLAYERS) return "gameFull";
-      const p = { id: c.playerId, name: c.name.trim(), score: 0, connected: true };
+      const p = { id: c.playerId, name: c.name.trim(), score: 0, connected: false };
       (s.phase === "lobby" ? s.players : s.waitingPlayers).push(p);
       event(s, events, { kind: "playerJoined", playerId: p.id });
       return null;
@@ -247,6 +248,7 @@ export function execute(
         lockedOutPlayerIds: [],
         ended: false,
         opensAt: null,
+        openingId: null,
         buzzResult: null,
         collection: null,
       };
@@ -262,6 +264,7 @@ export function execute(
       if (!Number.isFinite(c.leadMs) || c.leadMs < 0 || c.leadMs > 400) return "forbidden";
       clue.stage = "open";
       clue.opensAt = now + (s.settings.fairBuzzing ? c.leadMs : 0);
+      clue.openingId = s.revision;
       clue.buzzResult = null;
       startTimer(s, "buzz", clue.opensAt);
       event(s, events, { kind: "buzzersOpened", clueId: clue.clueId });
@@ -270,6 +273,7 @@ export function execute(
     case "buzz": {
       if (actor.kind !== "player") return "forbidden";
       const clue = s.clue!;
+      if (c.openingId !== clue.openingId) return "staleOpening";
       if (clue.attempts.some((a) => a.playerId === actor.playerId)) return "alreadyAttempted";
       if (!s.settings.fairBuzzing) {
         acceptBuzz(s, actor.playerId, now, events);
@@ -505,7 +509,10 @@ export function execute(
       // Before decideBuzz: screens react to lastEvent, which must end up as buzzAccepted.
       event(s, events, { kind: "resumed" });
       if (s.clue?.collection) decideBuzz(s, now, events);
-      else if (s.clue?.stage === "open") s.clue.opensAt = now + lead;
+      else if (s.clue?.stage === "open") {
+        s.clue.opensAt = now + lead;
+        s.clue.openingId = s.revision;
+      }
       if (s.timer) {
         s.timer.id = `timer-${s.revision}`;
         s.timer.endsAt = now + (s.timer.kind === "buzz" ? lead : 0) + s.timer.remainingMs;

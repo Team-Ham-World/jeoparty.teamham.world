@@ -102,9 +102,11 @@ export function BuzzButton({
   const buttonRef = useRef<HTMLButtonElement>(null);
   /** How to take back the early tap each finger is still holding down. */
   const earlyTapUndo = useRef(new Map<number, () => void>());
-  const [sentFor, setSentFor] = useState<string | null>(null);
+  const [sentFor, setSentFor] = useState<number | null>(null);
+  const { openingId } = clue;
   const measured = useBuzzerTiming({
     opensAt: clue.opensAt,
+    openingId,
     active: clue.stage === "open" && !view.paused && !stale,
     clockOffsetMs,
     fairBuzzing: view.buzzing.fairBuzzing,
@@ -113,12 +115,12 @@ export function BuzzButton({
   });
   const pinned = useContext(PinnedBuzzerTiming);
   const timing = pinned ? { ...measured, ...pinned } : measured;
-  const visiblyLit = view.can.buzz && !stale && !view.paused && timing.lit;
+  const visiblyLit = openingId !== null && view.can.buzz && !stale && !view.paused && timing.lit;
   // Locked for a false start: lit like everyone else's, but not pressable yet.
   const early = visiblyLit && timing.lockedOut;
   const enabled = visiblyLit && !timing.lockedOut;
-  const openingKey = `${clue.clueId}:${clue.opensAt}`;
-  const sent = !stale && !view.paused && sentFor === openingKey && clue.stage === "open";
+  const sent =
+    openingId !== null && !stale && !view.paused && sentFor === openingId && clue.stage === "open";
   const copy =
     stale || view.paused
       ? buzzCopy(view, clue, stale)
@@ -136,20 +138,21 @@ export function BuzzButton({
   }, [early, pinned]);
 
   function buzz() {
-    if (!enabled || sent) return;
-    setSentFor(openingKey);
+    if (openingId === null || !enabled || sent) return;
+    setSentFor(openingId);
     vibrate(35);
     // Losing the race is normal: the button already says who got there first, so no error toast.
     void run(
       {
         type: "buzz",
         clueId: clue.clueId,
+        openingId,
         reactionMs: timing.reactionMs(),
         falseStart: timing.falseStart,
       },
-      { quiet: ["buzzersClosed", "alreadyAttempted"] },
+      { quiet: ["buzzersClosed", "staleOpening", "alreadyAttempted"] },
     ).then((outcome) => {
-      if (!outcome?.ok) setSentFor((current) => (current === openingKey ? null : current));
+      if (!outcome?.ok) setSentFor((current) => (current === openingId ? null : current));
     });
   }
 

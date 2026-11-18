@@ -98,6 +98,7 @@ export type PlayerCommand =
   | {
       type: "buzz";
       clueId: ClueId;
+      openingId: number;
       reactionMs: number;
       falseStart: boolean;
       /** Transport-owned inputs, stripped from the wire command. */
@@ -145,6 +146,7 @@ export type RejectionCode =
   | "clueCompleted"
   | "staleClue" // Names a clue that is not the current one.
   | "staleAttempt"
+  | "staleOpening"
   | "buzzersClosed"
   | "alreadyAttempted"
   | "mustJudgeFirst"
@@ -284,6 +286,8 @@ export type ClueView = {
   answeringPlayerId: PlayerId | null;
   /** Server epoch ms for this opening; null before the first opening. */
   opensAt: number | null;
+  /** Room revision that opened this window, if available. */
+  openingId: number | null;
   buzzResult: { winnerId: PlayerId; marginMs: number | null; contenderCount: number } | null;
   attempts: AttemptView[];
   lockedOutPlayerIds: PlayerId[];
@@ -388,6 +392,7 @@ export interface PlayerView extends ViewCommon {
 
 export interface HostView extends ViewCommon {
   audience: "host";
+  pack: Pick<QuestionPack, "id" | "title" | "dimensions"> | null;
   board: BoardView<HostBoardCellView> | null;
   settings: GameSettings;
   /** Host command types accepted in the current state (payload checks still apply). */

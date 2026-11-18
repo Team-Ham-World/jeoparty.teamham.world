@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState, type FormEvent } from "react";
 import type { GameSettings } from "@/features/engine/contract";
-import type { PackSummary } from "@/features/network/protocol";
+import type { QuestionPack } from "@/features/content";
 import "./lobby-settings.css";
 
 type Draft = {
@@ -59,16 +59,19 @@ const BUZZ_OPTIONS = [
   },
 ] as const satisfies readonly { key: keyof Draft; label: string; hint: string }[];
 
-function maxCategoriesPerRound(rounds: number, pack: PackSummary | null): number {
+function maxCategoriesPerRound(rounds: number, pack: QuestionPack["dimensions"] | null): number {
   return Math.max(1, Math.min(6, pack ? Math.floor(pack.categories / rounds) : 6));
 }
 
-function maxWagerClues(categoriesPerRound: number, pack: PackSummary | null): number {
+function maxWagerClues(
+  categoriesPerRound: number,
+  pack: QuestionPack["dimensions"] | null,
+): number {
   return Math.min(3, pack ? categoriesPerRound * pack.cluesPerCategory : 3);
 }
 
 /** Shrinks the category and wager counts to what the board's shape can hold. */
-function fitBoard(draft: Draft, pack: PackSummary | null): Draft {
+function fitBoard(draft: Draft, pack: QuestionPack["dimensions"] | null): Draft {
   const categoriesPerRound = Math.min(
     draft.categoriesPerRound,
     maxCategoriesPerRound(draft.rounds, pack),
@@ -113,8 +116,8 @@ export function SettingsEditor({
   /** Tells the lobby whether there are unsaved changes. */
   onDirtyChange: (dirty: boolean) => void;
   settings: GameSettings;
-  /** The list entry for the pack in use; null until the list has it. */
-  pack: PackSummary | null;
+  /** Dimensions of the selected pack, or the copy already in the room. */
+  pack: QuestionPack["dimensions"] | null;
   disabled: boolean;
   busy: boolean;
   onSave: (patch: Partial<GameSettings>) => void;
@@ -136,15 +139,8 @@ export function SettingsEditor({
   useEffect(() => {
     onFormatChange?.({ rounds, categoriesPerRound, finalRound });
   }, [rounds, categoriesPerRound, finalRound, onFormatChange]);
-  // fitBoard keeps the draft within these limits. A draft can only start above
-  // them when the pack was edited after the room loaded it, and the selects
-  // still include that saved value so they don't show the wrong number.
-  const categoryChoices = countTo(
-    Math.max(maxCategoriesPerRound(draft.rounds, pack), draft.categoriesPerRound),
-  ).slice(1);
-  const wagerChoices = countTo(
-    Math.max(maxWagerClues(draft.categoriesPerRound, pack), draft.wager1, draft.wager2),
-  );
+  const categoryChoices = countTo(maxCategoriesPerRound(draft.rounds, pack)).slice(1);
+  const wagerChoices = countTo(maxWagerClues(draft.categoriesPerRound, pack));
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));

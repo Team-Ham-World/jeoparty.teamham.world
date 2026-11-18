@@ -106,6 +106,38 @@ describe("player screen", () => {
     expect(within(who).getByText("Your pick")).toBeInTheDocument();
   });
 
+  it("sends a first edit typed 400 ms before final answers lock", async () => {
+    vi.useFakeTimers();
+    try {
+      const answering = playerOf(SPECS.finalAnswering, "p-ivvy", { can: { finalAnswer: true } });
+      const view: PlayerView = {
+        ...answering,
+        timer: {
+          id: "final-answer-timer",
+          kind: "finalAnswer",
+          endsAt: Date.now() + 400,
+          remainingMs: 400,
+          durationMs: 5000,
+        },
+      };
+      const onSend = vi.fn();
+      const { rerender } = renderView(view, onSend);
+      fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "Late edit" } });
+      await act(async () => vi.advanceTimersByTime(399));
+      expect(onSend).toHaveBeenCalledExactlyOnceWith({
+        type: "submitFinalAnswer",
+        text: "Late edit",
+      });
+
+      const locked = playerOf(SPECS.finalJudging, "p-ivvy");
+      rerender(<PlayerScreen code="BCDFG" connection={mockConnection(locked, { onSend })} />);
+      await act(async () => vi.advanceTimersByTime(701));
+      expect(onSend).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("final wager: says 'Save wager', then 'Wager saved' with 'Change wager'", async () => {
     const sent: ClientCommand[] = [];
     const bounds = { can: { finalWager: { min: 0, max: 1200 } } };

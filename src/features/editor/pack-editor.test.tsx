@@ -358,9 +358,33 @@ describe("unsaved draft recovery", () => {
 });
 
 describe("saving a new pack", () => {
+  afterEach(() => sessionStorage.clear());
+
   function saveButtons() {
     return screen.getAllByRole("button", { name: "Save pack" });
   }
+
+  it("locks edits while creating a pack and clears the new-pack draft on success", async () => {
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const onSave = vi.fn(() => promise);
+    const draftKey = packDraftKey("account-1", null);
+    render(editor({ initial: filledPack(), isNew: true, onSave, draftKey }));
+    rename("Title at save");
+    fireEvent.click(saveButtons()[0]);
+
+    expect(screen.getByLabelText("Title")).toBeDisabled();
+    expect(screen.getByLabelText("Clue 1")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "+ Add category" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Import JSON" })).toBeDisabled();
+    expect(sessionStorage.getItem(draftKey)).toContain("Title at save");
+
+    await act(async () => resolve());
+    expect(onSave).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ title: "Title at save" }),
+    );
+    expect(screen.getByLabelText("Title")).toBeDisabled();
+    expect(sessionStorage.getItem(draftKey)).toBeNull();
+  });
 
   it("keeps Save off after the pack is created, so a second click can't copy it", async () => {
     // Stays on this page, as the editor does while the redirect is still in progress.
@@ -378,6 +402,23 @@ describe("saving a new pack", () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
+  it("waits for a started JSON import before allowing the first save", async () => {
+    const { promise, resolve } = Promise.withResolvers<string>();
+    const initial = filledPack();
+    const file = Object.assign(new File([], "pack.json"), { text: () => promise });
+    render(editor({ initial, isNew: true }));
+    const input = document.querySelector('input[accept="application/json,.json"]');
+    if (!input) throw new Error("No import input");
+    fireEvent.change(input, { target: { files: [file] } });
+    for (const button of saveButtons()) expect(button).toBeDisabled();
+
+    await act(async () =>
+      resolve(JSON.stringify(packForSave({ ...initial, title: "Imported pack" }))),
+    );
+    expect(screen.getByLabelText("Title")).toHaveValue("Imported pack");
+    for (const button of saveButtons()) expect(button).toBeEnabled();
+  });
+
   it("offers Save again when creating the pack fails", async () => {
     const onSave = vi.fn(async () => {
       throw new Error("Nope.");
@@ -387,6 +428,7 @@ describe("saving a new pack", () => {
       fireEvent.click(saveButtons()[0]);
     });
     for (const button of saveButtons()) expect(button).toBeEnabled();
+    expect(screen.getByLabelText("Title")).toBeEnabled();
     expect(saveStatus()).toHaveTextContent("Not saved yet");
   });
 

@@ -155,16 +155,20 @@ describe("host lobby settings", () => {
 });
 
 describe("host lobby board shape", () => {
-  function lobbyOn(pack: PackSummary, settings: Partial<HostView["settings"]>) {
+  function lobbyOn(pack: PackSummary, settings: Partial<HostView["settings"]>, library = [pack]) {
     const view = hostFixture("lobby");
     const onSend = renderView(
       {
         ...view,
-        pack: { id: pack.id, title: pack.title },
+        pack: {
+          id: pack.id,
+          title: pack.title,
+          dimensions: { categories: pack.categories, cluesPerCategory: pack.cluesPerCategory },
+        },
         settings: { ...view.settings, ...settings },
       },
       {},
-      [pack],
+      library,
     );
     editSetup();
     return onSend;
@@ -179,6 +183,20 @@ describe("host lobby board shape", () => {
       fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
     });
   }
+
+  it("keeps the room's board choices after the library copy shrinks", async () => {
+    const pack = PACKS[2];
+    const onSend = lobbyOn(pack, { rounds: 1, categoriesPerRound: 3 }, [
+      { ...pack, categories: 1 },
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "2 rounds" }));
+    expect(optionValues("Categories per round")).toEqual([1, 2, 3]);
+    await saved();
+    expect(onSend).toHaveBeenCalledWith({
+      type: "updateSettings",
+      patch: expect.objectContaining({ rounds: 2, categoriesPerRound: 3 }),
+    });
+  });
 
   it("shrinks the category count when a second round no longer fits it", async () => {
     const onSend = lobbyOn(PACKS[2], { rounds: 1, categoriesPerRound: 6 }); // 6 categories in all
@@ -225,7 +243,11 @@ describe("reloading the pack in use", () => {
   function lobbyUsing(pack: PackSummary) {
     const onSend = renderView({
       ...hostFixture("lobby"),
-      pack: { id: pack.id, title: pack.title },
+      pack: {
+        id: pack.id,
+        title: pack.title,
+        dimensions: { categories: pack.categories, cluesPerCategory: pack.cluesPerCategory },
+      },
     });
     editSetup();
     return onSend;

@@ -7,6 +7,7 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 const options = {
   opensAt: 1200,
+  openingId: 1,
   active: true,
   clockOffsetMs: 100,
   lockoutEnabled: true,
@@ -16,6 +17,7 @@ const readingOptions: Parameters<typeof useBuzzerTiming>[0] = {
   ...options,
   active: false,
   opensAt: null,
+  openingId: null,
 };
 function advance(ms: number) {
   act(() => vi.advanceTimersByTime(ms));
@@ -114,7 +116,7 @@ describe("buzzer timing", () => {
     expect(result.current).toMatchObject({ falseStart: true, lockedOut: false });
     rerender({ ...options, active: false });
     act(() => result.current.recordEarlyTap());
-    rerender({ ...options, opensAt: 1600 });
+    rerender({ ...options, opensAt: 1600, openingId: 2 });
     advance(150);
     expect(result.current).toMatchObject({ lit: true, falseStart: true, lockedOut: true });
     expect(result.current.reactionMs()).toBe(0);
@@ -160,7 +162,7 @@ describe("buzzer timing", () => {
     act(() => result.current.recordEarlyTap());
     advance(1100);
     expect(result.current.falseStart).toBe(false);
-    rerender({ ...options, opensAt: 1400, lockoutEnabled: false });
+    rerender({ ...options, opensAt: 1400, openingId: 2, lockoutEnabled: false });
     act(() => result.current.recordEarlyTap());
     advance(200);
     expect(result.current).toMatchObject({ lit: true, lockedOut: false, falseStart: false });
@@ -177,7 +179,7 @@ describe("buzzer timing", () => {
     expect(result.current.falseStart).toBe(true);
     rerender({ ...options, active: false });
     expect(result.current.lit).toBe(false);
-    rerender({ ...options, opensAt: 2200 });
+    rerender({ ...options, opensAt: 2200, openingId: 2 });
     advance(1000);
     expect(result.current).toMatchObject({ lit: true, lockedOut: false, falseStart: false });
     unmount();

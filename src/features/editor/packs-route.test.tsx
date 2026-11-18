@@ -9,8 +9,9 @@ import {
   listPacks,
   updatePack,
 } from "@/features/network/client/api";
-import type { PackSummary } from "@/features/network/protocol";
+import type { PackDocument, PackSummary } from "@/features/network/protocol";
 import { SESSION_SIGNED_IN } from "@/features/preview/fixtures";
+import { packDraftKey, readStoredDraft } from "./pack-autosave";
 import { blankPack, updateClue, updateFinal } from "./pack-draft";
 import { PackEditorRoute, PacksRoute } from "./packs-route";
 
@@ -47,6 +48,10 @@ async function saveTitle(title: string) {
 }
 
 describe("pack editor route", () => {
+  const accountId = SESSION_SIGNED_IN.signedIn ? SESSION_SIGNED_IN.user.id : "";
+  const draftKey = packDraftKey(accountId, "p1");
+  const openEditor = async () => act(async () => render(<PackEditorRoute id="p1" />));
+
   beforeEach(() => {
     const pack = storedPack();
     vi.mocked(getSession).mockResolvedValue(SESSION_SIGNED_IN);
@@ -60,9 +65,7 @@ describe("pack editor route", () => {
   });
 
   it("sends the loaded version, then the version from each successful save", async () => {
-    await act(async () => {
-      render(<PackEditorRoute id="p1" />);
-    });
+    await openEditor();
     await saveTitle("First edit");
     expect(vi.mocked(updatePack).mock.calls[0][3]).toBe("version-1");
     await saveTitle("Second edit");
@@ -70,12 +73,88 @@ describe("pack editor route", () => {
   });
 
   it("autosaves under the signed-in account and this pack", async () => {
-    await act(async () => {
-      render(<PackEditorRoute id="p1" />);
-    });
+    await openEditor();
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Unsaved" } });
-    const account = SESSION_SIGNED_IN.signedIn ? SESSION_SIGNED_IN.user.id : "";
-    expect(sessionStorage.getItem(`ham-quiz:pack-draft:${account}:p1`)).toContain("Unsaved");
+    expect(readStoredDraft(draftKey)).toMatchObject({
+      pack: { title: "Unsaved" },
+      baseUpdatedAt: "version-1",
+    });
+  });
+
+  it("stores edits made during a successful save against the revision it returns", async () => {
+    const { promise, resolve } = Promise.withResolvers<PackDocument>();
+    vi.mocked(updatePack).mockReturnValueOnce(promise);
+    await openEditor();
+    await saveTitle("Sent edit");
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Later edit" } });
+    await act(async () => resolve({ id: "p1", pack: storedPack(), updatedAt: "version-2" }));
+    expect(readStoredDraft(draftKey)).toMatchObject({
+      pack: { title: "Later edit" },
+      baseUpdatedAt: "version-2",
+    });
+  });
+
+  it("keeps a recovered draft tied to the revision it was edited from", async () => {
+    const { unmount } = await openEditor();
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "My draft" } });
+    unmount();
+
+    vi.mocked(getPack).mockResolvedValue({
+      id: "p1",
+      pack: { ...storedPack(), title: "Edited elsewhere" },
+      updatedAt: "version-2",
+    });
+    await openEditor();
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    await saveTitle("My recovered draft");
+    expect(updatePack).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("changed");
+    expect(screen.getByLabelText("Title")).toHaveValue("My recovered draft");
+    expect(sessionStorage.getItem(draftKey)).toContain("version-1");
+    expect(
+      within(screen.getByRole("alert")).getByRole("button", { name: "Export JSON" }),
+    ).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard draft" }));
+    const confirm = screen.getByRole("dialog", { name: "Discard your unsaved draft?" });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Discard draft" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("Edited elsewhere");
+    expect(sessionStorage.getItem(draftKey)).toBeNull();
+    await saveTitle("Fresh edit");
+    expect(updatePack).toHaveBeenCalledExactlyOnceWith(
+      expect.any(String),
+      "p1",
+      expect.objectContaining({ title: "Fresh edit" }),
+      "version-2",
+    );
+  });
+
+  it("recovers a legacy draft for export without saving over the loaded pack", async () => {
+    sessionStorage.setItem(draftKey, JSON.stringify({ ...storedPack(), title: "Legacy draft" }));
+    await openEditor();
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    expect(screen.getByLabelText("Title")).toHaveValue("Legacy draft");
+    await saveTitle("Edited legacy draft");
+    expect(updatePack).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("saved version");
+    expect(sessionStorage.getItem(draftKey)).toContain("Edited legacy draft");
+  });
+
+  it("saves a recovered draft when its revision still matches", async () => {
+    const { unmount } = await openEditor();
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "My draft" } });
+    unmount();
+
+    await openEditor();
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    await saveTitle("My recovered draft");
+    expect(updatePack).toHaveBeenCalledExactlyOnceWith(
+      expect.any(String),
+      "p1",
+      expect.objectContaining({ title: "My recovered draft" }),
+      "version-1",
+    );
+    expect(sessionStorage.getItem(draftKey)).toBeNull();
   });
 });
 

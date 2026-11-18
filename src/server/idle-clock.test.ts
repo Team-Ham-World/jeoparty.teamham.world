@@ -22,6 +22,18 @@ async function setup() {
 }
 
 describe("room idle clock", () => {
+  it("retains a room when activity ahead of idle cleanup refreshes its clock", async () => {
+    const { code, room } = await setup();
+    h.advance(12 * 3_600_000);
+    // Queue both before either runs, as when a verified command is finishing at the cutoff.
+    const join = room.system({ type: "addPlayer", playerId: "guest", name: "Guest" });
+    const sweep = h.app.tick();
+    expect((await join).ok).toBe(true);
+    await sweep;
+    expect(h.app.rooms.get(code)).toBe(room);
+    expect(h.app.db.get("SELECT code FROM rooms WHERE code = ?", code)).toMatchObject({ code });
+  });
+
   it("restart bookkeeping does not touch the idle clock", async () => {
     const { code, room } = await setup();
     const updatedAt = room.updatedAt;

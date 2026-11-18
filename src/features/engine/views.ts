@@ -83,6 +83,7 @@ function common(s: GameState, now: number, host: boolean): ViewCommon {
           wager: clue.wager,
           answeringPlayerId: clue.answeringPlayerId,
           opensAt: clue.opensAt,
+          openingId: clue.openingId,
           buzzResult: clue.buzzResult,
           attempts: clue.attempts,
           lockedOutPlayerIds: clue.lockedOutPlayerIds,
@@ -174,6 +175,7 @@ export function hostView(s: GameState, now: number): HostView {
   return structuredClone({
     ...common(s, now, true),
     audience: "host",
+    pack: s.pack ? { id: s.pack.id, title: s.pack.title, dimensions: s.pack.dimensions } : null,
     board: currentBoard(s),
     settings: s.settings,
     allowedCommands: allowedCommands(s, now),

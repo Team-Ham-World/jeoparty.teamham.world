@@ -200,7 +200,7 @@ function LightUpPreview() {
     const timer = window.setTimeout(() => {
       const open = playerOf(SPECS.open, ME, { can: { buzz: true } });
       const opensAt = Date.now() + CLOCK_OFFSET + 2000;
-      setView(atRevision({ ...open, clue: { ...open.clue!, opensAt } }, 61));
+      setView(atRevision({ ...open, clue: { ...open.clue!, opensAt, openingId: 61 } }, 61));
     }, 800);
     return () => window.clearTimeout(timer);
   }, []);

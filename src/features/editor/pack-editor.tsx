@@ -47,6 +47,8 @@ import { PictureField, firstImageFile, storePicture } from "./picture-field";
 export interface PackEditorProps {
   initial: QuestionPack;
   isNew: boolean;
+  /** Revision of the last loaded or saved pack, when editing a server pack. */
+  savedUpdatedAt?: string | null;
   /** Saves via the API. Throw an ApiError-like `{ validationErrors }` to show field errors. */
   onSave: (pack: QuestionPack) => Promise<void>;
   onUploadPicture: (jpeg: Blob) => Promise<PictureId>;
@@ -66,6 +68,7 @@ export interface PackEditorProps {
 export function PackEditor({
   initial,
   isNew,
+  savedUpdatedAt = null,
   onSave,
   onUploadPicture,
   onNavigate,
@@ -84,15 +87,18 @@ export function PackEditor({
   const [created, setCreated] = useState(false);
   const [removingCategory, setRemovingCategory] = useState<number | null>(null);
   const [saveConflict, setSaveConflict] = useState<string | null>(null);
+  const [draftConflict, setDraftConflict] = useState<{ baseUpdatedAt: string | null } | null>(null);
+  const [discardingDraft, setDiscardingDraft] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [pendingImport, setPendingImport] = useState<{
     pack: QuestionPack;
     fileName: string;
   } | null>(null);
   // Unsaved work from an earlier visit, waiting for the author to restore or discard it.
-  const [storedDraft, setStoredDraft] = useState<QuestionPack | null>(() => {
+  const [storedDraft, setStoredDraft] = useState(() => {
     const draft = draftKey ? readStoredDraft(draftKey) : null;
     const differs =
-      draft && JSON.stringify(packForSave(draft)) !== JSON.stringify(packForSave(initial));
+      draft && JSON.stringify(packForSave(draft.pack)) !== JSON.stringify(packForSave(initial));
     return differs ? draft : null;
   });
   const fileInput = useRef<HTMLInputElement>(null);
@@ -100,8 +106,22 @@ export function PackEditor({
   const latestPictureAction = useRef(new Map<string, number>());
   const [uploading, setUploading] = useState<ReadonlySet<string>>(() => new Set());
   const dirty = JSON.stringify(packForSave(pack)) !== saved;
+  const editsLocked = isNew && (saving || created);
+  const baseUpdatedAt = draftConflict ? draftConflict.baseUpdatedAt : savedUpdatedAt;
+  const conflictMessage = draftConflict
+    ? draftConflict.baseUpdatedAt === null
+      ? "The saved version for this draft is unknown."
+      : "This pack changed elsewhere after you started this draft."
+    : saveConflict;
   const canSave =
-    !saving && !created && uploading.size === 0 && (dirty || isNew || errors.length > 0);
+    !saving &&
+    !created &&
+    !draftConflict &&
+    !storedDraft &&
+    !importing &&
+    !pendingImport &&
+    uploading.size === 0 &&
+    (dirty || isNew || errors.length > 0);
   const guard = useUnsavedGuard(dirty && !saving);
   const fieldErrors = useMemo(() => errorsByPath(errors), [errors]);
   const err = (path: string) => fieldErrors.get(path);
@@ -110,11 +130,12 @@ export function PackEditor({
   // `saved` is a dependency so edits typed during a save are stored again afterwards.
   useEffect(() => {
     if (!draftKey || storedDraft) return; // Don't overwrite a draft still awaiting a decision.
-    if (dirty) writeStoredDraft(draftKey, pack);
+    if (dirty) writeStoredDraft(draftKey, pack, baseUpdatedAt);
     else clearStoredDraft(draftKey);
-  }, [draftKey, storedDraft, dirty, pack, saved]);
+  }, [draftKey, storedDraft, dirty, pack, saved, baseUpdatedAt]);
 
   async function save() {
+    if (!canSave) return;
     const candidate = packForSave(pack);
     const local = validateQuestionPack(candidate);
     if (!local.ok) {
@@ -127,8 +148,8 @@ export function PackEditor({
     setSaveConflict(null);
     try {
       await onSave(candidate);
-      // Now, not in the effect: saving a new pack navigates away from this editor.
-      if (draftKey) clearStoredDraft(draftKey);
+      // A new pack navigates away. Existing pack drafts are updated by the effect.
+      if (isNew && draftKey) clearStoredDraft(draftKey);
       setSaved(JSON.stringify(candidate));
       if (isNew) setCreated(true);
       toast("Pack saved.", "info");
@@ -163,6 +184,7 @@ export function PackEditor({
   }
 
   async function attachPicture(clueId: string, file: File) {
+    if (editsLocked) return;
     const isLatest = startPictureAction(clueId);
     markUploading(clueId, true);
     try {
@@ -186,8 +208,17 @@ export function PackEditor({
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
-    const result = parseQuestionPackJson(await file.text());
+    if (!file || editsLocked || importing) return;
+    setImporting(true);
+    let result;
+    try {
+      result = parseQuestionPackJson(await file.text());
+    } catch {
+      toast(`Couldn't read ${file.name}. Try again.`);
+      return;
+    } finally {
+      setImporting(false);
+    }
     if (!result.ok) {
       setErrors([]);
       const first = result.errors[0];
@@ -373,11 +404,13 @@ export function PackEditor({
             tabIndex={-1}
             onChange={importFile}
             aria-hidden="true"
+            disabled={editsLocked || importing}
           />
           <button
             type="button"
             className="btn btn--small"
             onClick={() => fileInput.current?.click()}
+            disabled={editsLocked || importing}
           >
             Import JSON
           </button>
@@ -387,15 +420,24 @@ export function PackEditor({
         </div>
       </div>
 
-      {saveConflict ? (
+      {conflictMessage ? (
         <div className="banner banner--warn" role="alert">
           <p>
-            <strong>{saveConflict}</strong> Your edits are still on this page. Export them so you
+            <strong>{conflictMessage}</strong> Your edits are still on this page. Export them so you
             don&apos;t lose them.
           </p>
           <button type="button" className="btn btn--small" onClick={exportFile}>
             Export JSON
           </button>
+          {draftConflict ? (
+            <button
+              type="button"
+              className="btn btn--small"
+              onClick={() => setDiscardingDraft(true)}
+            >
+              Discard draft
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -425,7 +467,7 @@ export function PackEditor({
         </section>
       ) : null}
 
-      <div className="ed-workspace">
+      <fieldset className="ed-workspace min-w-0" disabled={editsLocked}>
         <aside className="ed-card" aria-labelledby="ed-contents">
           <h2 id="ed-contents" tabIndex={-1}>
             Pack contents
@@ -703,13 +745,15 @@ export function PackEditor({
             </div>
           </section>
         ) : null}
-      </div>
+      </fieldset>
 
-      <PackScoring
-        scoring={pack.scoring}
-        fieldErrors={fieldErrors}
-        onChange={(scoring) => setPack({ ...pack, scoring })}
-      />
+      <fieldset className="min-w-0" disabled={editsLocked}>
+        <PackScoring
+          scoring={pack.scoring}
+          fieldErrors={fieldErrors}
+          onChange={(scoring) => setPack({ ...pack, scoring })}
+        />
+      </fieldset>
 
       <div className="ed-foot">
         <button
@@ -723,6 +767,24 @@ export function PackEditor({
         </button>
       </div>
 
+      <ConfirmDialog
+        open={discardingDraft}
+        title="Discard your unsaved draft?"
+        description="This will remove your edits and reopen the saved pack."
+        confirmLabel="Discard draft"
+        cancelLabel="Keep editing"
+        onCancel={() => setDiscardingDraft(false)}
+        onConfirm={() => {
+          latestPictureAction.current.clear();
+          setUploading(new Set());
+          setPack(initial);
+          setCategoryId(undefined);
+          setClueId(undefined);
+          setErrors([]);
+          setDraftConflict(null);
+          setDiscardingDraft(false);
+        }}
+      />
       <ConfirmDialog
         open={removingCategory !== null}
         title={`Remove ${removingCategory !== null ? pack.categories[removingCategory]?.title.trim() || `category ${removingCategory + 1}` : "category"}?`}
@@ -775,7 +837,11 @@ export function PackEditor({
               className="btn btn--primary"
               autoFocus
               onClick={() => {
-                if (storedDraft) setPack(storedDraft);
+                if (!storedDraft) return;
+                setPack(storedDraft.pack);
+                if (savedUpdatedAt !== null && storedDraft.baseUpdatedAt !== savedUpdatedAt) {
+                  setDraftConflict({ baseUpdatedAt: storedDraft.baseUpdatedAt });
+                }
                 setStoredDraft(null);
               }}
             >

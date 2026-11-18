@@ -58,6 +58,7 @@ export const commandSchema = z.union([
     .object({
       type: z.literal("buzz"),
       ...clue,
+      openingId: integer.nonnegative(),
       reactionMs: z.number().finite().min(0).max(86_400_000),
       falseStart: z.boolean(),
     })

@@ -35,7 +35,16 @@ function game(fairBuzzing = true, falseStartLockout = true) {
     maxOtherUplinkMs = 150,
   ) =>
     apply(
-      { type: "buzz", clueId, reactionMs, falseStart, arrivalMs, uplinkBoundMs, maxOtherUplinkMs },
+      {
+        type: "buzz",
+        clueId,
+        openingId: state.clue!.openingId!,
+        reactionMs,
+        falseStart,
+        arrivalMs,
+        uplinkBoundMs,
+        maxOtherUplinkMs,
+      },
       processAt,
       { kind: "player", playerId },
     );
@@ -57,6 +66,33 @@ function game(fairBuzzing = true, falseStartLockout = true) {
   };
 }
 
+it.each([true, false])("rejects a buzz from the last opening with fair buzzing=%s", (fair) => {
+  const g = game(fair);
+  const delayedBuzz = {
+    type: "buzz",
+    clueId: g.clueId,
+    openingId: g.state.clue!.openingId!,
+    reactionMs: 20,
+    falseStart: false,
+    arrivalMs: 2300,
+    uplinkBoundMs: 150,
+    maxOtherUplinkMs: 150,
+  } satisfies Command;
+  expect(g.buzz("a", 20, 1220).ok).toBe(true);
+  if (fair) g.decide();
+  const attemptId = g.state.clue!.attempts[0].id;
+  g.apply({ type: "judge", clueId: g.clueId, attemptId, correct: false }, 1500);
+  g.apply({ type: "openBuzzers", clueId: g.clueId, leadMs: 200 }, 2000);
+
+  expect(g.apply(delayedBuzz, 2300, { kind: "player", playerId: "b" })).toMatchObject({
+    ok: false,
+    rejection: { code: "staleOpening" },
+  });
+  expect(g.buzz("b", 100, 2300).ok).toBe(true);
+  if (fair) g.decide();
+  expect(g.state.clue?.answeringPlayerId).toBe("b");
+});
+
 describe("fair buzzing", () => {
   it("starts the buzz window at opensAt and exposes it to all audiences", () => {
     const g = game();
@@ -68,6 +104,7 @@ describe("fair buzzing", () => {
       engine.playerView(g.state, "a", 1050)!,
     ]) {
       expect(view.clue?.opensAt).toBe(1200);
+      expect(view.clue?.openingId).toBe(g.state.revision);
       expect(view.timer?.remainingMs).toBe(10000);
     }
   });
@@ -150,6 +187,7 @@ describe("fair buzzing", () => {
       const g = game();
       g.buzz("a", 200, 1420);
       g.buzz("b", 150, 1500);
+      const openingId = g.state.clue?.openingId;
       g.apply(
         { type: "setPresence", target: { role: "player", playerId: "b" }, connected: false },
         1501,
@@ -160,6 +198,7 @@ describe("fair buzzing", () => {
       expect(engine.nextDeadline(g.state)).toBeNull();
       expect(g.buzz("c", 100, 1520).ok).toBe(false);
       g.apply({ type: "resume" }, 5000);
+      expect(g.state.clue?.openingId).toBe(openingId);
       expect(g.state.clue?.answeringPlayerId).toBe("b");
       expect(g.state.timer?.endsAt).toBe(15000);
     }
@@ -196,19 +235,24 @@ describe("fair buzzing", () => {
     g.apply({ type: "adjustScore", playerId: "a", delta: 1, reason: "correction" }, 3000);
     const legacy = JSON.parse(JSON.stringify(g.state));
     delete legacy.clue.opensAt;
+    delete legacy.clue.openingId;
     g.state = engine.restore(legacy)!;
     expect(g.state.clue?.opensAt).toBe(1100);
+    expect(g.state.clue?.openingId).toBe(legacy.revision);
     g.apply({ type: "resume" }, 5000);
     expect(g.state.clue?.opensAt).toBe(5000);
+    expect(g.state.clue?.openingId).toBeGreaterThan(legacy.revision);
   });
   it("migrates an old unpaused save to its last saved time", () => {
     const g = game();
     const legacy = JSON.parse(JSON.stringify(g.state));
     delete legacy.clue.opensAt;
+    delete legacy.clue.openingId;
     expect(engine.restore(legacy)?.clue?.opensAt).toBe(legacy.updatedAt);
   });
   it("freezes opening lead and buzz time through pause and restore", () => {
     const g = game();
+    const beforePause = g.state.clue?.openingId;
     g.apply({ type: "pause" }, 1100);
     g.state = engine.restore(JSON.parse(JSON.stringify(g.state)))!;
     g.apply({ type: "adjustScore", playerId: "a", delta: 1, reason: "correction" }, 3000);
@@ -216,6 +260,7 @@ describe("fair buzzing", () => {
     g.apply({ type: "restored" }, 4500, { kind: "system" });
     g.apply({ type: "resume" }, 5000);
     expect(g.state.clue?.opensAt).toBe(5100);
+    expect(g.state.clue?.openingId).not.toBe(beforePause);
     expect(g.state.timer?.endsAt).toBe(15100);
   });
   it("restores an unpaused lead and collection and migrates old saved games", () => {
@@ -226,15 +271,25 @@ describe("fair buzzing", () => {
     g.buzz("a", 100, 1350);
     const collecting = engine.restore(JSON.parse(JSON.stringify(g.state)))!;
     expect(collecting.clue?.collection).toEqual(g.state.clue?.collection);
+    const legacyCollection = JSON.parse(JSON.stringify(g.state));
+    delete legacyCollection.clue.openingId;
+    expect(engine.restore(legacyCollection)?.clue).toMatchObject({
+      openingId: g.state.revision,
+      opensAt: g.state.clue?.opensAt,
+      collection: g.state.clue?.collection,
+    });
     const legacy = JSON.parse(JSON.stringify(restored));
     delete legacy.settings.fairBuzzing;
     delete legacy.settings.falseStartLockout;
     delete legacy.clue.opensAt;
+    delete legacy.clue.openingId;
     delete legacy.clue.collection;
     delete legacy.clue.buzzResult;
     expect(engine.restore(legacy)?.settings.fairBuzzing).toBe(true);
     const invalid = structuredClone(g.state);
     invalid.clue!.collection!.candidates[0].playerId = "outsider";
+    expect(engine.restore(invalid)).toBeNull();
+    invalid.clue = { ...g.state.clue!, openingId: null };
     expect(engine.restore(invalid)).toBeNull();
   });
 });

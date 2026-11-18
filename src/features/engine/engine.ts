@@ -29,7 +29,7 @@ export const engine: EngineApi = {
     players: [],
     waitingPlayers: [],
     departedPlayerIds: [],
-    hostConnected: true,
+    hostConnected: false,
     paused: null,
     timer: null,
     controllerId: null,

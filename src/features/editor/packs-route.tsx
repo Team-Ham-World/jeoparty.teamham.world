@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { QuestionPack } from "@/features/content";
 import {
   createPack,
@@ -160,14 +160,11 @@ function EditorPage({
   accountId: string;
 }) {
   const router = useRouter();
-  // The version of the pack this editor last loaded or saved. The server refuses a
-  // save if the stored pack has moved on, so two tabs can't silently overwrite each other.
-  const baseUpdatedAt = useRef<string | undefined>(undefined);
   const [state, setState] = useState<
     | { status: "loading" }
-    | { status: "ready"; pack: QuestionPack }
+    | { status: "ready"; pack: QuestionPack; updatedAt: string | null }
     | { status: "error"; message: string }
-  >(() => (id ? { status: "loading" } : { status: "ready", pack: blankPack() }));
+  >(() => (id ? { status: "loading" } : { status: "ready", pack: blankPack(), updatedAt: null }));
 
   useEffect(() => {
     if (!id) return;
@@ -175,8 +172,7 @@ function EditorPage({
     getPack(id).then(
       (doc) => {
         if (cancelled) return;
-        baseUpdatedAt.current = doc.updatedAt;
-        setState({ status: "ready", pack: { ...doc.pack, id: doc.id } });
+        setState({ status: "ready", pack: { ...doc.pack, id: doc.id }, updatedAt: doc.updatedAt });
       },
       (e: unknown) => !cancelled && setState({ status: "error", message: errorMessage(e) }),
     );
@@ -199,13 +195,14 @@ function EditorPage({
       <PackEditor
         initial={state.pack}
         isNew={id === null}
+        savedUpdatedAt={state.updatedAt}
         draftKey={packDraftKey(accountId, id)}
         onNavigate={(href) => router.push(href)}
         onUploadPicture={async (jpeg) => (await uploadPicture(csrf, jpeg)).id}
         onSave={async (pack) => {
-          if (id) {
-            const doc = await updatePack(csrf, id, pack, baseUpdatedAt.current);
-            baseUpdatedAt.current = doc.updatedAt;
+          if (state.updatedAt !== null) {
+            const doc = await updatePack(csrf, state.pack.id, pack, state.updatedAt);
+            setState({ ...state, updatedAt: doc.updatedAt });
           } else {
             const doc = await createPack(csrf, pack);
             router.replace(`/packs/${doc.id}`);

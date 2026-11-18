@@ -117,11 +117,11 @@ export function HostLobby({
         <section className="host-setup__editor" aria-label="Pack and settings">
           <PackChooser key={view.pack?.id} view={view} packs={packs} actions={actions} />
           <SettingsEditor
-            key={JSON.stringify(view.settings) + (view.pack?.id ?? "")}
+            key={JSON.stringify([view.pack, view.settings])}
             formId={settingsFormId}
             onDirtyChange={setSettingsDirty}
             settings={view.settings}
-            pack={packs.find((p) => p.id === view.pack?.id) ?? null}
+            pack={view.pack?.dimensions ?? null}
             disabled={!actions.can("updateSettings")}
             busy={actions.pending === "updateSettings"}
             onSave={(patch) => actions.run({ type: "updateSettings", patch })}

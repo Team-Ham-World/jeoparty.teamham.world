@@ -790,7 +790,11 @@ export async function createApp(config: Config, options: Options) {
   async function sweep() {
     for (const room of rooms.values()) {
       if (room.updatedAt + ROOM_IDLE_MS <= now()) {
-        await room.run(() => room.closeRoom());
+        await room.run(() => {
+          // A join or command ahead of cleanup may have restarted the idle clock.
+          if (rooms.get(room.code) === room && room.updatedAt + ROOM_IDLE_MS <= now())
+            room.closeRoom();
+        });
         continue;
       }
       for (const c of room.connections)

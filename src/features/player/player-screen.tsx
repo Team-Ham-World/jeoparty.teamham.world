@@ -601,8 +601,11 @@ function PlayerFinal({
   clockOffsetMs: number;
 }) {
   const remaining = useRemaining(final.stage === "answering" ? view.timer : null, clockOffsetMs);
-  const closing =
-    remaining !== null && view.timer?.endsAt != null && remaining <= FINAL_AUTOSAVE_WINDOW_MS;
+  const endsAt = view.timer?.endsAt;
+  const autosaveUntil =
+    endsAt != null && remaining !== null && remaining > 0 && remaining <= FINAL_AUTOSAVE_WINDOW_MS
+      ? endsAt - clockOffsetMs
+      : null;
   const eligible = final.eligiblePlayerIds.includes(view.me.id);
   const header = (
     <div className="stack stack--tight pl-center">
@@ -691,12 +694,14 @@ function PlayerFinal({
         {view.can.finalAnswer ? (
           <FinalAnswerForm
             submitted={view.myFinal?.answer ?? null}
+            revision={view.revision}
             disabled={stale || !!view.paused}
-            busy={pending === "submitFinalAnswer"}
-            autosave={closing}
-            onSubmit={(text, auto) =>
-              void run({ type: "submitFinalAnswer", text }, { silent: auto })
-            }
+            busy={pending !== null}
+            autosaveUntil={autosaveUntil}
+            onSubmit={async (text, auto) => {
+              const outcome = await run({ type: "submitFinalAnswer", text }, { silent: auto });
+              return outcome?.ok ? outcome.revision : null;
+            }}
           />
         ) : (
           <p className="pl-waiting">

@@ -13,7 +13,7 @@ import type {
   SettingsPatch,
 } from "@/features/engine/contract";
 
-export const PROTOCOL_VERSION = 3 as const;
+export const PROTOCOL_VERSION = 4 as const;
 
 /** Room codes: 5 consonants (no vowels, so no accidental words). */
 export const ROOM_CODE_ALPHABET = "BCDFGHJKLMNPQRSTVWXZ";

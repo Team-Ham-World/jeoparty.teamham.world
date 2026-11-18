@@ -2228,6 +2228,7 @@
             clueCompleted: "This clue is already completed.",
             staleClue: "This is not the current clue.",
             staleAttempt: "This is not the current attempt.",
+            staleOpening: "This buzz was for an earlier opening.",
             buzzersClosed: "Buzzers are closed.",
             alreadyAttempted: "You already attempted this clue.",
             mustJudgeFirst: "Judge the current attempt first.",
@@ -2297,7 +2298,7 @@
                 return "invalidName";
               if (l) return "alreadyJoined";
               if (e.phase === "lobby" && e.players.length >= 6) return "gameFull";
-              let r = { id: t.playerId, name: t.name.trim(), score: 0, connected: !0 };
+              let r = { id: t.playerId, name: t.name.trim(), score: 0, connected: !1 };
               return (
                 (e.phase === "lobby" ? e.players : e.waitingPlayers).push(r),
                 b(e, i, { kind: "playerJoined", playerId: r.id }),
@@ -2383,6 +2384,7 @@
                   lockedOutPlayerIds: [],
                   ended: !1,
                   opensAt: null,
+                  openingId: null,
                   buzzResult: null,
                   collection: null,
                 }),
@@ -2400,6 +2402,7 @@
                     ? "forbidden"
                     : ((r.stage = "open"),
                       (r.opensAt = a + (e.settings.fairBuzzing ? t.leadMs : 0)),
+                      (r.openingId = e.revision),
                       (r.buzzResult = null),
                       $(e, "buzz", r.opensAt),
                       b(e, i, { kind: "buzzersOpened", clueId: r.clueId }),
@@ -2409,6 +2412,7 @@
             case "buzz": {
               if (n.kind !== "player") return "forbidden";
               let r = e.clue;
+              if (t.openingId !== r.openingId) return "staleOpening";
               if (r.attempts.some((k) => k.playerId === n.playerId)) return "alreadyAttempted";
               if (!e.settings.fairBuzzing) return (ie(e, n.playerId, a, i), null);
               if (
@@ -2648,7 +2652,8 @@
                 b(e, i, { kind: "resumed" }),
                 e.clue?.collection
                   ? le(e, a, i)
-                  : e.clue?.stage === "open" && (e.clue.opensAt = a + r),
+                  : e.clue?.stage === "open" &&
+                    ((e.clue.opensAt = a + r), (e.clue.openingId = e.revision)),
                 e.timer &&
                   ((e.timer.id = `timer-${e.revision}`),
                   (e.timer.endsAt = a + (e.timer.kind === "buzz" ? r : 0) + e.timer.remainingMs)),
@@ -2773,6 +2778,7 @@
             lockedOutPlayerIds: z(p),
             ended: A,
             opensAt: I(M),
+            openingId: I(w),
             buzzResult: I(
               h({ winnerId: p, marginMs: I((e) => M(e) && Number(e) >= 0), contenderCount: w }),
             ),
@@ -2897,6 +2903,10 @@
                           ? Ze(n.updatedAt, "paused" in n ? n.paused : null)
                           : null,
                     }),
+                  "openingId" in n.clue ||
+                    Object.assign(n.clue, {
+                      openingId: n.clue.stage === "open" ? n.revision : null,
+                    }),
                   "picture" in n.clue || Object.assign(n.clue, { picture: null }),
                   "collection" in n.clue || Object.assign(n.clue, { collection: null }),
                   "buzzResult" in n.clue || Object.assign(n.clue, { buzzResult: null }))),
@@ -2968,7 +2978,8 @@
                 c[0].clueId !== l.clueId ||
                 l.attempts.some((o) => !u.has(o.playerId)) ||
                 new Set(l.attempts.map((o) => o.playerId)).size !== l.attempts.length ||
-                (l.stage === "open" && l.opensAt === null) ||
+                (l.stage === "open" && (l.opensAt === null || l.openingId === null)) ||
+                (l.openingId !== null && l.openingId > t.revision) ||
                 (l.buzzResult &&
                   (!u.has(l.buzzResult.winnerId) ||
                     !l.attempts.some((o) => o.playerId === l.buzzResult.winnerId) ||
@@ -3151,6 +3162,7 @@
                   wager: i.wager,
                   answeringPlayerId: i.answeringPlayerId,
                   opensAt: i.opensAt,
+                  openingId: i.openingId,
                   buzzResult: i.buzzResult,
                   attempts: i.attempts,
                   lockedOutPlayerIds: i.lockedOutPlayerIds,
@@ -3243,6 +3255,9 @@
           return structuredClone({
             ...pe(e, n, !0),
             audience: "host",
+            pack: e.pack
+              ? { id: e.pack.id, title: e.pack.title, dimensions: e.pack.dimensions }
+              : null,
             board: R(e),
             settings: e.settings,
             allowedCommands: nt(e, n),
@@ -3304,7 +3319,7 @@
             players: [],
             waitingPlayers: [],
             departedPlayerIds: [],
-            hostConnected: !0,
+            hostConnected: !1,
             paused: null,
             timer: null,
             controllerId: null,
@@ -3792,12 +3807,19 @@
         function makeRoom(demo = false) {
           game = fresh();
           created = true;
+          send({ type: "setPresence", target: { role: "host" }, connected: true }, system);
           send({ type: "setPack", pack: packs[selected] });
           send({ type: "updateSettings", patch: config });
           if (demo) names.slice(0, 3).forEach(addPlayer);
         }
         function addPlayer(id) {
-          return send({ type: "addPlayer", playerId: id, name: id }, system);
+          return (
+            send({ type: "addPlayer", playerId: id, name: id }, system) &&
+            send(
+              { type: "setPresence", target: { role: "player", playerId: id }, connected: true },
+              system,
+            )
+          );
         }
         function lobby(v) {
           return (
@@ -4551,6 +4573,7 @@
             {
               type: "buzz",
               clueId: v.clue.clueId,
+              openingId: v.clue.openingId,
               reactionMs: Math.max(0, now - v.clue.opensAt),
               falseStart: false,
               arrivalMs: now,
