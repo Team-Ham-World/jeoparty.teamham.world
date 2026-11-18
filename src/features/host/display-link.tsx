@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { CopyField } from "@/features/ui/copy-field";
 import { QrCode } from "@/features/ui/qr-code";
 
@@ -15,10 +15,14 @@ export function DisplayLinkPanel({
   onCreate,
   link = null,
   confirmFirst = false,
+  lobby = false,
+  children,
 }: {
   onCreate: () => Promise<string>;
   link?: string | null;
   confirmFirst?: boolean;
+  lobby?: boolean;
+  children?: ReactNode;
 }) {
   const [state, setState] = useState<{
     status: "idle" | "loading" | "ready" | "error";
@@ -56,41 +60,48 @@ export function DisplayLinkPanel({
 
   return (
     <div className="stack">
-      <p className="muted">
-        Open the board on a TV or projector. The link works without signing in, so only share it
-        with the screen.
-      </p>
       {url ? (
-        <div className="host-display-link">
-          <QrCode
-            value={url}
-            label="QR code for the display link"
-            className="host-display-link__qr"
-          />
-          <div className="stack stack--tight">
-            <CopyField value={url} label="Display link" />
-            <div className="row">
-              <a className="btn btn--small" href={url} target="_blank" rel="noopener">
-                Open on this device
-              </a>
-              <button
-                ref={triggerRef}
-                type="button"
-                className="btn btn--quiet btn--small"
-                onClick={request}
-              >
-                Make a new link
-              </button>
-            </div>
-            <p className="field__hint">Making a new link disconnects screens using the old one.</p>
+        <>
+          <div className="row">
+            <a
+              className={`btn ${lobby ? "btn--primary" : "btn--small"}`}
+              href={url}
+              target="_blank"
+              rel="noopener"
+            >
+              Open TV view
+              <span aria-hidden="true">↗</span>
+            </a>
+            {children}
+            <button
+              ref={triggerRef}
+              type="button"
+              className="btn btn--quiet btn--small"
+              onClick={request}
+            >
+              Make a new link
+            </button>
           </div>
-        </div>
+          <div className="host-display-link">
+            <QrCode
+              value={url}
+              label="QR code for the display link"
+              className="host-display-link__qr"
+            />
+            <div className="stack stack--tight">
+              <CopyField value={url} label="Display link" />
+              <p className="field__hint">
+                Share this link with your TV or projector. It opens without signing in.
+              </p>
+              <p className="field__hint">
+                Making a new link disconnects screens using the old one.
+              </p>
+            </div>
+          </div>
+        </>
       ) : (
         <>
-          <p>
-            <strong>Already on a screen?</strong> A new link disconnects any screen using the old
-            one.
-          </p>
+          <p className="field__hint">A new TV link disconnects any screen using the old one.</p>
           <div className="row">
             <button
               ref={triggerRef}
@@ -102,6 +113,7 @@ export function DisplayLinkPanel({
             >
               {state.status === "loading" ? "Making link…" : "Get display link"}
             </button>
+            {children}
           </div>
         </>
       )}

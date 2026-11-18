@@ -132,6 +132,27 @@ async function judge(a: Wire, correct: boolean) {
 }
 
 describe("real engine through HTTP and WebSocket", () => {
+  it("creates the lobby with the chosen pack and settings in its first view", async () => {
+    const h = await server();
+    const host = new Browser(h);
+    await host.signIn("host");
+
+    const invalid = await host.mutate("/api/rooms", {
+      packId: snack.id,
+      settings: { categoriesPerRound: 4 },
+    });
+    expect(invalid.status).toBe(400);
+    expect(await (await host.request("/api/rooms")).json()).toEqual([]);
+
+    const settings = { categoriesPerRound: 1, finalRound: false, timers: { enabled: false } };
+    const response = await host.mutate("/api/rooms", { packId: snack.id, settings });
+    expect(response.status).toBe(201);
+    const { code } = await response.json();
+    const wire = await connect(h, code, "host", host);
+    expect(wire.host).toMatchObject({ phase: "lobby", pack: { id: snack.id }, settings });
+    await wire.close();
+  });
+
   it("gates uploaded pictures in every public frame through a wager clue and the final round", async () => {
     const h = await server();
     const { host, a, players, d } = await table(h);

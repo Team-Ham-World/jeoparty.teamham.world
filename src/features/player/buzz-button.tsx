@@ -118,7 +118,7 @@ export function BuzzButton({
   const early = visiblyLit && timing.lockedOut;
   const enabled = visiblyLit && !timing.lockedOut;
   const openingKey = `${clue.clueId}:${clue.opensAt}`;
-  const sent = sentFor === openingKey && clue.stage === "open";
+  const sent = !stale && !view.paused && sentFor === openingKey && clue.stage === "open";
   const copy =
     stale || view.paused
       ? buzzCopy(view, clue, stale)
@@ -200,7 +200,7 @@ export function BuzzButton({
       >
         <span className="buzz__label">{sent ? "Sent!" : copy.label}</span>
       </button>
-      <p id="buzz-help" className="buzz-help">
+      <p id="buzz-help" className="buzz-help" role="status">
         {sent ? "Buzz sent. Waiting for the server…" : copy.help}
       </p>
     </div>

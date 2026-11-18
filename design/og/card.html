@@ -14,155 +14,237 @@
         src: url("{{bodyFont}}") format("woff2");
         font-weight: 400;
       }
-      @font-face {
-        font-family: Atkinson;
-        src: url("{{boldFont}}") format("woff2");
-        font-weight: 700;
+      :root {
+        --ink: #191621;
+        --cream: #faf4e9;
+        --light: #c6b8ff;
+        --peach: #ff9864;
+        --display: Bricolage, sans-serif;
+        --mono: ui-monospace, "Courier New", monospace;
       }
       * {
         box-sizing: border-box;
       }
-      html,
       body {
-        margin: 0;
         width: 1200px;
         height: 630px;
+        margin: 0;
         overflow: hidden;
-      }
-      body {
-        background: #f6f1e5;
-        color: #1c1a17;
+        background: radial-gradient(ellipse at 84% 66%, #534472, transparent 62%), var(--ink);
+        color: var(--cream);
         font-family: Atkinson, sans-serif;
       }
-      .art {
-        position: absolute;
-        inset: 0;
-        width: 1200px;
-        height: 630px;
-      }
       main {
+        position: relative;
+        display: grid;
+        grid-template-columns: 560px 1fr;
+        align-items: center;
+        gap: 36px;
+        height: 100%;
+        padding: 56px 60px;
+      }
+      .backdrop {
         position: absolute;
         inset: 0;
+        background: linear-gradient(90deg, var(--ink), #191621e6 45%, transparent 68%), var(--art);
+      }
+      .backdrop + main .art {
+        display: none;
       }
       .lockup {
         display: inline-flex;
         align-items: center;
-        gap: 28px;
+        gap: 0.26em;
         white-space: nowrap;
+        font: 800 1em/1 var(--display);
+        letter-spacing: -0.055em;
       }
       .lockup svg {
-        width: 151px;
+        width: 1.9em;
         height: auto;
       }
-      .lockup span {
-        font-family: Bricolage, sans-serif;
-        font-size: 63px;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        line-height: 1;
-      }
       .brand {
-        position: absolute;
-        top: 65px;
-        left: 72px;
+        font-size: 49px;
       }
       h1 {
-        position: absolute;
-        margin: 0;
-        left: 72px;
-        top: 201px;
-        font-family: Bricolage, sans-serif;
-        font-size: 76px;
-        font-weight: 800;
-        line-height: 1.04;
-        letter-spacing: -0.035em;
+        margin: 26px 0 18px;
+        font: 800 72px/1.02 var(--display);
+        letter-spacing: -0.055em;
       }
-      h1 .line {
+      h1 em {
+        color: var(--peach);
+      }
+      .line {
         display: block;
       }
-      .marked {
-        position: relative;
-      }
-      .marked::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 5px;
-        bottom: -7px;
-        height: 7px;
-        background: #d93625;
-        transform: rotate(-1deg);
-        clip-path: polygon(0 18%, 97% 0, 100% 55%, 3% 100%);
-      }
       .note {
-        position: absolute;
-        left: 72px;
-        top: 524px;
-        padding: 7px 13px;
-        background: #fce38a;
-        font-size: 26px;
-        font-weight: 700;
-        transform: rotate(-1deg);
+        margin: 0;
+        color: #ded4dc;
+        font-size: 30px;
+        line-height: 1.24;
       }
-      .stamp {
-        position: absolute;
-        top: 72px;
-        left: 76px;
-        border: 3px double #d93625;
-        outline: 2px solid #d93625;
-        outline-offset: 4px;
-        padding: 10px 17px;
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: 0.09em;
-        transform: rotate(-3deg);
-        background: #fce38a;
+      .kicker,
+      .address {
+        margin: 0;
+        color: var(--light);
+        font: 700 25px/1.25 var(--mono);
+        letter-spacing: 0.08em;
       }
       .invite h1 {
-        top: 183px;
         font-size: 80px;
       }
-      .invite .join-brand {
+      .join-brand {
         display: flex;
         align-items: center;
-        gap: 24px;
-        margin-top: 6px;
+        gap: 0.25em;
       }
-      .invite .lockup {
-        gap: 40px;
+      .join-brand .lockup {
+        color: var(--peach);
       }
-      .invite .lockup svg {
-        width: 202px;
-      }
-      .invite .lockup span {
-        font-size: 88px;
-      }
-      .instructions {
-        position: absolute;
-        top: 419px;
-        left: 76px;
-        margin: 0;
-        font-size: 30px;
-        line-height: 1.28;
-      }
-      .instructions svg {
-        width: 67px;
-        height: 30px;
-        vertical-align: -5px;
-        margin: 0 3px;
+      .note svg {
+        width: 2em;
+        height: auto;
+        margin: 0 0.1em;
+        vertical-align: -0.13em;
       }
       .address {
+        margin-top: 34px;
+        font-size: 21px;
+        letter-spacing: 0.035em;
+      }
+      .art {
+        position: relative;
+        justify-self: center;
+        width: 94%;
+        aspect-ratio: 1.7;
+        isolation: isolate;
+      }
+      .art::before {
         position: absolute;
-        left: 76px;
-        bottom: 57px;
-        font-size: 23px;
-        font-weight: 700;
-        letter-spacing: 0.025em;
+        inset: -35% -17%;
+        z-index: -2;
+        background: radial-gradient(#ad97db69 1.25px, transparent 1.6px) 0 0 / 10px 10px;
+        mask-image: radial-gradient(ellipse, #000 31%, transparent 72%);
+        content: "";
+      }
+      .orbit {
+        position: absolute;
+        inset: 26% -7% 10%;
+        z-index: -1;
+        border: 2px solid #a492c888;
+        border-radius: 50%;
+        transform: rotate(-19deg);
+      }
+      .spark {
+        position: absolute;
+        top: 1%;
+        right: -1%;
+        width: 9%;
+        aspect-ratio: 1;
+        background: var(--peach);
+        clip-path: polygon(50% 0, 57% 41%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%);
+      }
+      .spark.small {
+        top: 79%;
+        right: auto;
+        left: -1%;
+        width: 5%;
+        background: var(--light);
+      }
+      .receiver {
+        position: absolute;
+        inset: 13% 6% 5%;
+        display: grid;
+        grid-template-columns: 1fr 15%;
+        gap: 4%;
+        padding: 5%;
+        border: 4px solid #1d1929;
+        border-radius: 12% / 17%;
+        background: linear-gradient(160deg, #f3c49c 0 8%, #dc9471 9% 65%, #af654f);
+        box-shadow:
+          5px 8px 0 #8a584a,
+          9px 13px 0 #191421;
+        transform: rotate(-6deg);
+      }
+      .receiver::before,
+      .receiver::after {
+        position: absolute;
+        bottom: 100%;
+        left: 48%;
+        width: 3px;
+        height: 30%;
+        background: #c3aeb1;
+        transform: rotate(-48deg);
+        transform-origin: bottom;
+        content: "";
+      }
+      .receiver::after {
+        height: 35%;
+        transform: rotate(39deg);
+      }
+      .glass {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 2px;
+        overflow: hidden;
+        border: 5px solid #352d38;
+        border-radius: 16% / 23%;
+        background:
+          repeating-linear-gradient(0deg, transparent 0 4px, #24173333 4px 5px),
+          radial-gradient(ellipse at 37% 40%, #9d91d2, #6c5aa3 62%, #332949);
+        box-shadow: inset 0 0 0 2px #3b314c;
+        color: #fff3d8;
+      }
+      .glass svg {
+        width: 122px;
+        height: auto;
+        filter: drop-shadow(2px 2px 0 #483862);
+      }
+      .glass b {
+        color: #ffbe85;
+        font: italic 800 61px/0.83 var(--display);
+        letter-spacing: -0.1em;
+        text-shadow: 2px 2px 0 #483862;
+      }
+      .tuner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-around;
+      }
+      .dial {
+        width: 80%;
+        aspect-ratio: 1;
+        border: 2px solid #6b4842;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #473a3d 0 44%, #e8bc97 46% 53%, #493b40 55%);
+        box-shadow: 1px 2px 0 #9f604e;
+      }
+      .vents {
+        width: 95%;
+        height: 33%;
+        background: repeating-linear-gradient(0deg, #88584b 0 2px, transparent 2px 5px);
       }
     </style>
   </head>
   <body class="{{kind}}">
-    <img class="art" src="{{art}}" alt="" />
-    <main>{{content}}</main>
+    {{backdrop}}
+    <main>
+      <div>{{content}}</div>
+      <div class="art" aria-hidden="true">
+        <div class="orbit"></div>
+        <div class="spark"></div>
+        <div class="spark small"></div>
+        <div class="receiver">
+          <div class="glass">{{ham}}<b>QUIZ</b></div>
+          <div class="tuner">
+            <div class="dial"></div>
+            <div class="dial"></div>
+            <div class="vents"></div>
+          </div>
+        </div>
+      </div>
+    </main>
   </body>
 </html>

@@ -2,7 +2,9 @@
 
 A party quiz-show game for HAM. A host runs the game from a laptop, a TV or projector shows the board, and 2–6 players buzz in from their phones. Host and players sign in with TeamHam.world; the TV opens from a link the host generates.
 
-**Status:** the full game is implemented and tested locally: two rounds, wager clues ("Hot HAM!"), a final round, picture clues, server timers, pause and reconnect recovery, games that survive a backend restart, and a pack editor. It is live at **https://quiz.teamham.world** (deployed 2026-11-07, last updated 2026-11-13, with Docker behind the shared Caddy on the Oracle host and proxied by Cloudflare), using HAM sign-in with the registered `quiz` client. See [Deployment](docs/DEPLOYMENT.md#current-deployment).
+Players can create a lobby, choose a pack and adjust the game before inviting friends. The host desk, player phones and shared TV use the broadcast-studio design. The game supports two rounds, wager clues ("Hot HAM!"), a final round, picture clues, server timers, pause and reconnect recovery, games that survive a backend restart, and a pack editor. [Design system](DESIGN.md), [approved mockup](design/mockups/broadcast-studio.html).
+
+Play at [quiz.teamham.world](https://quiz.teamham.world). Production uses the registered `quiz` client for HAM sign-in and runs with Docker behind Caddy and Cloudflare. [Deployment record](docs/DEPLOYMENT.md#current-deployment).
 
 ## Quickstart
 
@@ -13,7 +15,11 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:3000. Locally, "Sign in with HAM" uses a **development fixture** (a stand-in for TeamHam.world, clearly stamped "not live HAM"), so no credentials or `.env` are needed. To play a game on one machine, use separate browser profiles or private windows for the host and each player, pick a different fixture name in each, and open the TV link from the host's lobby in another window.
+Open http://127.0.0.1:3000. Locally, "Sign in with HAM" uses a **development fixture** (a stand-in for TeamHam.world, clearly stamped "not live HAM"), so no credentials or `.env` are needed.
+
+1. Sign in as the host and open **Create a lobby**. Choose a built-in or saved pack. Use its defaults or select **Adjust settings** before submitting **Create game**. The host can still edit setup in the lobby before starting.
+2. Sign in as 2–6 players and join with the room code, join link or QR. Use a different fixture name for each and give each person a separate browser profile or a private window in a different browser.
+3. Open the separate display link from the host's lobby in another window for the read-only TV. Start the game from the host desk. Players use their phones to buzz, wager and submit final answers when prompted.
 
 Use another port with `PORT=3001 PUBLIC_ORIGIN=http://127.0.0.1:3001 npm run dev`. Stop with Ctrl+C.
 
@@ -56,7 +62,7 @@ src/app/                 routes: / (home), /r/[code] (player), /host/[code], /di
 src/features/engine/     rules, views, restore; contract.ts is the shared interface
 src/features/content/    question-pack format v3, validator, built-in packs in samples/
 src/features/network/    protocol.ts (wire types), connection.ts, client/ (WebSocket hook + API helpers)
-src/features/ui/         design system (HAM "Cut & Paste"), shared components
+src/features/ui/         shared broadcast-studio components
 src/features/{board,player,host,display,lobby,editor,preview}/   screens
 src/server/              HTTP + WebSocket server, HAM OAuth, rooms, SQLite storage, tests
 tests/e2e/               Playwright end-to-end tests
@@ -68,6 +74,7 @@ deploy/, Dockerfile, docker-compose.yml   single-instance deployment behind Cadd
 | Document | Answers |
 |---|---|
 | [Rules](docs/RULES.md) | Exactly how a game plays: rounds, buzzing, wagers, final round, pause and recovery |
+| [Design](DESIGN.md) | Broadcast-studio layouts, role-specific UI and accessibility |
 | [Project](docs/PROJECT.md) | What the product is, decisions made, and the technical boundaries |
 | [Roadmap](docs/ROADMAP.md) | What is done, what remains before launch, and the backlog |
 | [Deployment](docs/DEPLOYMENT.md) | Environment, Docker/Caddy, limits, backups |

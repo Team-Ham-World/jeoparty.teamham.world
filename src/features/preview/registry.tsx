@@ -336,6 +336,22 @@ export const PREVIEWS: PreviewEntry[] = [
       />
     ),
   },
+  ...(["create", "join"] as const).map((view): PreviewEntry => ({
+    id: `home-${view}`,
+    group: "Home",
+    title: view === "create" ? "Create a lobby" : "Join by room code",
+    viewport: view === "create" ? "laptop" : "phone",
+    render: () => (
+      <HomeScreen
+        view={view}
+        session={SESSION_SIGNED_IN}
+        packs={PACKS}
+        onCreateGame={async () => {}}
+        onJoin={() => {}}
+        onSignOut={() => {}}
+      />
+    ),
+  })),
   {
     id: "home-open-rooms",
     group: "Home",

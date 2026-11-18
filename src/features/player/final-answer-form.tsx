@@ -49,7 +49,7 @@ export function FinalAnswerForm({
   }
 
   return (
-    <form className="stack stack--tight" onSubmit={submit}>
+    <form className="stack stack--tight pl-answer-form" onSubmit={submit}>
       <div className="field">
         <label className="field__label" htmlFor={`${id}-answer`}>
           Your answer
@@ -69,7 +69,7 @@ export function FinalAnswerForm({
           {left} characters left
         </span>
       </div>
-      {autosave && unsaved ? (
+      {autosave && !disabled && unsaved ? (
         <p className="final-status" role="status">
           Time is almost up. Saving what you typed.
         </p>

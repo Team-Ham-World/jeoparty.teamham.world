@@ -1,88 +1,39 @@
 # HAM Quiz UI kit
 
-Shared pieces every screen uses. The look is HAM System A, "Cut & Paste" (see
-`organization-docs/BRAND.md`): paper slips pasted onto paper (phone, host,
-editor) or onto an ink stage (the TV), hard offset shadows instead of blur,
-near-zero corners, rubber stamps for state, and at most one red marker stroke
-per screen.
+The [broadcast studio mockup](../../../design/mockups/broadcast-studio.html) defines the shared look. Cream pages use warm card surfaces and fine rules. The TV and page heroes use an ink stage. Peach marks the main action, violet marks links and selection, and lilac supplies contrast on the stage.
 
-## Rules of thumb
+The real palette, typography, and control styles live in [globals.css](../../app/globals.css). Bricolage Grotesque is the main face. Use `--font-mono` for room codes, timers, and small uppercase labels, and `--font-reading` for longer clue text. Use ink text on peach or lilac and cream text on violet. Decorative red never carries meaning. Pair state colors with words such as “Correct”, “Locked out”, and “Away”.
 
-- **Screens render views; they never decide rules.** Use `view.can.*`,
-  `allowedCommands`, `startBlockers`, `wagerBounds` and `myFinal`. Disable every
-  action while `connection.stale` is true.
-- **Colors are tokens** in `src/app/globals.css` (`:root`). Decorative red
-  (`--red`) never carries text or meaning. Interactive blue (`--blue`) is only
-  for things you can press, links, selection and focus. State always has a word
-  next to its color ("Correct", "Locked out", "Away").
-- **Type:** Bricolage Grotesque 800 for display headings and board values,
-  Atkinson Hyperlegible for everything else, including clue prompts (most
-  legible at 10 feet). "HAM" is always the traced wordmark (`HamWordmark`),
-  never typed in a font, so the wager brand renders as "Hot [wordmark]!".
-- **Motion** is short, decorative and never blocks input. Under
-  `prefers-reduced-motion` every animation and transition finishes instantly.
-  One-shot effects use `useFreshEvent`, so a reconnect never replays them.
+## Shared pieces
 
-## Pieces
-
-| File | What it is |
+| File | Purpose |
 |---|---|
-| `brand.tsx` | `Lockup` ("HAM Quiz"), `HotHam`, `FixtureStamp` |
-| `ham-wordmark.tsx` | Copy of the canonical traced wordmark from teamham.world |
-| `dialog.tsx` | Native `<dialog>` (`showModal`: focus trap, Escape, focus return) and `ConfirmDialog` (safe choice focused first) |
-| `toasts.tsx` | `ToastProvider` / `useToast` for rejected commands (polite live region) |
-| `use-command.ts` | Sends a command, tracks `pending`, turns rejections into toasts, refuses while stale |
-| `clock.ts`, `countdown.tsx` | One shared ticking clock; countdown bar that reads the server timer with `clockOffsetMs` |
-| `connection-status.tsx` | Live/Reconnecting pill, stale banner, closed-reason screens |
-| `events.ts` | Screen-reader sentences for game events; pause copy |
-| `wager-form.tsx` | Whole-number wager inside server-given bounds, with quick picks |
-| `qr-code.tsx` | QR code as one SVG path (no images, no network) |
-| `clue-picture.tsx` | A clue's picture in a frame the screen sizes; "Picture didn't load" on failure; the description is alt text only |
-| `copy-field.tsx` | Read-only link + Copy button |
-| `page-chrome.tsx` | Paper top bar, `NoticeShell` (top bar + notice column), loading/error/sign-in notices |
-| `haptics.ts` | Optional `navigator.vibrate`, only after the person has tapped |
-| `contrast.ts` | WCAG math and the list of color pairs we use |
+| `studio-hero.tsx` | `StudioHero` for a page heading with CRT artwork. Pass `<em>` inside `title` for peach emphasis. `PackCover` provides decorative `record` and `snack` thumbnails beside pack names. |
+| `brand.tsx` | `Lockup` for the studio mark and product name, `HotHam` for wager clues, and `FixtureStamp` for development sign-in. |
+| `ham-wordmark.tsx` | Canonical traced mark used in `HotHam`. |
+| `page-chrome.tsx` | Page header with real navigation and account controls, and the loading, sign-in, and error screens. |
+| `dialog.tsx` | Native modal dialog with focus trapping, Escape, and focus return. Confirmation dialogs focus the cancel action first. |
+| `toasts.tsx`, `use-command.ts` | Polite announcements for confirmations and rejected commands. `useCommand` tracks pending commands and refuses them while stale. |
+| `connection-status.tsx` | Connection status pill, stale banner, and disconnected room notice. |
+| `clock.ts`, `countdown.tsx` | Shared ticking clock and countdown using the server timer and clock offset. |
+| `clue-picture.tsx` | Picture mat in a frame sized by the caller. The description stays in the image alt text. |
+| `wager-form.tsx` | Whole-number wager controls using server-given bounds. |
+| `qr-code.tsx`, `copy-field.tsx` | Local SVG QR code and a read-only link with a Copy button. |
+| `events.ts`, `haptics.ts` | Game-event announcements and optional vibration after interaction. |
 
-## Measured contrast
+Screens read `view.can.*`, `allowedCommands`, `startBlockers`, `wagerBounds`, and `myFinal` to show the actions the game allows. Disable actions while `connection.stale` is true. Motion is decorative, respects `prefers-reduced-motion`, and never delays game actions. `useFreshEvent` keeps a reconnect from replaying one-shot feedback.
 
-`contrast.test.ts` reads the tokens from `globals.css` and checks every pair
-below on each `npm test`. Recompute this table if a token changes.
+## Contrast
 
-| Foreground | Background | Ratio | Min | Used for |
-|---|---|---|---|---|
-| ink | paper | 15.40 | 4.5 | body text |
-| ink | surface | 17.06 | 4.5 | panel text |
-| ink | shade | 13.34 | 4.5 | sunken panel / disabled buzzer |
-| ink | highlight | 13.64 | 4.5 | answers, warnings, "you" |
-| ink | hot | 9.09 | 4.5 | Hot HAM / wager stamps |
-| ink | blue-tint | 13.76 | 4.5 | hover, answering row |
-| ink | good-tint | 14.41 | 4.5 | correct row |
-| ink | bad-tint | 13.39 | 4.5 | incorrect row |
-| muted | paper | 6.47 | 4.5 | secondary text |
-| muted | surface | 7.16 | 4.5 | secondary text on panels |
-| muted | shade | 5.60 | 4.5 | disabled buzzer label |
-| blue | paper | 5.95 | 4.5 | links; focus ring (3:1 needed) |
-| blue | surface | 6.58 | 4.5 | links on panels |
-| ink | hot-tint | 14.44 | 4.5 | host wager cell |
-| muted | hot-tint | 6.06 | 4.5 | host wager cell while selecting is off |
-| surface | blue | 6.58 | 4.5 | primary buttons, buzz |
-| surface | blue-press | 8.69 | 4.5 | primary button hover |
-| surface | good | 6.41 | 4.5 | Correct button / stamp |
-| surface | good-press | 8.57 | 4.5 | Correct button hover |
-| surface | bad | 7.15 | 4.5 | Incorrect button / stamp |
-| surface | bad-press | 9.02 | 4.5 | Incorrect button hover |
-| surface | ink | 17.06 | 4.5 | ink headers, stamps |
-| good | paper | 5.79 | 4.5 | correct text |
-| bad | paper | 6.46 | 4.5 | negative scores, errors |
-| bad | surface | 7.15 | 4.5 | errors on panels |
-| bad | bad-tint | 5.61 | 4.5 | error banner text |
-| stage-text | stage | 15.40 | 4.5 | TV text |
-| stage-text | stage-raise | 13.01 | 4.5 | TV score tiles |
-| stage-muted | stage | 8.06 | 4.5 | TV secondary text |
-| stage-muted | stage-raise | 6.81 | 4.5 | away player tile |
-| stage-faint | stage | 6.22 | 4.5 | completed board cells |
-| stage-bad | stage-raise | 7.15 | 4.5 | TV negative scores |
-| ink | stage-blue | 7.98 | 4.5 | "Picks" tag |
-| stage-text | blue | 5.95 | 4.5 | answering tile, active cell |
-| stage-blue | stage | 7.98 | 3 | TV outlines (non-text) |
-| red (decorative) | paper | 4.14 | — | stamps and strokes only, never text |
+`contrast.test.ts` reads the colors from `globals.css`. It checks 4.5:1 for normal text and 3:1 for large display text and meaningful borders or focus rings. Add the foreground and background pair when introducing a new use of a shared color. The test covers the brightest point of the hero gradient.
+
+| Foreground | Background | Contrast |
+|---|---|---|
+| Ink | Cream | 16.28:1 |
+| Ink | Peach | 8.43:1 |
+| Ink | Lilac | 9.93:1 |
+| Cream | Violet | 7.67:1 |
+| Violet | Violet tint | 6.66:1 |
+| Peach hero title emphasis | Hero glow | 4.07:1 |
+| Blue focus ring | Cream | 4.79:1 |
+| Lilac focus ring | Raised stage | 8.43:1 |

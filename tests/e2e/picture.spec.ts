@@ -60,15 +60,25 @@ test("pictures from the editor show with their clues on the TV and host, and on 
   await signIn(H, host.name, "/packs/new");
   await H.getByLabel("Title", { exact: true }).fill("Picture Night");
   await H.getByLabel("Category title").fill("Cut Paper");
-  for (const n of [5, 4, 3]) await H.getByRole("button", { name: `Remove clue ${n}` }).click();
+  const clueSelector = H.getByRole("combobox", { name: "Clue", exact: true });
+  for (const n of [5, 4, 3]) {
+    await clueSelector.selectOption({ label: `Clue ${n}` });
+    await H.getByRole("button", { name: `Remove clue ${n}` }).click();
+  }
+  await clueSelector.selectOption({ label: "Clue 1" });
   await H.getByLabel("Clue 1", { exact: true }).fill("The blue shape in this picture is this.");
-  await H.getByLabel("Answer", { exact: true }).nth(0).fill("What is a circle?");
+  await H.getByLabel("Answer", { exact: true }).fill("What is a circle?");
+  await clueSelector.selectOption({ label: "Clue 2" });
   await H.getByLabel("Clue 2", { exact: true }).fill("The pink shape in this picture is this.");
-  await H.getByLabel("Answer", { exact: true }).nth(1).fill("What is a square?");
+  await H.getByLabel("Answer", { exact: true }).fill("What is a square?");
+  await clueSelector.selectOption({ label: "Final clue" });
   await H.getByLabel("Final clue", { exact: true }).fill("This many shapes are in the picture.");
   await H.getByLabel("Final answer", { exact: true }).fill("What is two?");
   const png = await drawnPng(H);
   for (const clue of ["clue 1", "clue 2", "the final clue"]) {
+    await clueSelector.selectOption({
+      label: clue === "the final clue" ? "Final clue" : clue.replace("clue", "Clue"),
+    });
     const [chooser] = await Promise.all([
       H.waitForEvent("filechooser"),
       H.getByRole("button", { name: `Add picture for ${clue}` }).click(),
@@ -76,13 +86,17 @@ test("pictures from the editor show with their clues on the TV and host, and on 
     await chooser.setFiles({ name: "shapes.png", mimeType: "image/png", buffer: png });
     await expect(H.getByRole("button", { name: `Replace picture for ${clue}` })).toBeVisible();
   }
+  await clueSelector.selectOption({ label: "Clue 1" });
   await H.getByLabel("Picture description").first().fill("A pink square beside a blue circle");
-  await expectPicturesLoaded(H, 3);
+  await expectPicturesLoaded(H, 1);
   await H.getByRole("button", { name: "Save pack" }).first().click();
   await H.waitForURL(/\/packs\/(?!new$)[^/]+$/);
   await expect(H.locator(".ed-bar__status")).toHaveText("Saved");
   await H.reload();
-  await expectPicturesLoaded(H, 3);
+  for (const label of ["Clue 2", "Final clue", "Clue 1"]) {
+    await clueSelector.selectOption({ label });
+    await expectPicturesLoaded(H, 1);
+  }
   await expect(H.getByLabel("Picture description").first()).toHaveValue(
     "A pink square beside a blue circle",
   );

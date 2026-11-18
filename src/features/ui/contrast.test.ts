@@ -7,10 +7,16 @@ const css = readFileSync(fileURLToPath(new URL("../../app/globals.css", import.m
 const tokens = readTokens(css);
 
 describe("color tokens meet WCAG contrast", () => {
-  it("reads the brand tokens from globals.css", () => {
-    expect(tokens.paper).toBe("#f6f1e5");
-    expect(tokens.ink).toBe("#1c1a17");
-    expect(tokens.blue).toBe("#1d4ed8");
+  it("uses the broadcast studio palette", () => {
+    expect(tokens).toMatchObject({
+      paper: "#faf4e9",
+      ink: "#191621",
+      violet: "#504388",
+      lilac: "#c6b8ff",
+      peach: "#ff9864",
+      stage: "#191621",
+    });
+    expect(css).toMatch(/--font-mono:\s*ui-monospace\b/);
   });
 
   it.each(CONTRAST_PAIRS)("$fg on $bg ($use) ≥ $min", ({ fg, bg, min }) => {

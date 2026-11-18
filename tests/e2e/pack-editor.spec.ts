@@ -6,7 +6,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { LAPTOP, device, signIn } from "./helpers";
+import { LAPTOP, chooseLobbyPack, device, signIn } from "./helpers";
 
 const SAMPLE = path.join(process.cwd(), "src/features/content/samples/sample-pack-3x3.json");
 
@@ -38,13 +38,20 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   // --- Fill a small valid pack (1 category × 2 clues) and save it -----------
   await P.getByLabel("Title", { exact: true }).fill("Kitchen Lab");
   await P.getByLabel("Category title").fill("Kitchen Science");
-  for (const n of [5, 4, 3]) await P.getByRole("button", { name: `Remove clue ${n}` }).click();
+  const clueSelector = P.getByRole("combobox", { name: "Clue", exact: true });
+  for (const n of [5, 4, 3]) {
+    await clueSelector.selectOption({ label: `Clue ${n}` });
+    await P.getByRole("button", { name: `Remove clue ${n}` }).click();
+  }
+  await clueSelector.selectOption({ label: "Clue 1" });
   await P.getByLabel("Clue 1", { exact: true }).fill(
     "Water boils at this many degrees Celsius at sea level.",
   );
-  await P.getByLabel("Answer", { exact: true }).nth(0).fill("What is 100?");
+  await P.getByLabel("Answer", { exact: true }).fill("What is 100?");
+  await clueSelector.selectOption({ label: "Clue 2" });
   await P.getByLabel("Clue 2", { exact: true }).fill("Sodium bicarbonate is better known as this.");
-  await P.getByLabel("Answer", { exact: true }).nth(1).fill("What is baking soda?");
+  await P.getByLabel("Answer", { exact: true }).fill("What is baking soda?");
+  await clueSelector.selectOption({ label: "Final clue" });
   await P.getByLabel("Final clue", { exact: true }).fill(
     "This scale measures the heat of chili peppers.",
   );
@@ -99,7 +106,9 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
   ]);
   await (await chooser)[0].setFiles(good);
   await expect(P.getByLabel("Title", { exact: true })).toHaveValue("Imported Snack");
-  await expect(P.getByRole("heading", { name: "Categories (3)" })).toBeVisible();
+  await expect(
+    P.getByRole("combobox", { name: "Category", exact: true }).locator("option"),
+  ).toHaveText(["Earth & Space", "World Geography", "Food & Cooking"]);
   await P.getByRole("button", { name: "Save pack" }).first().click();
   await P.waitForURL(/\/packs\/(?!new$)[^/]+$/);
   await expect(P.locator(".ed-bar__status")).toHaveText("Saved");
@@ -135,15 +144,15 @@ test("write a pack, fix validation errors, save, export, import, duplicate, dele
 
   // --- Use the new pack in a game ------------------------------------------------
   await P.goto("/");
-  const select = P.getByLabel("Question pack");
-  await expect(select.locator("option", { hasText: "Kitchen Lab" })).toBeAttached();
-  const label = (await select.locator("option").allInnerTexts()).find((text) =>
-    text.startsWith("Kitchen Lab"),
-  )!;
-  await select.selectOption({ label });
+  await chooseLobbyPack(P, "Kitchen Lab");
+  await P.getByRole("button", { name: "Adjust settings" }).click();
+  await P.getByLabel("Buzz window (s)", { exact: true }).fill("23");
+  await P.getByRole("button", { name: "Close settings" }).click();
   await P.getByRole("button", { name: "Create game" }).click();
   await P.waitForURL(/\/host\/[A-Z]{5}$/);
-  await expect(P.getByText("In use:")).toContainText("Kitchen Lab");
+  await expect(P.locator(".host-setup__summary")).toContainText("Kitchen Lab");
+  await P.getByText("Edit setup", { exact: true }).click();
+  await expect(P.getByLabel("Buzz window (s)", { exact: true })).toHaveValue("23");
   await expect(P.locator(".host-top__pack")).toHaveText("Kitchen Lab");
 
   expect(author.errors).toEqual([]);

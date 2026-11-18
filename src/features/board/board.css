@@ -61,161 +61,129 @@
     line-height: 1;
   }
 
-  .board__done,
   .board__now {
     font-size: 0.7em;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
   .board__hot {
     position: absolute;
-    top: -0.35rem;
-    right: -0.35rem;
-    padding: 0 0.3rem;
-    font-size: var(--fs-2xs);
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    inset: 0.2rem 0.25rem auto auto;
+    padding: 0.12em 0.32em;
+    font: 700 0.65rem/1 var(--font-mono, ui-monospace, monospace);
     text-transform: uppercase;
-    color: var(--ink);
-    background: var(--hot);
-    border: 1.5px solid var(--ink);
-    transform: rotate(4deg);
+    color: #191621;
+    background: var(--peach, #ff9864);
+    border-radius: 2px;
   }
 
-  /* ------------------------------------------------------------ TV stage */
+  /* The host and TV share the violet tiles. The host's desk has light surroundings. */
+  :is(.board--stage, .board--host) {
+    --board-fill: var(--violet, #504388);
+    --board-cream: #faf4e9;
+    --board-active: var(--peach, #ff9864);
+    --board-ink: #191621;
+  }
+
+  :is(.board--stage, .board--host) .board__cat {
+    align-items: center;
+    padding: 0.35em 0.15em 0.5em;
+    letter-spacing: -0.03em;
+    overflow-wrap: anywhere;
+  }
+
+  :is(.board--stage, .board--host) .board__cell {
+    container-type: inline-size;
+    color: var(--board-cream);
+    background: var(--board-fill);
+    border: 1px solid transparent;
+    border-radius: 0.22em;
+  }
+
+  :is(.board--stage, .board--host) .board__value {
+    font-size: min(var(--board-value-size), calc(152cqi / var(--value-length)));
+    white-space: nowrap;
+  }
+
+  :is(.board--stage, .board--host) .board__cell--active {
+    color: var(--board-ink);
+    background: var(--board-active);
+  }
+
+  .board__played {
+    font-size: 1.35em;
+    line-height: 1;
+  }
+
   .board--stage {
-    --board-gap: 0.45em;
+    --board-gap: 0.36em;
+    --board-value-size: 2.06em;
+    grid-template-rows: minmax(2.55em, auto) repeat(var(--rows), minmax(1.9em, 1fr));
     height: 100%;
   }
 
   .board--stage .board__cat {
-    padding: 0.45em 0.4em 0.5em;
-    font-size: 0.92em;
-    color: var(--ink);
-    background: var(--surface);
-    border: 2px solid var(--ink);
-    box-shadow: 0.12em 0.12em 0 var(--red);
+    font-size: 1.06em;
   }
 
-  .board--stage .board__col:nth-child(odd) .board__cat {
-    transform: rotate(-0.8deg);
+  .board--stage .board__cat[data-length="medium"] {
+    font-size: 0.9em;
   }
 
-  .board--stage .board__col:nth-child(even) .board__cat {
-    transform: rotate(0.7deg);
+  .board--stage .board__cat[data-length="long"] {
+    font-size: 0.73em;
   }
 
-  .board--stage .board__cell--available,
-  .board--stage .board__cell--active {
-    background: var(--paper);
-    border: 2px solid var(--ink);
-    box-shadow: 0.14em 0.14em 0 #000;
-  }
-
-  .board--stage .board__value {
-    font-size: 2.05em;
-  }
-
-  .board--stage .board__cell--active {
-    color: var(--surface);
-    background: var(--blue);
-    outline: 0.18em solid var(--stage-text);
-    outline-offset: 0.12em;
-    transform: scale(1.04);
-    z-index: 1;
-  }
-
-  .board--stage .board__cell--active .board__now {
-    position: absolute;
-    bottom: 0.25em;
-    font-size: 0.55em;
-  }
-
-  /* Played: a dashed outline and the value struck through say "done" from
-     across the room; the word itself stays for screen readers only. */
   .board--stage .board__cell--completed {
-    color: var(--stage-faint);
-    background: transparent;
-    border: 2px dashed var(--muted);
+    color: #c0b3d2;
+    background: repeating-linear-gradient(-45deg, #282235 0 6px, #332c42 6px 8px);
   }
 
-  .board--stage .board__cell--completed .board__value {
-    font-size: 1.1em;
-    text-decoration: line-through;
-    text-decoration-thickness: 0.08em;
-  }
-
-  .board--stage .board__done {
-    display: none;
-  }
-
-  /* ---------------------------------------------------------------- host */
   .board--host {
     --board-gap: 0.4rem;
+    --board-value-size: 1.85em;
     font-size: var(--fs-md);
   }
 
   .board--host .board__cat {
-    padding: 0.3rem 0.2rem 0.45rem;
     font-size: var(--fs-sm);
-    border-bottom: 3px solid var(--ink);
+  }
+
+  .board--host .board__cat[data-length="long"] {
+    font-size: var(--fs-xs);
   }
 
   .board--host .board__cell {
     min-height: 3.25rem;
-    background: var(--surface);
-    border: 2px solid var(--ink);
-    box-shadow: var(--shadow-sm);
   }
 
-  /* Shrinks on a phone so "1,000" stays inside a 54 px cell. */
-  .board--host .board__value {
-    font-size: clamp(var(--fs-sm), 3.6vw, var(--fs-xl));
-  }
-
-  .board--host button.board__cell {
+  .board--host button.board__cell:not(:disabled) {
     cursor: pointer;
-    transition:
-      transform 80ms var(--ease),
-      box-shadow 80ms var(--ease);
   }
 
   .board--host button.board__cell:hover:not(:disabled) {
-    color: var(--surface);
-    background: var(--blue);
+    color: var(--board-ink);
+    background: var(--lilac, #c6b8ff);
   }
 
   .board--host button.board__cell:active:not(:disabled) {
-    transform: translate(2px, 2px);
-    box-shadow: none;
+    transform: translateY(1px);
   }
 
   .board--host button.board__cell:disabled {
     cursor: not-allowed;
-    color: var(--muted);
+    opacity: 0.7;
   }
 
   .board--host .board__cell--wager {
-    background: var(--hot-tint);
-  }
-
-  .board--host .board__cell--active {
-    color: var(--surface);
-    background: var(--blue);
+    padding-top: 0.85rem;
   }
 
   .board--host .board__cell--completed {
-    color: var(--muted);
-    background: transparent;
-    border-style: dashed;
-    border-color: var(--rule);
-    box-shadow: none;
-  }
-
-  .board--host .board__cell--completed .board__value {
-    display: none;
+    color: #5e5665;
+    background: repeating-linear-gradient(-45deg, #e9e1ec 0 5px, #e1d8e7 5px 7px);
   }
 
   /* Hosting from a phone: six columns in about 360 px. */
@@ -224,16 +192,14 @@
       --board-gap: 0.25rem;
     }
 
-    .board--host .board__cat {
-      padding-inline: 0;
+    .board--host .board__cat,
+    .board--host .board__cat[data-length="long"] {
       font-size: var(--fs-2xs);
-      line-height: 1.15;
-      letter-spacing: -0.03em;
     }
 
     .board--host .board__cell {
       min-height: 2.75rem;
-      padding: 0.1rem;
+      padding-inline: 0.1rem;
     }
   }
 
@@ -270,9 +236,8 @@
   }
 
   /* A played cell is an empty dashed slot; screen readers still hear "done". */
-  .board--phone .board__cell--active .board__now,
-  .board--phone .board__cell--completed .board__value,
-  .board--phone .board__done {
+  .board--phone .board__now,
+  .board--phone .board__played {
     display: none;
   }
 

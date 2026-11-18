@@ -15,6 +15,7 @@ import {
   PHONE,
   SMALL_PHONE,
   TV,
+  chooseLobbyPack,
   createGame,
   device,
   displayLink,
@@ -58,23 +59,21 @@ test("game screens", async ({ browser }) => {
   const H = host.page;
 
   await cy.page.goto("/");
-  await expect(cy.page.getByRole("heading", { name: "Sign in to host or play" })).toBeVisible();
+  await expect(cy.page.getByRole("link", { name: "Sign in with HAM" })).toBeVisible();
   await snap(cy.page, "home-signed-out");
 
   await signIn(H, host.name, "/");
-  await expect(
-    H.getByLabel("Question pack").locator("option", { hasText: "Ham Snack" }),
-  ).toBeAttached();
+  await expect(H.getByRole("link", { name: "Create a lobby" })).toBeVisible();
   await snap(H, "home-signed-in");
-  await H.goto("/");
-  const code = await createGame(H, host.name, "Ham Snack");
+  await chooseLobbyPack(H, "Ham Snack");
+  await snap(H, "create-lobby");
+  await H.getByRole("button", { name: "Create game" }).click();
+  await H.waitForURL(/\/host\/[A-Z]{5}$/);
+  const code = H.url().split("/").pop()!;
   await saveSettings(H, async (page) => {
     await page.getByLabel("Wager clues, round 1").selectOption("1");
     await setTimers(page, { buzz: 60, answer: 30, final: 120 });
   });
-  const link = await displayLink(H);
-  await openDisplay(tv.page, link);
-  await openDisplay(tvSmall.page, link);
   for (const player of [ana, ben, cy, dee] as Person[]) await joinAsPlayer(player, code);
 
   await H.getByRole("button", { name: "Remove dee" }).click();
@@ -86,6 +85,9 @@ test("game screens", async ({ browser }) => {
 
   await H.evaluate(() => window.scrollTo(0, 0));
   await snap(H, "host-lobby");
+  const link = await displayLink(H);
+  await openDisplay(tv.page, link);
+  await openDisplay(tvSmall.page, link);
   await snap(tv.page, "display-lobby");
   await snap(ana.page, "player-lobby");
 
@@ -218,12 +220,13 @@ test("long names and long clues", async ({ browser }) => {
     ),
   ) as {
     title: string;
-    categories: { title: string; clues: { prompt: string }[] }[];
+    categories: { title: string; clues: { prompt: string; answer: string }[] }[];
   };
   long.title = "The Extremely Thorough Office Party Quiz";
   long.categories[0].title = "Famous Inventions of the Nineteenth Century";
   long.categories[0].clues[0].prompt =
     "Patented in 1876 after a famously close race to the patent office, this device turned electrical signals back into the human voice and changed how families, businesses and newsrooms talked to each other forever.";
+  long.categories[0].clues[0].answer = "What is the telephone?";
   long.categories[1].title = "Rivers, Lakes & Other Wet Places";
   const saved = await H.request.post("/api/packs", {
     headers: { origin: new URL(H.url()).origin, "x-quiz-csrf": session.csrfToken },

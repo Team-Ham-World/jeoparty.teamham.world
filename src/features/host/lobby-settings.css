@@ -1,0 +1,54 @@
+@layer components {
+  .host-settings .segmented button:disabled:not([aria-pressed="true"]) {
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  .host-settings {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .host-settings__group {
+    display: grid;
+    justify-items: start;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .host-settings__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1rem;
+  }
+
+  /* Buzz rules: a checkbox row each, with its explanation hung under the
+     label text (past the 1.25rem box and its 0.5rem gap). auto-fill keeps
+     the empty third track, so on a wide lobby the two rules sit on the same
+     columns as the three fields above them. */
+  .host-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: 0.25rem 1rem;
+    justify-self: stretch; /* the fieldset lays its children out at their own width */
+  }
+
+  .host-option {
+    display: grid;
+    align-content: start;
+  }
+
+  .host-option .field__hint {
+    max-width: 48ch;
+    margin-top: -0.4rem;
+    padding-left: 1.75rem;
+    font-size: var(--fs-sm);
+  }
+
+  /* Seconds are two or three digits; a full-column box overstates them. */
+  .host-settings__grid .input.num {
+    max-width: 8rem;
+  }
+}

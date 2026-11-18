@@ -112,6 +112,7 @@ describe("display privacy", () => {
     );
     expect(screen.getByLabelText("Room code B C D F G")).toBeVisible();
     expect(screen.getByRole("img", { name: /join room BCDFG/ })).toBeVisible();
+    expect(screen.getByText("Green room")).toBeVisible();
   });
 });
 
@@ -275,6 +276,21 @@ describe("display layout", () => {
     expect(container.querySelector(".tv-margin")).toHaveTextContent(/^first by 0\.04 s$/);
   });
 
+  it("shows that answer time ran out while the host is still judging", () => {
+    expect(
+      renderView(displayFixture("answering")).container.querySelector(".tv-time-up"),
+    ).toBeNull();
+    const base = displayFixture("answering");
+    const clue = base.clue!;
+    const { container } = renderView({
+      ...base,
+      timer: null,
+      clue: { ...clue, attempts: clue.attempts.map((attempt) => ({ ...attempt, timedOut: true })) },
+    });
+    expect(container.querySelector(".tv-time-up")).toHaveTextContent("Time's up");
+    expect(container.querySelector(".tv-score--answering")).toHaveTextContent("Answering");
+  });
+
   it("says 'by a hair' for a near tie, and nothing with a single contender", () => {
     expect(
       renderView(displayFixture("answeringRaceClose")).container.querySelector(".tv-margin"),
@@ -308,7 +324,7 @@ describe("display layout", () => {
     }
   });
 
-  it("drops the header join URL in the lobby, where step 1 already shows it", () => {
+  it("shows the join URL in the invite panel during the green room", () => {
     expect(
       renderView(displayFixture("lobby")).container.querySelector(".tv-head"),
     ).not.toHaveTextContent("Join at");

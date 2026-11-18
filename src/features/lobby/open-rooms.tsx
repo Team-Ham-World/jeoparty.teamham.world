@@ -48,7 +48,7 @@ export function OpenRooms({
   }
 
   return (
-    <section className="panel home-rooms" aria-labelledby="open-rooms-title">
+    <section className="home-card home-rooms" aria-labelledby="open-rooms-title">
       <h2 id="open-rooms-title">Your open rooms</h2>
       {error ? (
         <div className="row">
@@ -88,7 +88,7 @@ export function OpenRooms({
                 </Link>
                 <button
                   type="button"
-                  className="btn btn--small"
+                  className="btn btn--small btn--quiet"
                   aria-label={`Close room ${room.code}`}
                   disabled={closing !== null}
                   onClick={() => setConfirming(room.code)}

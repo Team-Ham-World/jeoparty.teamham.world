@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   createRoom,
   errorMessage,
@@ -16,7 +16,17 @@ import { useSession } from "@/features/ui/session";
 import { HomeScreen } from "./home-screen";
 
 export function HomeRoute() {
+  return (
+    <Suspense fallback={<LoadingNotice />}>
+      <HomeRouteContent />
+    </Suspense>
+  );
+}
+
+function HomeRouteContent() {
   const router = useRouter();
+  const requestedView = useSearchParams().get("view");
+  const view = requestedView === "create" || requestedView === "join" ? requestedView : "home";
   const session = useSession();
   const signedIn = session.status === "ready" && session.session.signedIn;
   const [packs, setPacks] = useState<{ list: PackSummary[] | null; error: string | null }>({
@@ -75,6 +85,7 @@ export function HomeRoute() {
   return (
     <HomeScreen
       session={info}
+      view={view}
       packs={packs.list}
       packsError={packs.error}
       openRooms={openRooms.list}
@@ -87,9 +98,9 @@ export function HomeRoute() {
           void refreshOpenRooms();
         }
       }}
-      onCreateGame={async (packId) => {
+      onCreateGame={async (request) => {
         try {
-          const { code } = await createRoom(csrf, packId ? { packId } : {});
+          const { code } = await createRoom(csrf, request);
           router.push(`/host/${code}`);
         } catch (error) {
           // A host at the room limit needs an up-to-date list to close one from.

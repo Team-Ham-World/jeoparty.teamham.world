@@ -1,17 +1,12 @@
 "use client";
 
-import { useId, useRef, useState, type KeyboardEvent } from "react";
-import type {
-  BoardCellView,
-  BoardView,
-  ClueId,
-  HostBoardCellView,
-} from "@/features/engine/contract";
+import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import type { BoardCellView, BoardView, ClueId } from "@/features/engine/contract";
 import { formatScore } from "@/features/ui/format";
 
 /*
   The categories × values grid, drawn from the contract's BoardView.
-  - "stage": the TV. Paper slips pasted on the ink stage. Read-only.
+  - "stage": the shared TV board. Read-only.
   - "host": the host's board. Available cells are buttons when `onSelect` is
     given; wager cells (host-only data) carry a "Hot HAM" mark.
   - "phone": a compact read-only board for players.
@@ -25,10 +20,6 @@ import { formatScore } from "@/features/ui/format";
 export type BoardVariant = "stage" | "host" | "phone";
 
 const STATE_WORD = { available: "open", active: "now playing", completed: "done" } as const;
-
-function isWagerCell(cell: BoardCellView): cell is HostBoardCellView {
-  return "wager" in cell && (cell as HostBoardCellView).wager === true;
-}
 
 /** A cell position: `col` is the category, `row` the value tier. */
 export interface CellPosition {
@@ -103,7 +94,7 @@ export function nextCell(grid: PickGrid, from: CellPosition, key: string): CellP
 export function BoardGrid<Cell extends BoardCellView>({
   board,
   variant,
-  onSelect,
+  onSelect: selectClue,
   disabled = false,
   label,
 }: {
@@ -116,6 +107,7 @@ export function BoardGrid<Cell extends BoardCellView>({
   label?: string;
 }) {
   const id = useId();
+  const onSelect = variant === "host" ? selectClue : undefined;
   const [focusedClue, setFocusedClue] = useState<ClueId | null>(null);
   const buttons = useRef(new Map<ClueId, HTMLButtonElement>());
 
@@ -161,15 +153,20 @@ export function BoardGrid<Cell extends BoardCellView>({
         </p>
       ) : null}
       {board.categories.map((category, columnIndex) => {
-        const headingId = `board-${variant}-${board.roundIndex}-${columnIndex}`;
+        const headingId = `${id}-category-${columnIndex}`;
+        const titleSize =
+          category.title.length > 75 ? "long" : category.title.length > 36 ? "medium" : undefined;
         return (
           <section key={category.id} className="board__col" aria-labelledby={headingId}>
-            <h3 id={headingId} className="board__cat">
+            <h3 id={headingId} className="board__cat" data-length={titleSize}>
               <span>{category.title}</span>
             </h3>
             {category.cells.map((cell, rowIndex) => {
-              const wager = isWagerCell(cell);
+              const wager = variant === "host" && "wager" in cell && cell.wager === true;
               const value = formatScore(cell.value);
+              const size: CSSProperties & { "--value-length": number } = {
+                "--value-length": value.length,
+              };
               const className = `board__cell board__cell--${cell.state} ${wager ? "board__cell--wager" : ""}`;
               if (onSelect && cell.state === "available") {
                 return (
@@ -181,6 +178,7 @@ export function BoardGrid<Cell extends BoardCellView>({
                     }}
                     type="button"
                     className={className}
+                    style={size}
                     disabled={disabled}
                     tabIndex={cell.clueId === tabStop ? 0 : -1}
                     onFocus={() => setFocusedClue(cell.clueId)}
@@ -198,18 +196,14 @@ export function BoardGrid<Cell extends BoardCellView>({
                 );
               }
               return (
-                <div key={cell.clueId} className={className}>
-                  <span
-                    className="board__value"
-                    aria-hidden={cell.state === "completed" ? true : undefined}
-                  >
-                    {value}
-                  </span>
+                <div key={cell.clueId} className={className} style={size}>
                   {cell.state === "completed" ? (
-                    <span className="board__done" aria-hidden="true">
-                      done
+                    <span className="board__played" aria-hidden="true">
+                      –
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="board__value">{value}</span>
+                  )}
                   {cell.state === "active" ? (
                     <span className="board__now" aria-hidden="true">
                       now

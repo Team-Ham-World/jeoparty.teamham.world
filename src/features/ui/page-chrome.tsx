@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import type { AuthMode, SessionInfo } from "@/features/network/protocol";
 import { loginUrl } from "@/features/network/client/api";
 import { FixtureStamp, Lockup } from "./brand";
+import { StudioHero } from "./studio-hero";
 
 /** Plain words for the `auth_error` code the sign-in callback adds to the return address. */
 function authErrorMessage(code: string): string {
@@ -34,7 +36,7 @@ export function useAuthErrorMessage(): string | null {
   return message;
 }
 
-/** Top bar for the paper pages (home, packs, gates). */
+/** Top bar for the paper pages. Navigation and account controls use the session. */
 export function PageHeader({
   session,
   onSignOut,
@@ -44,37 +46,53 @@ export function PageHeader({
   onSignOut?: () => void;
   children?: ReactNode;
 }) {
+  const pathname = usePathname();
+  const onPacks = pathname === "/packs" || pathname?.startsWith("/packs/");
   return (
     <header className="topbar">
       <Lockup href="/" />
-      <div className="topbar__mid">{children}</div>
-      <div className="topbar__end">
-        {session?.authMode === "fixture" ? <FixtureStamp /> : null}
-        {session?.signedIn ? (
-          <>
-            <Link className="btn btn--quiet btn--small" href="/packs">
-              My packs
+      {session ? (
+        <nav className="topbar__nav" aria-label="Main navigation">
+          <Link href="/" aria-current={pathname === "/" ? "page" : undefined}>
+            Play
+          </Link>
+          {session.signedIn ? (
+            <Link href="/packs" aria-current={onPacks ? "page" : undefined}>
+              Pack library
             </Link>
-            <span className="account name" title="Signed in with HAM">
-              {session.user.name}
-            </span>
-            {onSignOut ? (
-              <button type="button" className="btn btn--small" onClick={onSignOut}>
-                Sign out
-              </button>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+          ) : null}
+        </nav>
+      ) : null}
+      {children ? <div className="topbar__mid">{children}</div> : null}
+      {session?.signedIn || session?.authMode === "fixture" ? (
+        <div className="topbar__end">
+          {session.authMode === "fixture" ? <FixtureStamp /> : null}
+          {session.signedIn ? (
+            <>
+              <span className="topbar__identity">
+                <span className="topbar__avatar" aria-hidden="true">
+                  {Array.from(session.user.name.trim())[0]?.toUpperCase()}
+                </span>
+                <span className="account name" title="Signed in with HAM">
+                  {session.user.name}
+                </span>
+              </span>
+              {onSignOut ? (
+                <button type="button" className="btn btn--quiet btn--small" onClick={onSignOut}>
+                  Sign out
+                </button>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </header>
   );
 }
 
 /**
- * Frame for a full-screen notice: loading, sign-in, errors, closed rooms.
- * On paper it draws the same top bar as the other paper pages (lockup only),
- * then a narrow column for the message. `tone="stage"` leaves the top bar out
- * for a notice drawn on the TV's ink stage.
+ * Card for loading, error and disconnected states. The stage version uses
+ * the TV's dark palette and fills the screen.
  */
 export function NoticeShell({
   children,
@@ -101,7 +119,7 @@ export function NoticeShell({
         className={tone === "stage" ? "notice notice--stage" : "notice"}
         aria-busy={busy || undefined}
       >
-        {children}
+        <div className="notice__content">{children}</div>
       </main>
     </>
   );
@@ -129,7 +147,7 @@ export function ErrorNotice({
 }) {
   return (
     <NoticeShell>
-      <span className="stamp stamp--ink">Hmm</span>
+      <span className="stamp stamp--bad">Error</span>
       <h1>{title}</h1>
       <p className="muted">{body}</p>
       <div className="row">
@@ -160,19 +178,22 @@ export function SignInNotice({
 }) {
   const authError = useAuthErrorMessage();
   return (
-    <NoticeShell>
-      <span className="stamp stamp--red">Sign in</span>
-      <h1>{title}</h1>
-      <p className="muted">{body}</p>
-      {authError ? (
-        <p className="field__error" role="alert">
-          {authError}
-        </p>
-      ) : null}
-      <a className="btn btn--primary btn--big" href={loginUrl(returnTo)}>
-        Sign in with HAM
-      </a>
-      {authMode === "fixture" ? <FixtureStamp /> : null}
-    </NoticeShell>
+    <div className="sign-in-shell">
+      <PageHeader />
+      <main id="main-content">
+        <StudioHero eyebrow="Account" title={title} description={body} />
+        <div className="panel sign-in__actions">
+          {authError ? (
+            <p className="field__error" role="alert">
+              {authError}
+            </p>
+          ) : null}
+          <a className="btn btn--primary btn--big" href={loginUrl(returnTo)}>
+            Sign in with HAM
+          </a>
+          {authMode === "fixture" ? <FixtureStamp /> : null}
+        </div>
+      </main>
+    </div>
   );
 }

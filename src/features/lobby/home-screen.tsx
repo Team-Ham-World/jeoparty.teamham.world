@@ -1,17 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { loginUrl } from "@/features/network/client/api";
 import {
   ROOM_CODE_ALPHABET,
   ROOM_CODE_PATTERN,
+  type CreateRoomRequest,
   type PackSummary,
   type RoomCode,
   type RoomSummary,
   type SessionInfo,
 } from "@/features/network/protocol";
-import { loginUrl } from "@/features/network/client/api";
 import { PageHeader, useAuthErrorMessage } from "@/features/ui/page-chrome";
+import { StudioHero } from "@/features/ui/studio-hero";
+import { CreateLobby } from "./create-lobby";
 import { OpenRooms } from "./open-rooms";
 
 /** Keep only room-code letters, uppercased: "bc d-fg" → "BCDFG". */
@@ -26,6 +29,7 @@ export function normalizeRoomCode(input: string): string {
 
 export interface HomeScreenProps {
   session: SessionInfo;
+  view?: "home" | "create" | "join";
   /** null while loading. */
   packs: PackSummary[] | null;
   packsError?: string | null;
@@ -34,13 +38,14 @@ export interface HomeScreenProps {
   openRoomsError?: string | null;
   onRetryOpenRooms?: () => void;
   onCloseRoom?: (code: RoomCode) => Promise<void>;
-  onCreateGame: (packId: string | undefined) => Promise<void>;
+  onCreateGame: (request: CreateRoomRequest) => Promise<void>;
   onJoin: (code: string) => void;
   onSignOut: () => void;
 }
 
 export function HomeScreen({
   session,
+  view = "home",
   packs,
   packsError,
   openRooms = [],
@@ -52,210 +57,161 @@ export function HomeScreen({
   onSignOut,
 }: HomeScreenProps) {
   const authError = useAuthErrorMessage();
+  const page = session.signedIn ? view : "signin";
+  const main = useRef<HTMLElement>(null);
+  const previousPage = useRef(page);
+
+  useEffect(() => {
+    if (previousPage.current !== page) main.current?.focus();
+    previousPage.current = page;
+  }, [page]);
+
   return (
-    <>
+    <div className="home-shell">
       <PageHeader session={session} onSignOut={onSignOut} />
-      <main id="main-content" className="page home">
-        <section className="home-hero" aria-labelledby="home-title">
-          <span className="stamp stamp--red">Quiz night</span>
-          <h1 id="home-title" className="home-hero__title">
-            Pick a clue.
-            <br />
-            <span className="marker">Beat your friends</span>{" "}
-            <span className="nowrap">to the buzzer.</span>
-          </h1>
-          <p className="home-hero__lede">
-            One of you hosts from a laptop, the board goes up on the TV, and everyone else buzzes in
-            from their phone.
-          </p>
-        </section>
-
-        {session.signedIn ? (
-          <OpenRooms
-            rooms={openRooms}
-            error={openRoomsError}
-            onRetry={onRetryOpenRooms}
-            onClose={onCloseRoom}
-          />
-        ) : null}
-
-        {session.signedIn ? (
-          <div className="home-actions">
-            <HostCard packs={packs} packsError={packsError ?? null} onCreateGame={onCreateGame} />
-            <JoinCard onJoin={onJoin} />
-          </div>
-        ) : (
-          <section className="panel taped home-signin" aria-labelledby="signin-title">
-            <h2 id="signin-title">Sign in to host or play</h2>
-            <p className="muted">
-              HAM Quiz is for HAM friends. Sign in with your HAM account and you&apos;ll come right
-              back here.
-            </p>
-            {authError ? (
-              <p className="field__error" role="alert">
-                {authError}
-              </p>
-            ) : null}
-            <div className="row">
-              <a className="btn btn--primary btn--big" href={loginUrl("/")}>
-                Sign in with HAM
-              </a>
+      <main id="main-content" className="home" tabIndex={-1} ref={main}>
+        {page === "signin" ? (
+          <>
+            <StudioHero
+              eyebrow="Account"
+              title={
+                <>
+                  Sign <em>in.</em>
+                </>
+              }
+              description="Use your HAM account to host or take a seat."
+            />
+            <div className="home-body">
+              <section className="home-card home-signin" aria-labelledby="signin-title">
+                <h2 id="signin-title">Continue with HAM</h2>
+                {authError ? (
+                  <p className="field__error" role="alert">
+                    {authError}
+                  </p>
+                ) : null}
+                <a
+                  className="btn btn--primary"
+                  href={loginUrl(view === "home" ? "/" : `/?view=${view}`)}
+                >
+                  Sign in with HAM
+                </a>
+              </section>
             </div>
-          </section>
+          </>
+        ) : page === "join" ? (
+          <JoinScreen onJoin={onJoin} />
+        ) : (
+          <>
+            {page === "create" ? (
+              <CreateLobby
+                packs={packs}
+                packsError={packsError ?? null}
+                onCreateGame={onCreateGame}
+              />
+            ) : (
+              <>
+                <StudioHero
+                  eyebrow="HAM Network"
+                  title={
+                    <>
+                      HAM <em>QUIZ</em>
+                    </>
+                  }
+                  description="One host, one big screen, and a buzzer on every phone."
+                />
+                <div className="home-body home-actions">
+                  <section className="home-card" aria-labelledby="home-host-title">
+                    <h2 id="home-host-title">Host a game</h2>
+                    <p className="muted">Pick a question pack and invite your players.</p>
+                    <Link className="btn btn--primary" href="/?view=create">
+                      Create a lobby <span aria-hidden="true">→</span>
+                    </Link>
+                  </section>
+                  <section className="home-card" aria-labelledby="home-join-title">
+                    <h2 id="home-join-title">Join a game</h2>
+                    <p className="muted">Enter the five-letter code from the TV.</p>
+                    <Link className="btn btn--quiet" href="/?view=join">
+                      Enter room code
+                    </Link>
+                  </section>
+                </div>
+              </>
+            )}
+            <OpenRooms
+              rooms={openRooms}
+              error={openRoomsError}
+              onRetry={onRetryOpenRooms}
+              onClose={onCloseRoom}
+            />
+          </>
         )}
-
-        <section className="home-how" aria-labelledby="how-title">
-          <h2 id="how-title" className="eyebrow">
-            How a game works
-          </h2>
-          <ol className="home-steps">
-            <li>
-              <strong>The host</strong> creates a game, picks a question pack and puts the board on
-              a TV with the display link.
-            </li>
-            <li>
-              <strong>Players (2–6)</strong> join with the 5-letter room code and use their phone as
-              a buzzer.
-            </li>
-            <li>
-              <strong>The host</strong> reads each clue, opens the buzzers and judges answers.
-              Highest score wins.
-            </li>
-          </ol>
-        </section>
       </main>
-    </>
+    </div>
   );
 }
 
-function HostCard({
-  packs,
-  packsError,
-  onCreateGame,
-}: {
-  packs: PackSummary[] | null;
-  packsError: string | null;
-  onCreateGame: (packId: string | undefined) => Promise<void>;
-}) {
-  const id = useId();
-  const [packId, setPackId] = useState<string>("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const chosen = packId || packs?.[0]?.id || "";
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await onCreateGame(chosen || undefined);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't create the game. Try again.");
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section className="panel home-card home-card--host" aria-labelledby={`${id}-title`}>
-      <h2 id={`${id}-title`}>Host a game</h2>
-      <p className="muted">You run the show and keep score. Hosts don&apos;t play.</p>
-      <form className="stack" onSubmit={submit}>
-        <div className="field">
-          <label className="field__label" htmlFor={`${id}-pack`}>
-            Question pack
-          </label>
-          <select
-            id={`${id}-pack`}
-            className="input"
-            value={chosen}
-            onChange={(event) => setPackId(event.target.value)}
-            disabled={!packs || packs.length === 0}
-          >
-            {packs === null ? <option value="">Loading packs…</option> : null}
-            {packs?.map((pack) => (
-              <option key={pack.id} value={pack.id}>
-                {pack.title}
-                {pack.source === "mine" ? " (mine)" : ""} · {pack.categories}×
-                {pack.cluesPerCategory}
-              </option>
-            ))}
-          </select>
-          <span className="field__hint">You can change it in the lobby too.</span>
-          {packsError ? <span className="field__error">{packsError}</span> : null}
-        </div>
-        {error ? (
-          <p className="field__error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <div className="row">
-          <button
-            type="submit"
-            className="btn btn--primary btn--big"
-            disabled={busy}
-            aria-busy={busy || undefined}
-          >
-            {busy ? "Creating…" : "Create game"}
-          </button>
-          <Link className="btn btn--quiet" href="/packs">
-            Make your own pack
-          </Link>
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function JoinCard({ onJoin }: { onJoin: (code: string) => void }) {
+function JoinScreen({ onJoin }: { onJoin: (code: RoomCode) => void }) {
   const id = useId();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!ROOM_CODE_PATTERN.test(code)) {
       setError("Room codes are 5 letters with no vowels, like BCDFG.");
+      input.current?.focus();
       return;
     }
     onJoin(code);
   }
 
   return (
-    <section className="panel home-card home-card--join" aria-labelledby={`${id}-title`}>
-      <h2 id={`${id}-title`}>Join a game</h2>
-      <p className="muted">Enter the code from the big screen.</p>
-      <form className="stack" onSubmit={submit} noValidate>
-        <div className="field">
-          <label className="field__label" htmlFor={`${id}-code`}>
-            Room code
-          </label>
-          <input
-            id={`${id}-code`}
-            className="input input--code"
-            value={code}
-            onChange={(event) => {
-              setCode(normalizeRoomCode(event.target.value));
-              setError(null);
-            }}
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${id}-hint ${id}-error` : `${id}-hint`}
-          />
-          <span id={`${id}-hint`} className="field__hint">
-            5 letters, no vowels.
-          </span>
-          {error ? (
-            <span id={`${id}-error`} className="field__error" role="alert">
-              {error}
+    <>
+      <StudioHero
+        eyebrow="Player entrance"
+        title={
+          <>
+            Join a <em>game.</em>
+          </>
+        }
+        description="Use the five-letter code on the host’s screen."
+      />
+      <div className="home-body">
+        <form className="home-join" onSubmit={submit} noValidate>
+          <div className="field">
+            <label className="field__label" htmlFor={`${id}-code`}>
+              Room code
+            </label>
+            <input
+              id={`${id}-code`}
+              className="input input--code"
+              value={code}
+              ref={input}
+              onChange={(event) => {
+                setCode(normalizeRoomCode(event.target.value));
+                setError(null);
+              }}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${id}-hint ${id}-error` : `${id}-hint`}
+            />
+            <span id={`${id}-hint`} className="field__hint">
+              5 letters, no vowels.
             </span>
-          ) : null}
-        </div>
-        <button type="submit" className="btn btn--primary btn--big">
-          Join
-        </button>
-      </form>
-    </section>
+            {error ? (
+              <span id={`${id}-error`} className="field__error" role="alert">
+                {error}
+              </span>
+            ) : null}
+          </div>
+          <button type="submit" className="btn btn--primary">
+            Join <span aria-hidden="true">→</span>
+          </button>
+        </form>
+      </div>
+    </>
   );
 }

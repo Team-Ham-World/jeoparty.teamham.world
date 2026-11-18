@@ -38,11 +38,64 @@ describe("player screen", () => {
 
   it("does not link the logo home during play, so a stray tap can't leave the buzzer", () => {
     for (const spec of [SPECS.open, SPECS.board, SPECS.finalWagers]) {
-      const { unmount } = renderView(playerOf(spec, "p-medchu", { can: { buzz: true } }));
+      const { container, unmount } = renderView(
+        playerOf(spec, "p-medchu", { can: { buzz: true } }),
+      );
       expect(homeLink()).toBeNull();
-      expect(screen.getByLabelText("HAM")).toBeInTheDocument(); // the lockup is still drawn
+      expect(container.querySelector(".lockup")).toHaveTextContent("Quiz");
       unmount();
     }
+  });
+
+  it.each([
+    {
+      spec: SPECS.wager,
+      can: { wager: { min: 5, max: 1200 } },
+      field: "Your wager",
+      draft: "300",
+      submit: "Lock in wager",
+      command: { type: "submitWager", clueId: SPECS.wager.clue!.clueId, amount: 300 },
+    },
+    {
+      spec: SPECS.finalWagers,
+      can: { finalWager: { min: 0, max: 1200 } },
+      field: "Your wager",
+      draft: "400",
+      submit: "Save wager",
+      command: { type: "submitFinalWager", amount: 400 },
+    },
+    {
+      spec: SPECS.finalAnswering,
+      can: { finalAnswer: true },
+      field: "Your answer",
+      draft: "What is HAL 9000?",
+      submit: "Submit answer",
+      command: { type: "submitFinalAnswer", text: "What is HAL 9000?" },
+    },
+  ])("keeps the draft through a reconnect before $submit", async (test) => {
+    const view = playerOf(test.spec, "p-ivvy", { can: test.can });
+    const onSend = vi.fn();
+    const phone = (status: "live" | "reconnecting") => (
+      <PlayerScreen code="BCDFG" connection={mockConnection(view, { status, onSend })} />
+    );
+    const { rerender } = render(phone("live"));
+    const field = screen.getByLabelText(test.field);
+    const submit = screen.getByRole("button", { name: test.submit });
+    fireEvent.change(field, { target: { value: test.draft } });
+
+    rerender(phone("reconnecting"));
+    expect(screen.getByText(/Connection lost/)).toBeVisible();
+    expect(field).toHaveValue(test.draft);
+    expect(field).toBeDisabled();
+    expect(submit).toBeDisabled();
+    fireEvent.click(submit);
+    expect(onSend).not.toHaveBeenCalled();
+
+    rerender(phone("live"));
+    expect(field).toHaveValue(test.draft);
+    expect(field).toBeEnabled();
+    await act(async () => fireEvent.click(submit));
+    expect(onSend).toHaveBeenCalledExactlyOnceWith(test.command);
   });
 
   it("puts the 'Your pick' stamp under the player's own name", () => {

@@ -10,6 +10,7 @@ import type {
   PlayerCommand,
   PlayerView,
   RejectionCode,
+  SettingsPatch,
 } from "@/features/engine/contract";
 
 export const PROTOCOL_VERSION = 3 as const;
@@ -118,7 +119,7 @@ export const WS_CLOSE = {
 //   POST   /api/pictures                    image/jpeg → UploadPictureResponse
 //   GET    /api/pictures/:id                → image/jpeg (also HEAD; public, unguessable id)
 //
-// Login return paths allowed: "/", "/r/CODE", "/host/CODE", "/packs", "/packs/ID".
+// Login return paths allowed: "/" (also "?view=create" and "?view=join"), "/r/CODE", "/host/CODE", "/packs", "/packs/ID".
 
 export const CSRF_HEADER = "x-quiz-csrf";
 
@@ -137,6 +138,8 @@ export type SessionInfo =
 export interface CreateRoomRequest {
   /** Defaults to the first built-in pack. */
   packId?: string;
+  /** Applied to the chosen pack’s defaults before the lobby opens. */
+  settings?: SettingsPatch;
 }
 
 export interface CreateRoomResponse {

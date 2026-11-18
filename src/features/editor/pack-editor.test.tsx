@@ -14,10 +14,10 @@ import { ToastProvider } from "@/features/ui/toasts";
 import { fakeBrowserImages } from "@/test/fake-images";
 import { packDraftKey } from "./pack-autosave";
 import {
+  blankCategory,
   blankPack,
   describePath,
   exportFileName,
-  fieldId,
   packForSave,
   updateClue,
   updateFinal,
@@ -110,8 +110,10 @@ describe("pack editor", () => {
     const title = screen.getByLabelText("Title");
     expect(title).toHaveAttribute("aria-invalid", "true");
     expect(title).toHaveAccessibleDescription("Title is already used by another pack.");
-    const finalAnswer = document.getElementById(fieldId(`${finalCluePath(0)}.answer`));
+    fireEvent.click(screen.getByRole("link", { name: "Things · final clue answer" }));
+    const finalAnswer = screen.getByLabelText("Final answer");
     expect(finalAnswer).toHaveAttribute("aria-invalid", "true");
+    expect(finalAnswer).toHaveFocus();
     expect(screen.getByText("2 problems to fix")).toBeVisible();
   });
 
@@ -187,6 +189,67 @@ function editor(props: Partial<Parameters<typeof PackEditor>[0]> & { initial: Qu
 function rename(title: string) {
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: title } });
 }
+
+function selectClue(name: string) {
+  const option = screen.getByRole("option", { name });
+  fireEvent.change(screen.getByRole("combobox", { name: "Clue" }), {
+    target: { value: option.getAttribute("value") },
+  });
+}
+
+describe("pack contents", () => {
+  it("keeps edits when switching clues, and follows the selected clue when reordering", () => {
+    render(editor({ initial: filledPack() }));
+    selectClue("Clue 2");
+    fireEvent.change(screen.getByLabelText("Clue 2"), { target: { value: "Edited second" } });
+    selectClue("Final clue");
+    expect(screen.getByLabelText("Final clue")).toHaveValue("Final prompt");
+    expect(screen.queryByRole("combobox", { name: "Point tier" })).toBeNull();
+    selectClue("Clue 2");
+    fireEvent.click(screen.getByRole("button", { name: "Move clue 2 up" }));
+    expect(screen.getByLabelText("Clue 1")).toHaveValue("Edited second");
+    selectClue("Clue 2");
+    expect(screen.getByLabelText("Clue 2")).toHaveValue("Prompt 0");
+  });
+
+  it("selects new categories and clues and keeps the remaining category after removal", () => {
+    render(editor({ initial: filledPack() }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Add category" }));
+    expect(screen.getByLabelText("Category title")).toHaveValue("");
+    fireEvent.click(screen.getByRole("button", { name: "Remove clue 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Add clue" }));
+    expect(screen.getByLabelText("Clue 5")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Move Category 2 up" }));
+    expect(screen.getByLabelText("Clue 5")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Category 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove category" }));
+    expect(screen.getByLabelText("Category title")).toHaveValue("Things");
+    expect(screen.getByLabelText("Clue 1")).toHaveValue("Prompt 0");
+  });
+
+  it("opens a different category's field and the scoring disclosure from validation links", () => {
+    const pack = filledPack();
+    render(
+      editor({
+        initial: { ...pack, categories: [...pack.categories, blankCategory()] },
+        initialErrors: [
+          { path: "categories[1].clues[3].answer", message: "Expected a non-empty string." },
+          { path: "scoring.rounds[0].pointsByTier.1", message: "Use more than zero." },
+        ],
+      }),
+    );
+    fireEvent.click(screen.getByRole("link", { name: "Category 2 · clue 4 answer" }));
+    expect(screen.getByLabelText("Clue 4")).toBeVisible();
+    expect(screen.getByLabelText("Answer")).toHaveFocus();
+    expect(screen.getByLabelText("Answer")).toHaveAccessibleDescription("Can't be empty.");
+
+    fireEvent.click(screen.getByRole("link", { name: "Scoring round 1 · tier 1" }));
+    const points = screen.getByLabelText("Round 1, tier 1 points");
+    expect(points).toBeVisible();
+    expect(points).toHaveFocus();
+    expect(points).toHaveAttribute("aria-invalid", "true");
+  });
+});
 
 describe("unsaved draft recovery", () => {
   const key = packDraftKey("account-1", "pack-1");
@@ -408,14 +471,9 @@ describe("clue pictures", () => {
   });
 
   function pendingUpload() {
-    let finish: (id: PictureId) => void = () => {};
-    const upload = vi.fn<(jpeg: Blob) => Promise<PictureId>>(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
-    );
-    return { upload, finish: (id: PictureId) => act(async () => finish(id)) };
+    const { promise, resolve } = Promise.withResolvers<PictureId>();
+    const upload = vi.fn<(jpeg: Blob) => Promise<PictureId>>(() => promise);
+    return { upload, finish: (id: PictureId) => act(async () => resolve(id)) };
   }
 
   function pick(label: string, file: File) {
@@ -457,6 +515,7 @@ describe("clue pictures", () => {
     fakeBrowserImages();
     const upload = vi.fn(async () => NEW);
     render(editor({ initial: filledPack(), onUploadPicture: upload }));
+    selectClue("Clue 2");
     const prompt = screen.getByLabelText("Clue 2");
 
     const textPaste = createEvent.paste(prompt, { clipboardData: { files: [] } });
@@ -468,12 +527,14 @@ describe("clue pictures", () => {
     fireEvent(prompt, picturePaste);
     expect(picturePaste.defaultPrevented).toBe(true);
     await screen.findByRole("button", { name: "Replace picture for clue 2" });
+    selectClue("Clue 1");
     expect(screen.getByRole("button", { name: "Add picture for clue 1" })).toBeInTheDocument();
   });
 
   it("attaches a picture dropped on the final clue", async () => {
     fakeBrowserImages();
     render(editor({ initial: filledPack(), onUploadPicture: async () => NEW }));
+    selectClue("Final clue");
     fireEvent.drop(screen.getByLabelText("Final clue"), { dataTransfer: { files: [png()] } });
     await screen.findByRole("button", { name: "Replace picture for the final clue" });
   });
@@ -492,6 +553,20 @@ describe("clue pictures", () => {
     await finish(NEW);
     expect(screen.getByRole("button", { name: "Replace picture for clue 1" })).toBeVisible();
     for (const button of saveButtons()) expect(button).toBeEnabled();
+  });
+
+  it("finishes an upload on the original clue after switching to another clue", async () => {
+    fakeBrowserImages();
+    const { upload, finish } = pendingUpload();
+    render(editor({ initial: filledPack(), onUploadPicture: upload }));
+    pick("clue 1", png());
+    selectClue("Clue 2");
+    for (const button of saveButtons()) expect(button).toBeDisabled();
+
+    await finish(NEW);
+    expect(screen.getByRole("button", { name: "Add picture for clue 2" })).toBeVisible();
+    selectClue("Clue 1");
+    expect(screen.getByRole("img")).toHaveAttribute("src", `/api/pictures/${NEW}`);
   });
 
   it("drops an upload that finishes after its picture was removed", async () => {

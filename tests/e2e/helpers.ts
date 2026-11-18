@@ -57,19 +57,18 @@ export async function signIn(page: Page, username: string, returnTo = "/"): Prom
   await page.waitForURL((url) => url.pathname === returnTo);
 }
 
-/** Signs in on the home page and creates a game with the pack whose title starts with `packTitle`. Returns the room code. */
+/** Open the create screen from the signed-in landing page and choose a pack. */
+export async function chooseLobbyPack(host: Page, packTitle: string): Promise<void> {
+  await host.getByRole("link", { name: "Create a lobby" }).click();
+  await host.getByRole("button", { name: packTitle }).click();
+}
+
 export async function createGame(host: Page, username: string, packTitle: string): Promise<string> {
   await signIn(host, username, "/");
-  const select = host.getByLabel("Question pack");
-  await expect(select.locator("option", { hasText: packTitle }).first()).toBeAttached();
-  const label = (await select.locator("option").allInnerTexts()).find((text) =>
-    text.startsWith(packTitle),
-  );
-  if (!label) throw new Error(`No pack starting with ${packTitle}`);
-  await select.selectOption({ label });
+  await chooseLobbyPack(host, packTitle);
   await host.getByRole("button", { name: "Create game" }).click();
   await host.waitForURL(/\/host\/[A-Z]{5}$/);
-  await expect(host.getByRole("heading", { name: "Set up the game" })).toBeVisible();
+  await expect(host.getByRole("button", { name: "Start game" })).toBeVisible();
   return host.url().split("/").pop()!;
 }
 
@@ -111,6 +110,7 @@ export async function saveSettings(
   host: Page,
   changes: (host: Page) => Promise<void>,
 ): Promise<void> {
+  await host.getByText("Edit setup", { exact: true }).click();
   await changes(host);
   await host.getByRole("button", { name: "Save settings" }).click();
   await expect(
@@ -154,11 +154,6 @@ export async function revealAndReturn(host: Page): Promise<void> {
   await host.getByRole("button", { name: /^Reveal answer/ }).click();
   await host.getByRole("button", { name: /^Back to board/ }).click();
   await expect(hostCluePanel(host)).toBeHidden();
-}
-
-/** Name of the player the host's screen says picks next. */
-export async function controllerName(host: Page): Promise<string> {
-  return (await host.locator(".host-picker strong.name").innerText()).trim();
 }
 
 /** The phone's own score as shown in its header. */

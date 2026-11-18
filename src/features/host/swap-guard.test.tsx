@@ -72,7 +72,7 @@ describe("host swap guard", () => {
     vi.useFakeTimers();
     const onSend = vi.fn<(cmd: ClientCommand) => void>();
     const { container, rerender } = render(hostScreen("answering", onSend));
-    const main = () => container.querySelector<HTMLElement>("#main-content")!;
+    const main = () => container.querySelector<HTMLElement>(".host-main")!;
     expect(main().style.pointerEvents).toBe("");
 
     rerender(hostScreen("reading", onSend));
@@ -92,7 +92,7 @@ describe("host swap guard", () => {
     expect(onSend).toHaveBeenCalledExactlyOnceWith(OPEN);
   });
 
-  it("leaves the top bar clickable while the main area settles", async () => {
+  it("leaves pause clickable while the clue controls settle", async () => {
     vi.useFakeTimers();
     const onSend = vi.fn<(cmd: ClientCommand) => void>();
     const { rerender } = render(hostScreen("answering", onSend));

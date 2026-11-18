@@ -1,22 +1,12 @@
 import { pictureOf } from "@/features/content";
 import type { QuestionPack } from "@/features/content";
+import { defaultSettingsForBoard } from "./settings";
 import { MIN_WAGER } from "./contract";
 import type { GameEvent, GameSettings, PauseReason, ResultsView, TimerKind } from "./contract";
 import type { GameState } from "./state";
 
 export function defaultSettings(pack: QuestionPack): GameSettings {
-  const categoriesPerRound = Math.min(6, pack.categories.length);
-  const rounds = pack.categories.length >= 2 * categoriesPerRound ? 2 : 1;
-  const cells = categoriesPerRound * pack.dimensions.cluesPerCategory;
-  return {
-    categoriesPerRound,
-    rounds,
-    wagerClues: [Math.min(1, cells), Math.min(2, cells)],
-    finalRound: true,
-    fairBuzzing: true,
-    falseStartLockout: true,
-    timers: { enabled: true, buzzWindowMs: 10_000, answerWindowMs: 10_000, finalAnswerMs: 45_000 },
-  };
+  return defaultSettingsForBoard(pack.dimensions);
 }
 
 export function validSettings(settings: GameSettings, pack: QuestionPack): boolean {

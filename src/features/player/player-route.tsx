@@ -9,17 +9,19 @@ import {
   getRoom,
   joinRoom,
   leaveRoom,
+  loginUrl,
 } from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
-import { ROOM_CODE_PATTERN, type RoomSummary } from "@/features/network/protocol";
+import { ROOM_CODE_PATTERN, type AuthMode, type RoomSummary } from "@/features/network/protocol";
+import { FixtureStamp } from "@/features/ui/brand";
 import {
   ErrorNotice,
   LoadingNotice,
   NoticeShell,
-  PageHeader,
-  SignInNotice,
+  useAuthErrorMessage,
 } from "@/features/ui/page-chrome";
 import { useSession } from "@/features/ui/session";
+import { PlayerHandset, PlayerHeader } from "./player-handset";
 import { PlayerScreen } from "./player-screen";
 
 /** /r/CODE: sign-in gate → room summary → join → live play. */
@@ -28,35 +30,63 @@ export function PlayerRoute({ code }: { code: string }) {
 
   if (!ROOM_CODE_PATTERN.test(code)) {
     return (
-      <ErrorNotice
-        title={`“${code}” isn't a room code`}
-        body="Room codes are 5 letters with no vowels, like BCDFG. Check the code on the big screen."
-      />
+      <PlayerHandset>
+        <ErrorNotice
+          title={`“${code}” isn't a room code`}
+          body="Room codes are 5 letters with no vowels, like BCDFG. Check the code on the big screen."
+        />
+      </PlayerHandset>
     );
   }
-  if (session.status === "loading") return <LoadingNotice label="Checking your sign-in" />;
+  if (session.status === "loading")
+    return (
+      <PlayerHandset>
+        <LoadingNotice label="Checking your sign-in" />
+      </PlayerHandset>
+    );
   if (session.status === "error")
     return (
-      <ErrorNotice
-        title="Can't reach the quiz server"
-        body={session.message}
-        onRetry={session.reload}
-      />
+      <PlayerHandset>
+        <ErrorNotice
+          title="Can't reach the quiz server"
+          body={session.message}
+          onRetry={session.reload}
+        />
+      </PlayerHandset>
     );
   if (!session.session.signedIn) {
-    return (
-      <SignInNotice
-        returnTo={`/r/${code}`}
-        authMode={session.session.authMode}
-        title={`Join room ${code}`}
-        body="Sign in with your HAM account to grab a buzzer. You'll come straight back here."
-      />
-    );
+    return <PlayerSignIn code={code} authMode={session.session.authMode} />;
   }
-  return <PlayerGate code={code} csrf={session.session.csrfToken} />;
+  return (
+    <PlayerGate code={code} csrf={session.session.csrfToken} name={session.session.user.name} />
+  );
 }
 
-function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
+function PlayerSignIn({ code, authMode }: { code: string; authMode: AuthMode }) {
+  const authError = useAuthErrorMessage();
+  return (
+    <PlayerHandset className="pl--join">
+      <PlayerHeader code={code} />
+      <main id="main-content" className="pl-main">
+        <div className="join-card stack">
+          <h1 className="pl-big">Join room {code}</h1>
+          <p className="muted">Sign in with HAM to join. You&apos;ll come straight back here.</p>
+          {authError ? (
+            <p className="field__error" role="alert">
+              {authError}
+            </p>
+          ) : null}
+          <a className="btn btn--primary btn--big" href={loginUrl(`/r/${code}`)}>
+            Sign in with HAM
+          </a>
+          {authMode === "fixture" ? <FixtureStamp /> : null}
+        </div>
+      </main>
+    </PlayerHandset>
+  );
+}
+
+function PlayerGate({ code, csrf, name }: { code: string; csrf: string; name: string }) {
   const [room, setRoom] = useState<
     | { status: "loading" }
     | { status: "ready"; summary: RoomSummary }
@@ -81,22 +111,31 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
     };
   }, [code, attempt]);
 
-  if (room.status === "loading") return <LoadingNotice label={`Finding room ${code}`} />;
+  if (room.status === "loading")
+    return (
+      <PlayerHandset>
+        <LoadingNotice label={`Finding room ${code}`} />
+      </PlayerHandset>
+    );
   if (room.status === "error") {
     if (room.error instanceof ApiError && room.error.code === "notFound") {
       return (
-        <ErrorNotice
-          title={`No room ${code}`}
-          body="That room doesn't exist or has closed. Check the code with your host."
-        />
+        <PlayerHandset>
+          <ErrorNotice
+            title={`No room ${code}`}
+            body="That room doesn't exist or has closed. Check the code with your host."
+          />
+        </PlayerHandset>
       );
     }
     return (
-      <ErrorNotice
-        title="Can't load this room"
-        body={errorMessage(room.error)}
-        onRetry={() => setAttempt((n) => n + 1)}
-      />
+      <PlayerHandset>
+        <ErrorNotice
+          title="Can't load this room"
+          body={errorMessage(room.error)}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
+      </PlayerHandset>
     );
   }
 
@@ -106,16 +145,15 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
 
   if (summary.myRole === "host") {
     return (
-      <NoticeShell>
-        <span className="stamp stamp--blue">You&apos;re the host</span>
-        <h1>You&apos;re hosting room {code}</h1>
-        <p className="muted">
-          Hosts run the game and don&apos;t play. Open the control room instead.
-        </p>
-        <Link className="btn btn--primary btn--big" href={`/host/${code}`}>
-          Open the control room
-        </Link>
-      </NoticeShell>
+      <PlayerHandset>
+        <NoticeShell>
+          <h1>You&apos;re hosting room {code}</h1>
+          <p className="muted">Open the control room to run the game.</p>
+          <Link className="btn btn--primary btn--big" href={`/host/${code}`}>
+            Open the control room
+          </Link>
+        </NoticeShell>
+      </PlayerHandset>
     );
   }
 
@@ -160,14 +198,18 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
 
   const playing = summary.status !== "lobby";
   return (
-    <>
-      <PageHeader />
-      <main id="main-content" className="page page--narrow">
-        <section className="panel taped join-card" aria-labelledby="join-title">
-          <span className="stamp stamp--red">Room {code}</span>
-          <h1 id="join-title">
+    <PlayerHandset className="pl--join">
+      <PlayerHeader code={code} />
+      <main id="main-content" className="pl-main">
+        <section className="join-card stack" aria-labelledby="join-title">
+          <h1 id="join-title" className="pl-big">
             {playing ? "A game is in progress" : `Join ${summary.hostName}'s game`}
           </h1>
+          <p className="muted">
+            {playing
+              ? "Join now and wait for a seat in the next game."
+              : "Use your phone to buzz in. Follow the clues on the big screen."}
+          </p>
           <dl className="join-facts">
             <div>
               <dt>Host</dt>
@@ -190,11 +232,6 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
               </dd>
             </div>
           </dl>
-          <p className="muted">
-            {playing
-              ? "You can join now and you'll be in for the next game when the host chooses Play again."
-              : "Your phone becomes your buzzer. The board and questions show on the big screen."}
-          </p>
           {full ? (
             <div className="banner banner--bad join-alert" role="alert">
               <span>This game is full</span>
@@ -227,9 +264,12 @@ function PlayerGate({ code, csrf }: { code: string; csrf: string }) {
               {joining ? "Joining…" : playing ? "Join the next game" : "Join game"}
             </button>
           )}
+          <p className="pl-join-account muted">
+            Playing as <strong className="name">{name}</strong>
+          </p>
         </section>
       </main>
-    </>
+    </PlayerHandset>
   );
 }
 

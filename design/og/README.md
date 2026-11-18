@@ -6,17 +6,13 @@ The shipped cards are `public/og/home.png` and `public/og/invite.png`, each 1200
 
 Use Node 24, run `npm ci`, then `npm run render:og`. The script uses Playwright Chromium with `--no-sandbox` and Sharp to produce palette PNGs under 300 KB. It uses an installed headless shell from the Playwright cache, or `PLAYWRIGHT_CHROMIUM_PATH`.
 
-Edit the copy in `scripts/og/render.mjs`, and the layout in `design/og/card.html`. Fonts come from the installed Fontsource packages. The script extracts the original SVG path from `src/features/ui/ham-wordmark.tsx` on every render. The model never drew the wordmark or any text.
+Edit the copy in `scripts/og/render.mjs` and the layout and CSS artwork in `design/og/card.html`. The dark studio backdrop, peach accents and retro TV match the broadcast-studio reference. Fonts come from the installed Fontsource packages. The script extracts the original SVG path from `src/features/ui/ham-wordmark.tsx` on every render.
 
-For review copies, run `npm run render:og -- /absolute/output/directory`. This also writes self-contained HTML and 400×210 PNGs. The default writes only the two production PNGs. `OG_HOME_ART` and `OG_INVITE_ART` can point at alternate artwork when comparing candidates.
+For review copies, run `npm run render:og -- /absolute/output/directory`. This also writes self-contained HTML and 400×210 PNGs. The default writes only the two production PNGs. Set `OG_HOME_ART` or `OG_INVITE_ART` to a local image path to render that card with an alternate backdrop.
 
-## Artwork and selection
+## Previous artwork
 
-The built-in imagegen tool generated four text-free paper collages. Their complete prompts are in `prompts.json`. Selected artwork is stored as `home-art.jpg` and `invite-art.jpg`; rendering needs no network access or new generation. These JPEG layers preserve the selected art at card resolution. All text, the traced HAM graphic, the yellow labels, red underline and invitation stamp are deterministic HTML/CSS.
-
-Two finished candidates per card were inspected at 1200×630 and 400×210. Home A won because its paper board communicates the game more clearly than B's unlabelled clue slips. Invite A won because its large buzzer reads more clearly at chat size than B's larger envelope. The final cards share the same typography, margins, cream paper and blue accent. There is no room code in the invite artwork.
-
-Rejected images stay outside the repository. The render script can compare future artwork without changing the shipped source.
+`home-art.jpg`, `invite-art.jpg` and `prompts.json` record the previous paper-collage design. The current cards render offline from the template and local fonts.
 
 ## Metadata and serving
 

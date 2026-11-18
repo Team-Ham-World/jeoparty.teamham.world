@@ -17,7 +17,10 @@ const mocks = vi.hoisted(() => ({
   leaveRoom: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: mocks.push }),
+}));
 vi.mock("@/features/ui/session", () => ({
   useSession: () => ({
     status: "ready",
@@ -43,8 +46,8 @@ function show(view: HostView) {
 async function openRoute(view: HostView) {
   show(view);
   const result = render(<HostRoute code="BCDFG" />);
-  await screen.findByRole("banner");
   await act(async () => {});
+  expect(screen.getByRole("banner", { name: "Host desk" })).toBeInTheDocument();
   return result;
 }
 
@@ -65,7 +68,7 @@ describe("closing the room", () => {
     "closes from %s after a warning, then goes home",
     async (id) => {
       await openRoute(hostFixture(id));
-      await click("Close room");
+      await click("Close room", within(screen.getByRole("banner", { name: "Host desk" })));
       const dialog = within(screen.getByRole("dialog"));
       expect(dialog.getByText(/Everyone in the room is disconnected/)).toBeVisible();
       expect(mocks.leaveRoom).not.toHaveBeenCalled();
@@ -85,7 +88,7 @@ describe("closing the room", () => {
   it("tells the host when it fails and stays put", async () => {
     mocks.leaveRoom.mockRejectedValue(new ApiError(500, "internal", "The server hiccuped."));
     await openRoute(hostFixture("lobby"));
-    await click("Close room");
+    await click("Close room", within(screen.getByRole("banner", { name: "Host desk" })));
     await click("Close room", within(screen.getByRole("dialog")));
 
     expect(screen.getByText("Couldn't close the room. The server hiccuped.")).toBeVisible();
@@ -132,6 +135,7 @@ describe("the TV link", () => {
 describe("the pack list", () => {
   it("refreshes when the tab regains focus", async () => {
     await openRoute(hostFixture("lobby"));
+    fireEvent.click(screen.getByText("Edit setup", { exact: true }));
     expect(mocks.listPacks).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("option", { name: /Renamed Pack/ })).toBeNull();
 

@@ -5,6 +5,8 @@ import { ROOM_CODE_PATTERN } from "@/features/network/protocol";
 export function isSafeReturnPath(path: string): boolean {
   return (
     path === "/" ||
+    path === "/?view=create" ||
+    path === "/?view=join" ||
     path === "/packs" ||
     /^\/packs\/[A-Za-z0-9_-]{1,128}$/.test(path) ||
     (/^\/(r|host)\/[^/]+$/.test(path) && ROOM_CODE_PATTERN.test(path.split("/")[2]))
@@ -15,7 +17,7 @@ const integer = z.number().int().safe();
 const clue = { clueId: id };
 const player = { playerId: id };
 const empty = (type: string) => z.object({ type: z.literal(type) }).strict();
-const patch = z
+export const settingsPatchSchema = z
   .object({
     rounds: z.union([z.literal(1), z.literal(2)]).optional(),
     categoriesPerRound: integer.optional(),
@@ -61,7 +63,7 @@ export const commandSchema = z.union([
     })
     .strict(),
   z.object({ type: z.literal("choosePack"), packId: id }).strict(),
-  z.object({ type: z.literal("updateSettings"), patch }).strict(),
+  z.object({ type: z.literal("updateSettings"), patch: settingsPatchSchema }).strict(),
   z
     .object({
       type: z.literal("judge"),

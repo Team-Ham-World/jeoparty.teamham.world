@@ -96,23 +96,131 @@ export function createHamFixture(
     const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Development sign-in fixture</title>
 <style>
-body{font:16px/1.5 system-ui,sans-serif;background:#F6F1E5;color:#1C1A17;margin:0;padding:24px}
-main{max-width:460px;margin:24px auto;background:#FFFDF6;border:2px solid #1C1A17;box-shadow:6px 6px 0 #1C1A17;padding:24px}
-h1{font-size:1.4rem;margin:0 0 8px}.warn{border:2px dashed #1C1A17;padding:8px 12px;font-weight:700}
-label{display:block;margin:16px 0 4px;font-weight:700}input[type=text]{font:inherit;padding:10px;border:2px solid #1C1A17;width:100%;box-sizing:border-box}
-button{font:inherit;min-height:44px;padding:8px 14px;margin:6px 6px 0 0;border:2px solid #1C1A17;background:#FFFDF6;cursor:pointer}
-button.primary{background:#1D4ED8;color:#fff;border-color:#1D4ED8}:focus-visible{outline:3px solid #1D4ED8;outline-offset:3px}
+:root {
+  --ink: #191621;
+  --cream: #faf4e9;
+  --rule: #d4c9b9;
+  --purple: #504388;
+  --peach: #ff9864;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: clamp(12px, 4vw, 32px);
+  background: #eee6d8;
+  color: var(--ink);
+  font: 16px/1.45 system-ui, sans-serif;
+}
+main {
+  max-width: 640px;
+  margin: clamp(0px, 4vh, 40px) auto;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--cream);
+}
+header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 25%;
+  align-items: center;
+  gap: 12px;
+  padding: 32px clamp(16px, 5vw, 36px);
+  background: radial-gradient(ellipse at 84% 66%, #534472, transparent 65%), var(--ink);
+  color: var(--cream);
+}
+h1 {
+  margin: 0;
+  font-size: clamp(27px, 5vw, 44px);
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+}
+h1 em { color: var(--peach); }
+.receiver {
+  position: relative;
+  aspect-ratio: 1.65;
+  margin-top: 14%;
+  padding: 7% 21% 7% 7%;
+  border: 2px solid #1d1929;
+  border-radius: 12% / 17%;
+  background:
+    radial-gradient(circle, #473a3d 52%, #e8bc97 53% 61%, transparent 63%) 95% 28% / 15% 28% no-repeat,
+    radial-gradient(circle, #473a3d 52%, #e8bc97 53% 61%, transparent 63%) 95% 70% / 15% 28% no-repeat,
+    linear-gradient(160deg, #f3c49c 8%, #dc9471 9% 65%, #af654f);
+  box-shadow: 3px 4px 0 #8a584a, 5px 7px 0 #191421;
+  transform: rotate(-6deg);
+}
+.receiver::before {
+  position: absolute;
+  bottom: 100%;
+  left: 27%;
+  width: 45%;
+  height: 43%;
+  background: #c3aeb1;
+  clip-path: polygon(0 0, 5% 0, 50% 90%, 95% 0, 100% 0, 50% 100%);
+  content: "";
+}
+.glass {
+  height: 100%;
+  border: 2px solid #352d38;
+  border-radius: 16% / 23%;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, #24173333 2px 3px),
+    radial-gradient(ellipse at 37% 40%, #9d91d2, #6c5aa3 62%, #332949);
+}
+.panel { padding: clamp(16px, 5vw, 36px); }
+.warn {
+  margin: 0 0 24px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--purple);
+  background: #e9e2f4;
+  font-weight: 650;
+}
+form p { margin: 0 0 6px; font-weight: 700; }
+.presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+label { display: block; margin: 16px 0 4px; font-weight: 700; }
+.toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 4px 0 12px; }
+input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--purple); }
+input[type=text], button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #8c7e88;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: var(--ink);
+  font: inherit;
+}
+input[type=text] { width: 100%; }
+button { cursor: pointer; font-weight: 700; }
+button:hover { background: #eee6d8; }
+button.primary {
+  border-color: #934e33;
+  background: var(--peach);
+  box-shadow: 0 2px 0 #773d2b;
+}
+button.primary:hover { background: #ffac84; }
+:focus-visible { outline: 3px solid #175ab2; outline-offset: 3px; }
+@media (max-width: 480px) {
+  .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .actions button { width: 100%; }
+}
 </style></head><body><main>
-<h1>Development sign-in fixture</h1>
+<header>
+<h1>Development <em>sign-in fixture</em></h1>
+<div class="receiver" aria-hidden="true"><div class="glass"></div></div>
+</header>
+<div class="panel">
 <p class="warn">This is not HAM. It is a local test provider for HAM Quiz development. Production refuses it.</p>
 <form method="post" action="/__ham/authorize/decide">${hidden}
-<p>Quick accounts:</p>${presets}
+<p>Quick accounts:</p><div class="presets">${presets}</div>
 <label for="custom">Or any test username</label>
 <input id="custom" type="text" name="custom" maxlength="32" pattern="[A-Za-z0-9_.\\-]{1,32}" placeholder="e.g. tita_nena">
-<label><input type="checkbox" name="hide_username" value="1"> Return a null username</label>
+<label class="toggle"><input type="checkbox" name="hide_username" value="1"> Return a null username</label>
+<div class="actions">
 <button class="primary" type="submit" name="action" value="allow">Continue with custom name</button>
 <button type="submit" name="action" value="deny">Deny access</button>
-</form></main></body></html>`;
+</div>
+</form></div></main></body></html>`;
     return new Response(html, {
       status: 200,
       headers: {

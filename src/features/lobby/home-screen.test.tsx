@@ -42,11 +42,32 @@ describe("home", () => {
     expect(screen.getAllByText("Dev sign-in fixture · not live HAM").length).toBeGreaterThan(0);
   });
 
-  it("signed in: joins with a valid code and explains a bad one", () => {
+  it("signed in: links to the create and join screens", () => {
+    render(
+      <HomeScreen
+        session={SESSION_SIGNED_IN}
+        packs={PACKS}
+        onCreateGame={async () => {}}
+        onJoin={() => {}}
+        onSignOut={() => {}}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Create a lobby" })).toHaveAttribute(
+      "href",
+      "/?view=create",
+    );
+    expect(screen.getByRole("link", { name: "Enter room code" })).toHaveAttribute(
+      "href",
+      "/?view=join",
+    );
+  });
+
+  it("joins with a valid code and explains a bad one", () => {
     const onJoin = vi.fn();
     render(
       <HomeScreen
         session={SESSION_SIGNED_IN}
+        view="join"
         packs={PACKS}
         onCreateGame={async () => {}}
         onJoin={onJoin}

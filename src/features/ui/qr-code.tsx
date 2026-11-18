@@ -29,7 +29,7 @@ export function QrCode({
       shapeRendering="crispEdges"
     >
       <rect width={size} height={size} fill="#ffffff" />
-      <path d={d} fill="#1c1a17" />
+      <path d={d} fill="var(--ink, #191621)" />
     </svg>
   );
 }

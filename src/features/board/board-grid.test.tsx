@@ -112,9 +112,11 @@ describe("BoardGrid keyboard (host)", () => {
 });
 
 describe("BoardGrid (read-only)", () => {
-  it("has no buttons or tab stops on the TV, and played cells still say done", () => {
-    const { container } = render(<BoardGrid board={BOARD} variant="stage" />);
+  it("keeps the TV board public and read-only, even if passed host props", () => {
+    const { container } = render(<BoardGrid board={BOARD} variant="stage" onSelect={vi.fn()} />);
     expect(container.querySelector("button, [tabindex]")).toBeNull();
+    expect(container.querySelector(".board__hot")).toBeNull();
+    expect(container).not.toHaveTextContent("wager clue");
     expect(screen.getByText("100, done", { selector: ".sr-only" })).toBeInTheDocument();
   });
 });

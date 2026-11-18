@@ -6,7 +6,6 @@ import {
   type ClueView,
   type FinalResponseView,
   type FinalView,
-  type PictureView,
   type PlayerView,
   type PromptView,
   type PublicPlayer,
@@ -14,10 +13,10 @@ import {
 import type { RoomConnection } from "@/features/network/connection";
 import { errorMessage } from "@/features/network/client/api";
 import { BoardGrid } from "@/features/board/board-grid";
-import { HotHam, Lockup } from "@/features/ui/brand";
+import { HotHam } from "@/features/ui/brand";
 import { useRemaining } from "@/features/ui/clock";
 import { CluePicture } from "@/features/ui/clue-picture";
-import { ClosedNotice, ConnectionPill, StaleBanner } from "@/features/ui/connection-status";
+import { ClosedNotice, StaleBanner } from "@/features/ui/connection-status";
 import { Countdown } from "@/features/ui/countdown";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
 import {
@@ -31,13 +30,13 @@ import {
   plural,
 } from "@/features/ui/format";
 import { vibrate } from "@/features/ui/haptics";
-import { NoticeShell } from "@/features/ui/page-chrome";
 import { ToastProvider, useToast } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
 import { WagerForm } from "@/features/ui/wager-form";
 import { BuzzButton } from "./buzz-button";
 import { FinalAnswerForm } from "./final-answer-form";
+import { PlayerHandset, PlayerHeader } from "./player-handset";
 
 type Run = ReturnType<typeof useCommand<PlayerView>>["run"];
 type Pending = ReturnType<typeof useCommand<PlayerView>>["pending"];
@@ -82,19 +81,29 @@ function PlayerBody({
   const [leaving, setLeaving] = useState(false);
 
   if (status === "closed") {
-    return <ClosedNotice reason={connection.closeReason} role="player" returnTo={`/r/${code}`} />;
+    return (
+      <PlayerHandset>
+        <ClosedNotice reason={connection.closeReason} role="player" returnTo={`/r/${code}`} />
+      </PlayerHandset>
+    );
   }
 
   if (!view) {
     return (
-      <NoticeShell busy>
-        <span className="stamp stamp--dashed">Room {code}</span>
-        <h1>
-          Connecting
-          <span className="loading-dots" />
-        </h1>
-        <p className="muted">Hang tight. Your phone becomes a buzzer in a second.</p>
-      </NoticeShell>
+      <PlayerHandset>
+        <PlayerHeader code={code} />
+        <main id="main-content" className="pl-main pl-main--notice" aria-busy="true">
+          <h1 className="pl-big">
+            {status === "reconnecting" ? "Reconnecting" : "Connecting"}
+            <span className="loading-dots" />
+          </h1>
+          <p className="muted">
+            {status === "reconnecting"
+              ? "We lost the connection. Keep this page open to rejoin."
+              : "Connecting your phone to the game."}
+          </p>
+        </main>
+      </PlayerHandset>
     );
   }
 
@@ -104,6 +113,7 @@ function PlayerBody({
   // During play the logo isn't a link, so a stray tap can't leave the buzzer.
   const canLeave =
     view.phase === "lobby" || view.phase === "results" || view.me.status === "waiting";
+  const pause = view.paused ? pauseMessage(view.paused.reason) : null;
 
   async function leave() {
     if (!onLeave) return;
@@ -117,14 +127,33 @@ function PlayerBody({
   }
 
   return (
-    <div className={`pl pl--${view.phase}`}>
-      <header className="pl-top">
-        <Lockup href={canLeave ? "/" : undefined} />
-        <span className="room-code" aria-label={`Room ${view.roomCode.split("").join(" ")}`}>
-          {view.roomCode}
-        </span>
-        <ConnectionPill status={status} />
-      </header>
+    <PlayerHandset className={`pl--${view.phase}`}>
+      <PlayerHeader code={view.roomCode} status={status} homeLink={canLeave} />
+
+      <div className="pl-banners">
+        <StaleBanner status={status} />
+        {pause ? (
+          <div className="banner banner--warn" role="status">
+            <span>{pause.title}</span>
+            <p>{pause.body}</p>
+          </div>
+        ) : !view.hostConnected ? (
+          <div className="banner banner--info" role="status">
+            <span>Host offline</span>
+            <p>Waiting for the host to reconnect.</p>
+          </div>
+        ) : null}
+      </div>
+
+      <main id="main-content" className="pl-main">
+        <PlayerPhase
+          view={view}
+          stale={stale}
+          run={run}
+          pending={pending}
+          clockOffsetMs={connection.clockOffsetMs}
+        />
+      </main>
 
       <section className="pl-me" aria-label="You">
         <div className="pl-me__who">
@@ -141,31 +170,6 @@ function PlayerBody({
           </strong>
         </div>
       </section>
-
-      <div className="pl-banners">
-        <StaleBanner status={status} />
-        {view.paused ? (
-          <div className="banner banner--warn" role="status">
-            <span>{pauseMessage(view.paused.reason).title}</span>
-            <p>{pauseMessage(view.paused.reason).body}</p>
-          </div>
-        ) : !view.hostConnected ? (
-          <div className="banner banner--info" role="status">
-            <span>Host offline</span>
-            <p>Hang on; the host&apos;s connection dropped.</p>
-          </div>
-        ) : null}
-      </div>
-
-      <main id="main-content" className="pl-main">
-        <PlayerPhase
-          view={view}
-          stale={stale}
-          run={run}
-          pending={pending}
-          clockOffsetMs={connection.clockOffsetMs}
-        />
-      </main>
 
       {onLeave && canLeave ? (
         <footer className="pl-foot">
@@ -185,7 +189,7 @@ function PlayerBody({
         {announcement}
       </p>
       <JudgedFlash view={view} fresh={fresh} />
-    </div>
+    </PlayerHandset>
   );
 }
 
@@ -241,10 +245,10 @@ function PlayerPhase({
     case "roundIntro":
       return (
         <div className="pl-center stack">
-          <span className="stamp stamp--ink">
+          <span className="pl-kicker">
             {view.round ? `Round ${view.round.index + 1} of ${view.round.total}` : "New round"}
           </span>
-          <h1 className="pl-big marker">{view.round?.title ?? "Next round"}</h1>
+          <h1 className="pl-big">{view.round?.title ?? "Next round"}</h1>
           <p className="pl-lede">
             {view.controllerId === view.me.id ? (
               <>
@@ -305,13 +309,10 @@ function PlayerList({ players, meId }: { players: readonly PublicPlayer[]; meId:
 function PlayerLobby({ view }: { view: PlayerView }) {
   return (
     <div className="stack">
-      <div className="stack stack--tight">
-        <span className="stamp stamp--red">You&apos;re in</span>
+      <div className="stack stack--tight pl-center">
+        <span className="pl-kicker">You&apos;re in</span>
         <h1 className="pl-big">Waiting for the host to start</h1>
-        <p className="muted">
-          Keep this page open. Your phone is your buzzer, and the questions show up on the big
-          screen.
-        </p>
+        <p className="muted">Keep this page open and follow the clues on the big screen.</p>
         {view.buzzing.falseStartLockout ? (
           <p className="pl-tip">
             <strong>Wait for the light.</strong> Tapping before your buzzer lights locks it for a
@@ -341,8 +342,8 @@ function WaitingForNextGame({ view }: { view: PlayerView }) {
   const over = view.phase === "results";
   return (
     <div className="stack">
-      <div className="stack stack--tight">
-        <span className="stamp stamp--dashed">On the bench</span>
+      <div className="stack stack--tight pl-center">
+        <span className="pl-kicker">On the bench</span>
         <h1 className="pl-big">You&apos;re in for the next game</h1>
         <p className="muted">
           {over ? "This game just finished." : "A game is already running."} When the host chooses{" "}
@@ -379,15 +380,16 @@ function PlayerBoard({ view }: { view: PlayerView }) {
   return (
     <div className="stack">
       <div className={`pl-picker ${mine ? "pl-picker--me" : ""}`}>
+        {view.round ? <p className="pl-kicker">{view.round.title}</p> : null}
         {mine ? (
           <>
-            <strong>You pick!</strong>
-            <span>Tell the host which clue you want.</span>
+            <h1 className="pl-big">You pick!</h1>
+            <p>Tell the host your category and point value.</p>
           </>
         ) : (
           <>
-            <strong className="name">{nameOf(view.players, view.controllerId)} picks</strong>
-            <span>Watch the big screen.</span>
+            <h1 className="pl-big name">{nameOf(view.players, view.controllerId)} picks</h1>
+            <p>Follow the board on the big screen.</p>
           </>
         )}
       </div>
@@ -403,31 +405,30 @@ function PlayerBoard({ view }: { view: PlayerView }) {
 }
 
 function ClueCard({
-  clue,
+  prompt,
   picture,
   title,
   valueLabel,
+  compact = false,
   children,
 }: {
-  clue: ClueView;
-  picture: PictureView | null;
-  title?: string;
-  valueLabel?: string;
+  prompt: PromptView["prompt"];
+  picture: PromptView["picture"];
+  title: string;
+  valueLabel: string;
+  compact?: boolean;
   children?: React.ReactNode;
 }) {
-  const prompt = clue.prompt ?? "";
   return (
-    <article className="pl-clue" aria-labelledby="pl-clue-cat">
+    <article
+      className={`pl-clue ${compact ? "pl-clue--compact" : ""}`}
+      aria-labelledby="pl-clue-cat"
+    >
       <header className="pl-clue__head">
         <h2 id="pl-clue-cat" className="name">
-          {title ?? clue.categoryTitle}
+          {title}
         </h2>
-        <span className="pl-clue__value num">
-          {valueLabel ??
-            (clue.kind === "wager" && clue.wager !== null
-              ? `Wager ${formatScore(clue.wager)}`
-              : formatScore(clue.value))}
-        </span>
+        {valueLabel ? <span className="pl-clue__value num">{valueLabel}</span> : null}
       </header>
       {picture ? <CluePicture picture={picture} className="pl-picture" /> : null}
       {prompt ? (
@@ -458,6 +459,7 @@ function PlayerClue({
   const answeringMe = clue.answeringPlayerId === view.me.id && clue.stage === "answering";
   const margin = answeringMargin(clue);
   const lastAttempt = clue.attempts[clue.attempts.length - 1];
+  const disabled = stale || !!view.paused;
 
   useEffect(() => {
     if (answeringMe) vibrate([70, 50, 70]);
@@ -467,22 +469,22 @@ function PlayerClue({
     const bounds = view.can.wager;
     return (
       <div className="stack">
-        <HotHam className="hot-ham--phone" />
-        <p className="pl-lede">
-          <strong>{clue.categoryTitle}</strong> · wager clue
-        </p>
+        <div className="stack stack--tight pl-center">
+          <p className="pl-kicker">{clue.categoryTitle} · Wager clue</p>
+          <h1 className="pl-big">
+            <HotHam className="hot-ham--phone" />
+          </h1>
+        </div>
         {bounds ? (
-          <section className="panel" aria-labelledby="wager-title">
-            <h2 id="wager-title" className="panel__title">
-              Place your wager
-            </h2>
-            <p className="muted" style={{ marginBottom: "1rem" }}>
+          <section className="panel pl-form-card" aria-labelledby="wager-title">
+            <h2 id="wager-title">Place your wager</h2>
+            <p className="muted">
               Only you answer this one. Right adds your wager, wrong takes it away.
             </p>
             <WagerForm
               min={bounds.min}
               max={bounds.max}
-              disabled={stale || !!view.paused}
+              disabled={disabled}
               busy={pending === "submitWager"}
               submitLabel="Lock in wager"
               onSubmit={(amount) => void run({ type: "submitWager", clueId: clue.clueId, amount })}
@@ -500,9 +502,17 @@ function PlayerClue({
     );
   }
 
+  const readingOrOpen = clue.stage === "reading" || clue.stage === "open";
+  const value = clue.wager !== null ? clue.wager : clue.value;
   return (
     <div className="pl-clue-wrap">
-      <ClueCard clue={clue} picture={clue.kind === "wager" ? clue.picture : null}>
+      <ClueCard
+        title={clue.categoryTitle}
+        valueLabel={`${clue.wager !== null ? "Wager " : ""}${formatScore(value)} pts`}
+        prompt={clue.prompt}
+        picture={clue.kind === "wager" ? clue.picture : null}
+        compact={clue.kind === "standard" && clue.stage !== "revealed"}
+      >
         {clue.stage === "revealed" && clue.answer ? (
           <div className="pl-answer">
             <span className="eyebrow">Answer</span>
@@ -514,14 +524,26 @@ function PlayerClue({
       {clue.stage === "answering" && view.timer ? (
         <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
       ) : null}
-      {clue.stage === "open" && view.timer ? (
-        <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
+      {readingOrOpen ? (
+        <div className="pl-buzz-clock">
+          {clue.stage === "open" && view.timer ? (
+            <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} />
+          ) : null}
+        </div>
       ) : null}
 
       {answeringMe ? (
         <div className="pl-up" role="status">
           <strong>You&apos;re up!</strong>
-          <span>Say your answer out loud to the host.</span>
+          <span>
+            {view.paused
+              ? "Wait until the host resumes."
+              : stale
+                ? "Wait until your phone reconnects."
+                : lastAttempt?.timedOut
+                  ? "Time's up. Wait for the host's decision."
+                  : "Say your answer out loud to the host."}
+          </span>
           {margin ? <span className="pl-up__margin">You got there first {margin}.</span> : null}
         </div>
       ) : clue.stage === "answering" ? (
@@ -583,10 +605,26 @@ function PlayerFinal({
     remaining !== null && view.timer?.endsAt != null && remaining <= FINAL_AUTOSAVE_WINDOW_MS;
   const eligible = final.eligiblePlayerIds.includes(view.me.id);
   const header = (
-    <div className="stack stack--tight">
-      <span className="stamp stamp--ink">Final round</span>
+    <div className="stack stack--tight pl-center">
+      <span className="pl-kicker">Final round</span>
       <h1 className="pl-big name">{final.categoryTitle}</h1>
     </div>
+  );
+  const wager = view.myFinal?.wager;
+  const card = (
+    <ClueCard
+      title="Final clue"
+      valueLabel={wager != null ? `Wager ${formatScore(wager)} pts` : ""}
+      prompt={final.prompt}
+      picture={final.picture}
+    >
+      {(final.stage === "judging" || final.stage === "done") && final.answer ? (
+        <div className="pl-answer">
+          <span className="eyebrow">Answer</span>
+          <p>{final.answer}</p>
+        </div>
+      ) : null}
+    </ClueCard>
   );
 
   if (!eligible) {
@@ -597,16 +635,7 @@ function PlayerFinal({
           You&apos;re sitting this one out. The final round is for players who had more than 0
           points when it began. Watch the big screen!
         </p>
-        {final.prompt ? (
-          <ClueCard
-            clue={finalAsClue(final)}
-            picture={final.picture}
-            title="Final clue"
-            valueLabel={
-              view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""
-            }
-          />
-        ) : null}
+        {final.prompt ? card : null}
       </div>
     );
   }
@@ -617,7 +646,7 @@ function PlayerFinal({
     return (
       <div className="stack">
         {header}
-        <p className="muted">
+        <p className="muted pl-center">
           You&apos;ll see the clue after wagers lock. {final.wagerSubmittedIds.length} of{" "}
           {plural(final.eligiblePlayerIds.length, "player")}{" "}
           {final.wagerSubmittedIds.length === 1 ? "has" : "have"} wagered.
@@ -633,8 +662,8 @@ function PlayerFinal({
           </p>
         ) : null}
         {bounds ? (
-          <section className="panel" aria-labelledby="final-wager-title">
-            <h2 id="final-wager-title" className="panel__title">
+          <section className="panel pl-form-card" aria-labelledby="final-wager-title">
+            <h2 id="final-wager-title">
               {submitted === null ? "Place your final wager" : "Change your wager"}
             </h2>
             <WagerForm
@@ -657,12 +686,7 @@ function PlayerFinal({
     return (
       <div className="stack">
         {header}
-        <ClueCard
-          clue={finalAsClue(final)}
-          picture={final.picture}
-          title="Final clue"
-          valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}
-        />
+        {card}
         {view.timer ? <Countdown timer={view.timer} clockOffsetMs={clockOffsetMs} /> : null}
         {view.can.finalAnswer ? (
           <FinalAnswerForm
@@ -692,19 +716,7 @@ function PlayerFinal({
   return (
     <div className="stack">
       {header}
-      <ClueCard
-        clue={finalAsClue(final)}
-        picture={final.picture}
-        title="Final clue"
-        valueLabel={view.myFinal?.wager != null ? `Wager ${formatScore(view.myFinal.wager)}` : ""}
-      >
-        {final.answer ? (
-          <div className="pl-answer">
-            <span className="eyebrow">Answer</span>
-            <p>{final.answer}</p>
-          </div>
-        ) : null}
-      </ClueCard>
+      {card}
       {view.myFinal?.answer ? (
         <p className="muted">
           You answered: <strong className="name">{view.myFinal.answer}</strong>
@@ -751,26 +763,6 @@ function FinalVerdict({ response }: { response: FinalResponseView }) {
   );
 }
 
-function finalAsClue(final: FinalView): ClueView {
-  const clue: Omit<ClueView, keyof PromptView> = {
-    clueId: "final",
-    opensAt: null,
-    buzzResult: null,
-    categoryTitle: final.categoryTitle,
-    value: 0,
-    kind: "standard",
-    stage: "reading",
-    wager: null,
-    answeringPlayerId: null,
-    attempts: [],
-    lockedOutPlayerIds: [],
-    answer: null,
-  };
-  return final.prompt === null
-    ? { ...clue, prompt: null, picture: null }
-    : { ...clue, prompt: final.prompt, picture: final.picture };
-}
-
 function PlayerResults({ view }: { view: PlayerView }) {
   const results = view.results;
   if (!results) return null;
@@ -783,7 +775,7 @@ function PlayerResults({ view }: { view: PlayerView }) {
   return (
     <div className="stack">
       <div className="stack stack--tight pl-center">
-        <span className={`stamp ${won ? "stamp--red" : "stamp--ink"}`}>Game over</span>
+        <span className="pl-kicker">Game over</span>
         <h1 className="pl-big">
           {won
             ? shared

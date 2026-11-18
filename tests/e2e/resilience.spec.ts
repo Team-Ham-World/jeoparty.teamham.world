@@ -55,7 +55,7 @@ test("lobby tools, pause, reconnects, host leaving, score correction, round 2 an
   expect(newLink).not.toBe(firstLink);
   const tv2 = await device(browser, "tv2", LAPTOP);
   await openDisplay(tv2.page, newLink);
-  await expect(tv2.page.getByText("3 players in")).toBeVisible();
+  await expect(tv2.page.getByText("3 of 6 seats filled")).toBeVisible();
   const stale = await device(browser, "old-tv", LAPTOP);
   await stale.page.goto(firstLink);
   await expect(
@@ -133,6 +133,7 @@ test("lobby tools, pause, reconnects, host leaving, score correction, round 2 an
   await dialog.getByLabel("Reason").fill("Accepted a misspelling");
   await dialog.getByRole("button", { name: "Add 50" }).click();
   await expect(dialog).toBeHidden();
+  await H2.getByRole("button", { name: "Game controls" }).click();
   await expect(H2.locator(".host-log")).toContainText("Adjusted: Accepted a misspelling");
   await expect(phoneScore(alice.page)).toHaveText("50");
 
@@ -164,7 +165,7 @@ test("lobby tools, pause, reconnects, host leaving, score correction, round 2 an
 
   await H2.goto("/");
   await H2.getByRole("button", { name: "Sign out" }).click();
-  await expect(H2.getByRole("heading", { name: "Sign in to host or play" })).toBeVisible();
+  await expect(H2.getByRole("link", { name: "Sign in with HAM" })).toBeVisible();
   await H2.goto(`/host/${code}`);
   await expect(H2.getByRole("heading", { name: `Host room ${code}` })).toBeVisible();
   await expect(H2.getByRole("link", { name: "Sign in with HAM" })).toBeVisible();

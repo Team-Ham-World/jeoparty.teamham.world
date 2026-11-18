@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { claimDisplay, errorMessage } from "@/features/network/client/api";
 import { useRoomConnection } from "@/features/network/client/use-room-connection";
-import { Lockup } from "@/features/ui/brand";
 import { useOrigin } from "@/features/ui/use-origin";
 import { DisplayScreen } from "./display-screen";
+import { DisplayTitle } from "./display-masthead";
 
 /** Reads `key` from a `#key=…` fragment. */
 export function readDisplayKey(hash: string): string | null {
@@ -71,8 +71,8 @@ export function DisplayRoute({ code }: { code: string }) {
   if (state.status === "error") {
     return (
       <main id="main-content" className="tv tv--notice">
-        <Lockup className="tv-notice__lockup" />
-        <span className="stamp stamp--warn tv-stamp">Display link didn&apos;t work</span>
+        <DisplayTitle />
+        <span className="tv-eyebrow">Display link didn&apos;t work</span>
         <h1>Ask the host for a new display link</h1>
         <p>{state.message} Display links stop working when the host makes a new one.</p>
       </main>
@@ -82,7 +82,7 @@ export function DisplayRoute({ code }: { code: string }) {
   if (state.status === "claiming") {
     return (
       <main id="main-content" className="tv tv--notice">
-        <Lockup className="tv-notice__lockup" />
+        <DisplayTitle />
         <h1>
           Setting up the big screen
           <span className="loading-dots" />

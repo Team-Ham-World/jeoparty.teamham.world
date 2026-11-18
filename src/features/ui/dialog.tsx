@@ -61,7 +61,7 @@ export function Dialog({
           <div className="dialog__head">
             <h2 id={titleId}>{title}</h2>
             {description ? (
-              <p id={descId} className="muted" style={{ marginTop: "0.4rem" }}>
+              <p id={descId} className="muted dialog__description">
                 {description}
               </p>
             ) : null}
@@ -102,7 +102,7 @@ export function ConfirmDialog({
       description={description}
       footer={
         <>
-          <button type="button" className="btn" onClick={onCancel} autoFocus>
+          <button type="button" className="btn btn--quiet" onClick={onCancel} autoFocus>
             {cancelLabel}
           </button>
           <button

@@ -27,15 +27,52 @@ function renderView(
 
 const renderHost = (id: Parameters<typeof hostFixture>[0]) => renderView(hostFixture(id));
 
+function editSetup() {
+  fireEvent.click(screen.getByText("Edit setup", { exact: true }));
+}
+
 async function press(key: string) {
   await act(async () => {
     fireEvent.keyDown(window, { key });
   });
 }
 
+describe("green room invitation", () => {
+  it("offers the real join URL and selects the room code if clipboard access fails", () => {
+    renderHost("lobby");
+    const code = screen.getByRole("textbox", { name: "Room code" });
+
+    expect(code).toHaveValue("BCDFG");
+    expect(screen.getByRole("img", { name: "QR code to join room BCDFG" })).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Join link" })).toHaveValue(
+      "https://quiz.example/r/BCDFG",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
+    expect(code).toHaveFocus();
+    expect(screen.getByText("Room code selected. Copy it from the field.")).toBeInTheDocument();
+  });
+});
+
+describe("game controls", () => {
+  it("opens the end-game confirmation from the desk", async () => {
+    const onSend = renderHost("board");
+    const controls = screen.getByRole("button", { name: "Game controls" });
+    expect(controls).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(controls);
+    expect(controls).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "End game" }));
+    expect(onSend).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "End game" }));
+    });
+    expect(onSend).toHaveBeenCalledWith({ type: "endGame" });
+  });
+});
+
 describe("host lobby settings", () => {
   it("blocks Start while settings have unsaved changes", () => {
     renderHost("lobby");
+    editSetup();
     const start = screen.getByRole("button", { name: "Start game" });
     expect(start).toBeEnabled();
 
@@ -54,6 +91,7 @@ describe("host lobby settings", () => {
 
   it("saves the draft from the start bar", async () => {
     const onSend = renderHost("lobby");
+    editSetup();
     fireEvent.change(screen.getByLabelText("Buzz window (s)"), { target: { value: "20" } });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
@@ -70,8 +108,11 @@ describe("host lobby settings", () => {
 
   it("moves focus to an invalid field instead of saving", async () => {
     const onSend = renderHost("lobby");
+    editSetup();
     const answer = screen.getByLabelText("Answer time (s)");
     fireEvent.change(answer, { target: { value: "1" } });
+    editSetup();
+    expect(answer).not.toBeVisible();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     });
@@ -82,6 +123,7 @@ describe("host lobby settings", () => {
 
   it("doesn't let hidden timer fields block a save", async () => {
     const onSend = renderHost("lobby");
+    editSetup();
     fireEvent.change(screen.getByLabelText("Answer time (s)"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("checkbox", { name: "Timers" }));
     await act(async () => {
@@ -115,7 +157,7 @@ describe("host lobby settings", () => {
 describe("host lobby board shape", () => {
   function lobbyOn(pack: PackSummary, settings: Partial<HostView["settings"]>) {
     const view = hostFixture("lobby");
-    return renderView(
+    const onSend = renderView(
       {
         ...view,
         pack: { id: pack.id, title: pack.title },
@@ -124,6 +166,8 @@ describe("host lobby board shape", () => {
       {},
       [pack],
     );
+    editSetup();
+    return onSend;
   }
   const optionValues = (label: string) =>
     within(screen.getByLabelText(label))
@@ -178,8 +222,14 @@ describe("host lobby board shape", () => {
 });
 
 describe("reloading the pack in use", () => {
-  const lobbyUsing = (pack: PackSummary) =>
-    renderView({ ...hostFixture("lobby"), pack: { id: pack.id, title: pack.title } });
+  function lobbyUsing(pack: PackSummary) {
+    const onSend = renderView({
+      ...hostFixture("lobby"),
+      pack: { id: pack.id, title: pack.title },
+    });
+    editSetup();
+    return onSend;
+  }
 
   it("re-sends the saved pack and says the settings reset", async () => {
     const onSend = lobbyUsing(PACKS[2]);
@@ -218,7 +268,9 @@ describe("the display link panel", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Get display link" }));
     });
-    expect(screen.getByRole("textbox", { name: "Display link" })).toBeInTheDocument();
+    const url = "https://quiz.example/display/BCDFG#key=k";
+    expect(screen.getByRole("textbox", { name: "Display link" })).toHaveValue(url);
+    expect(screen.getByRole("link", { name: "Open TV view" })).toHaveAttribute("href", url);
   });
 
   function openInGame(onCreate: () => Promise<string>, displayLink: string | null = null) {
@@ -314,6 +366,7 @@ describe("host lobby buzzing settings", () => {
 
   it("labels each rule and explains it in plain words", () => {
     renderHost("lobby");
+    editSetup();
     expect(screen.getByRole("group", { name: "Buzzing" })).toContainElement(fair());
     expect(fair()).toBeChecked();
     expect(fair()).toHaveAccessibleDescription(
@@ -327,6 +380,7 @@ describe("host lobby buzzing settings", () => {
 
   it("blocks Start until a changed rule is saved or undone", () => {
     renderHost("lobby");
+    editSetup();
     const start = screen.getByRole("button", { name: "Start game" });
     fireEvent.click(lockout());
     expect(lockout()).not.toBeChecked();
@@ -342,6 +396,7 @@ describe("host lobby buzzing settings", () => {
 
   it("saves both rules with the other settings", async () => {
     const onSend = renderHost("lobby");
+    editSetup();
     fireEvent.click(fair());
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
@@ -354,6 +409,7 @@ describe("host lobby buzzing settings", () => {
 
   it("can't be changed when settings can't be updated", () => {
     renderView({ ...hostFixture("lobby"), allowedCommands: ["startGame"] });
+    editSetup();
     expect(fair()).toBeDisabled();
     expect(lockout()).toBeDisabled();
   });
@@ -362,12 +418,12 @@ describe("host lobby buzzing settings", () => {
 describe("host pings", () => {
   it("shows each phone's ping in the lobby, flags slow ones in words and explains them", () => {
     renderView(hostFixture("lobby"), PINGS_MIXED);
-    const rows = screen.getAllByRole("listitem");
-    const row = (name: string) => rows.find((li) => li.textContent?.startsWith(name))!;
+    const roster = within(screen.getByRole("region", { name: "Players" }));
+    const row = (name: string) => roster.getByText(name, { exact: true }).closest("li");
     expect(row("Ivvy")).toHaveTextContent("38 ms");
     expect(row("Medchu")).toHaveTextContent("measuring…");
     expect(row("Scarlet")).toHaveTextContent("312 ms · slow");
-    expect(row("Maximilian")).not.toHaveTextContent(/ms|measuring/); // away: no number
+    expect(row("Maximilian Featherstonehaugh III")).not.toHaveTextContent(/ms|measuring/);
     expect(screen.getByText(/fair buzzing can only make up for so much lag/)).toBeVisible();
   });
 
@@ -376,7 +432,7 @@ describe("host pings", () => {
     expect(screen.queryByText(/Slow ping/)).toBeNull();
   });
 
-  it("shows pings beside names in the score sidebar", () => {
+  it("shows pings beside names in the score strip", () => {
     renderView(hostFixture("board"), PINGS_MIXED);
     const scores = screen.getByRole("complementary", { name: "Scores" });
     expect(within(scores).getByText("Ping 38 ms")).toBeInTheDocument();

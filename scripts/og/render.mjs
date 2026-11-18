@@ -21,7 +21,6 @@ const fonts = {
   displayFont:
     "@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2",
   bodyFont: "@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-400-normal.woff2",
-  boldFont: "@fontsource/atkinson-hyperlegible/files/atkinson-hyperlegible-latin-700-normal.woff2",
 };
 const variables = {};
 for (const [key, file] of Object.entries(fonts)) {
@@ -54,42 +53,40 @@ try {
     deviceScaleFactor: 1,
   });
   for (const kind of ["home", "invite"]) {
-    const artPath =
-      process.env[`OG_${kind.toUpperCase()}_ART`] || path.join(root, `design/og/${kind}-art.jpg`);
-    const art = await sharp(artPath)
-      .resize(1200, 630, { fit: "fill" })
-      .jpeg({ quality: 95 })
-      .toBuffer();
     const content =
       kind === "home"
-        ? `<div class="brand">${lockup}</div><h1><span class="line">Pick a clue.</span><span class="line">Beat your friends</span><span class="line">to the <span class="marked">buzzer.</span></span></h1><div class="note">A party quiz for 2–6 players.</div>`
-        : `<div class="stamp">YOU'RE INVITED</div><h1><span class="line">Join the game</span><span class="join-brand">on ${lockup}</span></h1><p class="instructions">Sign in with ${ham} and buzz in<br />from your phone.</p><div class="address">quiz.teamham.world</div>`;
-    const values = {
-      ...variables,
-      kind,
-      content,
-      art: `data:image/jpeg;base64,${art.toString("base64")}`,
-    };
+        ? `<div class="brand">${lockup}</div><h1><span class="line">Pick a clue.</span><span class="line">Beat your friends</span><span class="line">to the <em>buzzer.</em></span></h1><p class="note">A party quiz for 2–6 players.</p>`
+        : `<p class="kicker">YOU'RE INVITED</p><h1><span class="line">Join the game</span><span class="join-brand">on ${lockup}</span></h1><p class="note">Sign in with ${ham} and buzz in<br />from your phone.</p><p class="address">quiz.teamham.world</p>`;
+    let backdrop = "";
+    const artPath = process.env[`OG_${kind.toUpperCase()}_ART`];
+    if (artPath) {
+      const art = await sharp(artPath)
+        .resize(1200, 630, { fit: "fill" })
+        .jpeg({ quality: 95 })
+        .toBuffer();
+      backdrop = `<div class="backdrop" aria-hidden="true" style="--art: url(data:image/jpeg;base64,${art.toString("base64")})"></div>`;
+    }
+    const values = { ...variables, kind, content, ham, backdrop };
     const html = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
       assert.ok(key in values, `Missing template value: ${key}`);
       return values[key];
     });
     await page.setContent(html);
     await page.evaluate(() => document.fonts.ready);
-    await page.locator(".art").evaluate((img) => img.decode());
     const screenshot = await page.screenshot();
+    const png = path.join(output, `${kind}.png`);
     await sharp(screenshot)
-      .png({ palette: true, quality: 85, colours: 64, dither: 0, compressionLevel: 9 })
-      .toFile(path.join(output, `${kind}.png`));
+      .png({ palette: true, quality: 100, colours: 256, dither: 0, compressionLevel: 9 })
+      .toFile(png);
     if (process.argv[2]) {
-      await sharp(screenshot)
+      await sharp(png)
         .resize(400, 210)
         .png()
         .toFile(path.join(output, `${kind}-small.png`));
       await writeFile(path.join(output, `${kind}.html`), html);
     }
-    const { width, height } = await sharp(path.join(output, `${kind}.png`)).metadata();
-    const { size } = await stat(path.join(output, `${kind}.png`));
+    const { width, height } = await sharp(png).metadata();
+    const { size } = await stat(png);
     assert.equal(width, 1200);
     assert.equal(height, 630);
     assert.ok(size <= 300_000, `${kind} exceeds 300 KB`);

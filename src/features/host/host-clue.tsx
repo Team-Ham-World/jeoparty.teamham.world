@@ -25,7 +25,7 @@ import type { HostActions } from "./host-screen";
 
 const STAGE_LABEL: Record<ClueView["stage"], string> = {
   wager: "Placing wager",
-  reading: "Reading",
+  reading: "Buzzers closed",
   open: "Buzzers open",
   answering: "Answering",
   closed: "Buzzers closed",
@@ -187,22 +187,22 @@ export function HostClue({
 
   return (
     <section className={`host-clue host-clue--${clue.stage}`} aria-labelledby="host-clue-title">
-      <header className="host-clue__head">
-        <h2 id="host-clue-title" className="name">
-          {clue.categoryTitle} <span className="num">· {formatScore(clue.value)}</span>
-        </h2>
-        <div className="row">
-          {/* While the wager is placed, the Hot HAM! slip below already says it. */}
-          {clue.kind === "wager" && clue.stage !== "wager" ? (
-            <span className="stamp stamp--hot stamp--flat">Wager clue</span>
-          ) : null}
-          <span className="stamp stamp--ink stamp--flat" role="status">
-            {skipped ? "Skipped" : STAGE_LABEL[clue.stage]}
-          </span>
-        </div>
-      </header>
+      <div className="host-question">
+        <header className="host-clue__head">
+          <h2 id="host-clue-title" className="host-kicker name">
+            {clue.categoryTitle} <span className="num">/ {formatScore(stake)} pts</span>
+          </h2>
+          <div className="row">
+            {/* While the wager is placed, the Hot HAM! slip below already says it. */}
+            {clue.kind === "wager" && clue.stage !== "wager" ? (
+              <span className="host-kicker host-chip">Wager clue</span>
+            ) : null}
+            <span className="host-kicker host-stage" role="status">
+              {skipped ? "Skipped" : STAGE_LABEL[clue.stage]}
+            </span>
+          </div>
+        </header>
 
-      <div className="host-clue__body">
         {clue.kind === "wager" && clue.stage === "wager" ? (
           <div className="host-clue__hot">
             <HotHam />
@@ -216,7 +216,7 @@ export function HostClue({
         <div
           className={`host-prompt ${(clue.prompt ?? "").length > 160 ? "host-prompt--long" : ""}`}
         >
-          <span className="eyebrow">
+          <span className="host-kicker">
             {promptLabel(
               clue,
               clue.kind === "wager" && clue.stage === "wager"
@@ -227,12 +227,12 @@ export function HostClue({
           {clue.picture ? <CluePicture picture={clue.picture} className="host-picture" /> : null}
           <p>{clue.prompt}</p>
         </div>
+      </div>
 
+      <div className="host-clue__body">
         <div className="host-answer">
-          <span className="eyebrow">
-            {clue.stage === "revealed"
-              ? "Answer · now on the big screen"
-              : "Answer · only you can see this"}
+          <span className="host-kicker">
+            {clue.stage === "revealed" ? "Answer on the big screen" : "Host answer key"}
           </span>
           <p>{clue.answer}</p>
         </div>
@@ -466,24 +466,24 @@ export function HostFinal({
       className={`host-clue host-final host-final--${final.stage}`}
       aria-labelledby="host-final-title"
     >
-      <header className="host-clue__head">
-        <h2 id="host-final-title" className="name">
-          Final round · {final.categoryTitle}
-        </h2>
-        <span className="stamp stamp--ink stamp--flat" role="status">
-          {final.stage === "wagers"
-            ? "Wagers"
-            : final.stage === "answering"
-              ? "Answering"
-              : final.stage === "judging"
-                ? "Judging"
-                : "Done"}
-        </span>
-      </header>
+      <div className="host-question">
+        <header className="host-clue__head">
+          <h2 id="host-final-title" className="host-kicker name">
+            Final round / {final.categoryTitle}
+          </h2>
+          <span className="host-kicker host-stage" role="status">
+            {final.stage === "wagers"
+              ? "Wagers"
+              : final.stage === "answering"
+                ? "Answering"
+                : final.stage === "judging"
+                  ? "Judging"
+                  : "Done"}
+          </span>
+        </header>
 
-      <div className="host-clue__body">
         <div className="host-prompt">
-          <span className="eyebrow">
+          <span className="host-kicker">
             {promptLabel(
               final,
               final.stage === "wagers" ? "hidden until wagers lock" : "on the big screen",
@@ -492,11 +492,12 @@ export function HostFinal({
           {final.picture ? <CluePicture picture={final.picture} className="host-picture" /> : null}
           <p>{final.prompt}</p>
         </div>
+      </div>
+
+      <div className="host-clue__body">
         <div className="host-answer">
-          <span className="eyebrow">
-            {final.stage === "done"
-              ? "Answer · now on the big screen"
-              : "Answer · only you can see this"}
+          <span className="host-kicker">
+            {final.stage === "done" ? "Answer on the big screen" : "Host answer key"}
           </span>
           <p>{final.answer}</p>
         </div>
@@ -643,13 +644,15 @@ export function HostResults({ view, actions }: { view: HostView; actions: HostAc
     .filter((s) => results.winnerIds.includes(s.playerId))
     .map((s) => s.name);
   return (
-    <section className="panel host-results" aria-labelledby="host-results-title">
-      <span className="stamp stamp--red">Game over</span>
-      <h2 id="host-results-title" className="host-results__title">
-        {winners.length > 1
-          ? `Shared win: ${listNames(winners)}`
-          : `${winners[0] ?? "Nobody"} wins!`}
-      </h2>
+    <section className="host-results" aria-labelledby="host-results-title">
+      <div className="host-question">
+        <span className="host-kicker">Final standings</span>
+        <h2 id="host-results-title" className="host-results__title">
+          {winners.length > 1
+            ? `${listNames(winners)} share the win!`
+            : `${winners[0] ?? "Nobody"} wins!`}
+        </h2>
+      </div>
       <ol className="host-standings">
         {results.standings.map((s) => (
           <li

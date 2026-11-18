@@ -18,6 +18,7 @@ import { ConfirmDialog, Dialog } from "@/features/ui/dialog";
 import { describeEvent, pauseMessage } from "@/features/ui/events";
 import { formatDelta, formatScore, nameOf, namedInEvents } from "@/features/ui/format";
 import { NoticeShell } from "@/features/ui/page-chrome";
+import { StudioHero } from "@/features/ui/studio-hero";
 import { ToastProvider, useToast } from "@/features/ui/toasts";
 import { useCommand } from "@/features/ui/use-command";
 import { useFreshEvent } from "@/features/ui/use-fresh-event";
@@ -81,6 +82,8 @@ function HostBody({
     null | "end" | "close" | "display" | { adjust: PlayerId | null }
   >(null);
   const [closing, setClosing] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(false);
+  const controlsId = useId();
   // A double click must not land on the next step's button (see swap-guard.ts).
   const swapGuard = swapGuardProps(useSettled(hostStepKey(view), SWAP_GUARD_MS));
 
@@ -114,6 +117,14 @@ function HostBody({
   // logo only links home before the game and after it.
   const homeLink = view.phase === "lobby" || view.phase === "results";
   const announcement = fresh ? describeEvent(fresh.event, namedInEvents(view)) : null;
+  const deskTitle =
+    view.phase === "board"
+      ? `${nameOf(view.players, view.controllerId)} picks`
+      : view.phase === "results"
+        ? "Results"
+        : view.phase === "final"
+          ? "Final round"
+          : (view.round?.title ?? "Host desk");
 
   async function closeRoom() {
     setDialog(null);
@@ -128,7 +139,7 @@ function HostBody({
 
   return (
     <div className={`host host--${view.phase}`}>
-      <header className="topbar host-top">
+      <header className="topbar host-top" aria-label="Host desk">
         <Lockup href={homeLink ? "/" : undefined} />
         <div className="topbar__mid">
           <span className="host-top__room">
@@ -159,34 +170,13 @@ function HostBody({
               {closing ? "Closing…" : "Close room"}
             </button>
           ) : null}
-          {/* While paused, the banner below carries the one Resume button. */}
-          {!view.paused && inGame && view.phase !== "results" ? (
-            <button
-              type="button"
-              className="btn btn--small"
-              disabled={!can("pause")}
-              onClick={() => actions.run({ type: "pause" })}
-            >
-              Pause
-            </button>
-          ) : null}
-          {inGame && view.phase !== "results" ? (
-            <button
-              type="button"
-              className="btn btn--small"
-              disabled={!can("endGame")}
-              onClick={() => setDialog("end")}
-            >
-              End game
-            </button>
-          ) : null}
         </div>
       </header>
 
       <div className="host-banners">
         <StaleBanner status={status} />
         {view.paused ? (
-          <div className="banner banner--warn" role="status">
+          <div className="banner host-pause" role="status">
             <span>{pauseMessage(view.paused.reason).title}</span>
             <p>
               {view.paused.reason === "host"
@@ -206,38 +196,91 @@ function HostBody({
       </div>
 
       {view.phase === "lobby" ? (
-        <main id="main-content" className="host-page" {...swapGuard}>
-          <div className="host-intro">
-            <h1 className="marker">Set up the game</h1>
-            <p className="muted">
-              You run the show: you read clues, judge answers and keep score. You don&apos;t play.
-            </p>
-          </div>
-          <HostLobby
-            view={view}
-            packs={packs}
-            joinUrl={joinUrl}
-            pings={connection.pings}
-            actions={actions}
-            onCreateDisplayLink={onCreateDisplayLink}
-            displayLink={displayLink}
+        <main id="main-content" {...swapGuard}>
+          <StudioHero
+            eyebrow="Host desk / Green room"
+            title={
+              <>
+                Your <em>lobby.</em>
+              </>
+            }
+            description="Share the code. When everyone has a seat, start the show."
           />
+          <div className="host-page">
+            <HostLobby
+              view={view}
+              packs={packs}
+              joinUrl={joinUrl}
+              pings={connection.pings}
+              actions={actions}
+              onCreateDisplayLink={onCreateDisplayLink}
+              displayLink={displayLink}
+            />
+          </div>
         </main>
       ) : (
-        <div className="host-grid">
-          <main id="main-content" className="host-main" {...swapGuard}>
+        <main id="main-content" className="host-page host-desk">
+          <header className={`host-desk__head ${view.phase === "board" ? "host-picker" : ""}`}>
+            <div>
+              <p className="host-kicker">Host desk / {view.roomCode}</p>
+              <h1 className="name">{deskTitle}</h1>
+            </div>
+            <div className="row">
+              {!view.paused && view.phase !== "results" ? (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!can("pause")}
+                  onClick={() => actions.run({ type: "pause" })}
+                >
+                  Pause
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="btn"
+                aria-expanded={controlsOpen}
+                aria-controls={controlsId}
+                onClick={() => setControlsOpen((open) => !open)}
+              >
+                Game controls
+              </button>
+            </div>
+          </header>
+          <section
+            id={controlsId}
+            className="panel host-controls"
+            aria-label="Game controls"
+            hidden={!controlsOpen}
+          >
+            <h2>Adjust a score</h2>
+            <ScoreAdjustmentForm view={view} actions={actions} />
+            {view.phase !== "results" ? (
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn btn--bad"
+                  disabled={!can("endGame")}
+                  onClick={() => setDialog("end")}
+                >
+                  End game
+                </button>
+              </div>
+            ) : null}
+            <ScoreLog view={view} />
+          </section>
+          <div className="host-main" {...swapGuard}>
             <HostPhase view={view} actions={actions} clockOffsetMs={connection.clockOffsetMs} />
-          </main>
-          <aside className="host-side" aria-label="Scores">
+          </div>
+          <aside aria-label="Scores">
             <Scores
               view={view}
               pings={connection.pings}
               canAdjust={can("adjustScore")}
               onAdjust={(playerId) => setDialog({ adjust: playerId })}
             />
-            <ScoreLog view={view} />
           </aside>
-        </div>
+        </main>
       )}
 
       <ConfirmDialog
@@ -313,10 +356,10 @@ function HostPhase({
     case "roundIntro":
       return (
         <div className="stack">
-          <section className="panel host-intro-card">
-            <span className="stamp stamp--red">Up next</span>
-            <h1>{view.round?.title ?? "Next round"}</h1>
-            <p className="host-lede">
+          <section className="host-question host-intro-card">
+            <span className="host-kicker">Up next</span>
+            <h2>{view.round?.title ?? "Next round"}</h2>
+            <p>
               <strong className="name">{controller}</strong> picks first. The big screen is showing
               the round title.
             </p>
@@ -343,13 +386,10 @@ function HostPhase({
     case "board":
       return (
         <div className="stack">
-          <p className="host-picker">
-            <span>
-              <strong className="name">{controller}</strong> picks. Click the clue they call out.
-            </span>
+          <p className="host-board-help">
+            <span>Click the clue they call out.</span>
             <span className="host-legend">
-              <span className="board__hot board__hot--inline">Hot</span> = wager clue (only you can
-              see these)
+              <span className="host-kicker host-chip">Hot</span> Wager clue · host only
             </span>
           </p>
           {view.board ? (
@@ -395,29 +435,25 @@ function Scores({
   const answeringId = view.clue?.stage === "answering" ? view.clue.answeringPlayerId : null;
   const showPicks = view.phase === "roundIntro" || view.phase === "board" || view.phase === "clue";
   return (
-    <section className="panel panel--flat host-scores" aria-labelledby="host-scores-title">
-      <div className="panel__title">
-        <h2 id="host-scores-title">Scores</h2>
-        <button
-          type="button"
-          className="btn btn--small"
-          disabled={!canAdjust}
-          onClick={() => onAdjust(null)}
-        >
-          Adjust a score
-        </button>
-      </div>
+    <section className="host-scores" aria-labelledby="host-scores-title">
+      <h2 id="host-scores-title" className="sr-only">
+        Scores
+      </h2>
       <ul className="host-roster host-roster--scores">
         {view.players.map((player) => (
-          <li key={player.id} className={player.id === answeringId ? "is-answering" : undefined}>
+          <li
+            key={player.id}
+            data-picks={(showPicks && player.id === view.controllerId) || undefined}
+            className={player.id === answeringId ? "is-answering" : undefined}
+          >
             <span className="host-roster__name">
               <span className="name">{player.name}</span>
               <span className="host-roster__tags">
                 {showPicks && player.id === view.controllerId ? (
-                  <span className="stamp stamp--blue stamp--flat">Picks</span>
+                  <span className="host-kicker host-chip">Picks</span>
                 ) : null}
                 {player.id === answeringId ? (
-                  <span className="stamp stamp--good stamp--flat">Answering</span>
+                  <span className="host-kicker host-chip host-chip--answering">Answering</span>
                 ) : null}
                 {!player.connected ? <span className="host-away">away</span> : null}
                 <PingChip ms={pings[player.id]} connected={player.connected} />
@@ -487,6 +523,34 @@ function AdjustDialog({
   actions: HostActions;
   onClose: () => void;
 }) {
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title="Adjust a score"
+      description="Score changes appear in the log and keep clue progress."
+    >
+      <ScoreAdjustmentForm
+        view={view}
+        initialPlayer={initialPlayer}
+        actions={actions}
+        onClose={onClose}
+      />
+    </Dialog>
+  );
+}
+
+function ScoreAdjustmentForm({
+  view,
+  initialPlayer,
+  actions,
+  onClose,
+}: {
+  view: HostView;
+  initialPlayer?: PlayerId | null;
+  actions: HostActions;
+  onClose?: () => void;
+}) {
   const id = useId();
   const [playerId, setPlayerId] = useState<PlayerId>(initialPlayer ?? view.players[0]?.id ?? "");
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -496,6 +560,7 @@ function AdjustDialog({
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (!actions.can("adjustScore")) return;
     const n = Number(amount);
     const next: typeof errors = {};
     if (!Number.isInteger(n) || n < 1 || n > MAX_ADJUSTMENT_DELTA)
@@ -504,17 +569,14 @@ function AdjustDialog({
     setErrors(next);
     if (Object.keys(next).length > 0) return;
     actions.run({ type: "adjustScore", playerId, delta: direction * n, reason: reason.trim() });
-    onClose();
+    setAmount("");
+    setReason("");
+    onClose?.();
   }
 
   return (
-    <Dialog
-      open
-      onClose={onClose}
-      title="Adjust a score"
-      description="Fix a judging mistake. This is logged and doesn't change clue progress."
-    >
-      <form id={`${id}-form`} className="stack" onSubmit={submit} noValidate>
+    <form className="stack host-adjust-form" onSubmit={submit} noValidate>
+      <div className="host-adjust-form__fields">
         <div className="field">
           <label className="field__label" htmlFor={`${id}-player`}>
             Player
@@ -541,8 +603,8 @@ function AdjustDialog({
               Subtract
             </button>
           </div>
-          <div className="field" style={{ flex: 1 }}>
-            <label className="field__label sr-only" htmlFor={`${id}-amount`}>
+          <div className="field">
+            <label className="field__label" htmlFor={`${id}-amount`}>
               Points
             </label>
             <input
@@ -557,40 +619,42 @@ function AdjustDialog({
             />
           </div>
         </div>
-        {errors.amount ? (
-          <span id={`${id}-amount-error`} className="field__error">
-            {errors.amount}
-          </span>
-        ) : null}
-        <div className="field">
-          <label className="field__label" htmlFor={`${id}-reason`}>
-            Reason
-          </label>
-          <input
-            id={`${id}-reason`}
-            className="input"
-            maxLength={MAX_ADJUSTMENT_REASON_LENGTH}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder="Accepted a misspelling"
-            aria-invalid={errors.reason ? true : undefined}
-            aria-describedby={`${id}-reason-hint`}
-          />
-          <span id={`${id}-reason-hint`} className={errors.reason ? "field__error" : "field__hint"}>
-            {errors.reason ?? `${MAX_ADJUSTMENT_REASON_LENGTH - reason.length} characters left`}
-          </span>
-        </div>
-        <div className="dialog__actions row">
-          <button type="button" className="btn" onClick={onClose}>
+      </div>
+      {errors.amount ? (
+        <span id={`${id}-amount-error`} className="field__error">
+          {errors.amount}
+        </span>
+      ) : null}
+      <div className="field">
+        <label className="field__label" htmlFor={`${id}-reason`}>
+          Reason
+        </label>
+        <input
+          id={`${id}-reason`}
+          className="input"
+          maxLength={MAX_ADJUSTMENT_REASON_LENGTH}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="Accepted a misspelling"
+          aria-invalid={errors.reason ? true : undefined}
+          aria-describedby={`${id}-reason-hint`}
+        />
+        <span id={`${id}-reason-hint`} className={errors.reason ? "field__error" : "field__hint"}>
+          {errors.reason ?? `${MAX_ADJUSTMENT_REASON_LENGTH - reason.length} characters left`}
+        </span>
+      </div>
+      <div className={`row${onClose ? " dialog__actions" : ""}`}>
+        {onClose ? (
+          <button type="button" className="btn btn--quiet" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn--primary" disabled={!actions.can("adjustScore")}>
-            {amount
-              ? `${direction > 0 ? "Add" : "Subtract"} ${formatScore(Number(amount))}`
-              : "Apply"}
-          </button>
-        </div>
-      </form>
-    </Dialog>
+        ) : null}
+        <button type="submit" className="btn btn--primary" disabled={!actions.can("adjustScore")}>
+          {amount
+            ? `${direction > 0 ? "Add" : "Subtract"} ${formatScore(Number(amount))}`
+            : "Apply"}
+        </button>
+      </div>
+    </form>
   );
 }

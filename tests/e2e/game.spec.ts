@@ -32,7 +32,7 @@ test("host, TV and three phones play a full game with wagers, a final round and 
 
   // --- Lobby ---------------------------------------------------------------
   const code = await createGame(H, host.name, "Ham Snack");
-  await expect(H.getByText("In use:")).toContainText("Ham Snack");
+  await expect(H.locator(".host-setup__summary")).toContainText("Ham Snack");
   // Three wager clues (player wager, host enters one, host skips one); long timers so a slow machine can't expire them.
   await saveSettings(H, async (page) => {
     await page.getByLabel("Wager clues, round 1").selectOption("3");
@@ -206,13 +206,13 @@ test("host, TV and three phones play a full game with wagers, a final round and 
 
   // --- Play again: everyone back in the lobby, the late joiner gets a seat --
   await H.getByRole("button", { name: "Play again" }).click();
-  await expect(H.getByRole("heading", { name: "Set up the game" })).toBeVisible();
+  await expect(H.getByRole("heading", { name: "Your lobby." })).toBeVisible();
   await expect(H.locator(".host-roster li")).toHaveCount(4);
   await expect(
     dani.page.getByRole("heading", { name: "Waiting for the host to start" }),
   ).toBeVisible();
   await expect(phoneScore(winner.page)).toHaveText("0");
-  await expect(tv.page.getByText("4 players in")).toBeVisible();
+  await expect(tv.page.getByText("4 of 6 seats filled")).toBeVisible();
 
   const errors = [host, tv, ...players, dani].flatMap((p) => p.errors);
   expect(errors).toEqual([]);

@@ -31,7 +31,7 @@ function WithSession({
   children,
 }: {
   returnTo: string;
-  children: (session: SignedIn, signOut: () => void) => React.ReactNode;
+  children: (session: SignedIn) => React.ReactNode;
 }) {
   const session = useSession();
   if (session.status === "loading") return <LoadingNotice />;
@@ -64,7 +64,7 @@ function WithSession({
   return (
     <ToastProvider>
       <PageHeader session={signed} onSignOut={signOut} />
-      {children(signed, signOut)}
+      {children(signed)}
     </ToastProvider>
   );
 }
@@ -72,7 +72,7 @@ function WithSession({
 export function PacksRoute() {
   return (
     <WithSession returnTo="/packs">
-      {(session) => <PacksPage csrf={session.csrfToken} />}
+      {(session) => <PacksPage key={session.user.id} csrf={session.csrfToken} />}
     </WithSession>
   );
 }
@@ -122,8 +122,8 @@ function PacksPage({ csrf }: { csrf: string }) {
           setBusyId(id);
           try {
             await deletePack(csrf, id);
+            setPacks((current) => current?.filter((pack) => pack.id !== id) ?? null);
             toast("Pack deleted.", "info");
-            load();
           } catch (e) {
             toast(errorMessage(e));
           } finally {
@@ -137,8 +137,15 @@ function PacksPage({ csrf }: { csrf: string }) {
 
 export function PackEditorRoute({ id }: { id: string | null }) {
   return (
-    <WithSession returnTo={id ? `/packs/${id}` : "/packs"}>
-      {(session) => <EditorPage id={id} csrf={session.csrfToken} accountId={session.user.id} />}
+    <WithSession returnTo={id ? `/packs/${id}` : "/packs/new"}>
+      {(session) => (
+        <EditorPage
+          key={packDraftKey(session.user.id, id)}
+          id={id}
+          csrf={session.csrfToken}
+          accountId={session.user.id}
+        />
+      )}
     </WithSession>
   );
 }
@@ -190,7 +197,6 @@ function EditorPage({
   return (
     <main id="main-content" className="page">
       <PackEditor
-        key={id ?? "new"}
         initial={state.pack}
         isNew={id === null}
         draftKey={packDraftKey(accountId, id)}

@@ -88,6 +88,22 @@ describe("buzz button", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
+  it("shows the disconnected state over an already sent buzz", async () => {
+    const view = playerOf(SPECS.open, "p-medchu", { can: { buzz: true } });
+    const onSend = vi.fn();
+    const phone = (status: "live" | "reconnecting") => (
+      <PlayerScreen code="BCDFG" connection={mockConnection(view, { status, onSend })} />
+    );
+    const { rerender } = render(phone("live"));
+    const live = await screen.findByRole("button", { name: "Buzz!" });
+    await act(async () => fireEvent.pointerDown(live, { button: 0 }));
+    expect(screen.getByRole("button", { name: "Sent!" })).toBeInTheDocument();
+
+    rerender(phone("reconnecting"));
+    expect(screen.getByRole("button", { name: "Offline" })).toBeDisabled();
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
   it("says who won the race, and by how much", () => {
     const view = playerOf(SPECS.answeringRace, "p-ivvy");
     render(<PlayerScreen code="BCDFG" connection={mockConnection(view)} />);
@@ -225,7 +241,7 @@ it.each(["mouse", "touch"])(
       act(() => vi.advanceTimersByTime(200));
       const locked = screen.getByRole("button", { name: "Too early!" });
       expect(locked).toBeDisabled();
-      // Lit with everyone else, but in its own held-down look, never the pressable blue.
+      // The false-start state stays pressed until the lockout ends.
       expect(locked).toHaveClass("buzz--early");
       expect(locked).not.toHaveClass("buzz--live");
       expect(locked).toHaveAccessibleDescription("Locked for a moment: you tapped before it lit.");

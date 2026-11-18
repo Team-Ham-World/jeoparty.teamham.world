@@ -1,268 +1,161 @@
-/* Host control room. Laptop/tablet first; stacks to one column on phones. */
+/* The host desk shares the studio palette and the same board as the other views. */
 
 @layer components {
   .host {
+    --host-width: 76rem;
+    --host-inset: clamp(1rem, 3vw, 2.5rem);
     min-height: 100dvh;
   }
 
-  .host-top .topbar__mid {
+  .host-top,
+  .host-banners,
+  .host-page,
+  .host--lobby .studio-hero {
+    max-width: var(--host-width);
+    margin-inline: auto;
+  }
+
+  .host-top,
+  .host-banners,
+  .host-page {
+    padding-inline: max(var(--host-inset), var(--gutter-l)) max(var(--host-inset), var(--gutter-r));
+  }
+
+  .host-top__room {
     font-weight: 700;
   }
 
   .host-top__pack {
     color: var(--muted);
-    font-weight: 400;
-  }
-
-  @media (max-width: 640px) {
-    /* Phones: room and round on the lockup's row, controls on the next. */
-    .host-top__pack {
-      display: none;
-    }
-
-    .host-top .topbar__end {
-      flex-basis: 100%;
-      justify-content: flex-start;
-    }
   }
 
   .host-banners {
     display: grid;
     gap: 0.5rem;
-    padding: 0 var(--gutter-r) 0 var(--gutter-l);
   }
 
   .host-banners:not(:empty) {
-    padding-top: 0.75rem;
+    padding-block: 0.75rem;
   }
 
-  /* Flex, not grid, so the sticky start bar can travel the whole page. */
-  .host-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    max-width: 80rem;
-    margin-inline: auto;
-    padding: 1.5rem var(--gutter-r) 4rem var(--gutter-l);
-  }
-
-  .host-intro {
-    display: grid;
-    gap: 0.4rem;
-  }
-
-  .host-intro h1 {
-    justify-self: start;
-  }
-
-  .host-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
-    gap: 1.5rem;
-    align-items: start;
-    max-width: 90rem;
-    margin-inline: auto;
-    padding: 1.25rem var(--gutter-r) 3rem var(--gutter-l);
-  }
-
-  @media (max-width: 960px) {
-    .host-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .host-main,
-  .host-side {
-    display: grid;
-    gap: 1.25rem;
-    min-width: 0;
-  }
-
-  @media (min-width: 961px) {
-    .host-side {
-      position: sticky;
-      top: 1rem;
-      max-height: calc(100dvh - 2rem);
-      overflow-y: auto;
-      padding: 0.25rem 0.25rem 0.5rem;
-    }
-  }
-
-  .host-lede {
-    font-size: var(--fs-lg);
-  }
-
-  /* --------------------------------------------------------------- lobby */
-  /* Panels in a row share one height, so the row reads as a set. */
-  .host-lobby {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 1.5rem;
-    align-items: stretch;
-  }
-
-  .host-lobby__players {
-    grid-column: span 4;
-  }
-
-  .host-lobby__invite {
-    grid-column: span 4;
-  }
-
-  .host-lobby__display {
-    grid-column: span 4;
-  }
-
-  .host-lobby__setup {
-    grid-column: span 12;
-  }
-
-  /* Lobby start bar: always on screen, so "Start game" never hides below the fold.
-     The second shadow paints a band of paper above the bar, so content scrolling
-     under it disappears cleanly instead of being cut mid-line. Its 4px spread
-     also covers the panel's offset shadow at the sides; the band (1.5rem) matches
-     the page gap, so it is invisible once the bar reaches its resting place. */
-  .host-start {
-    position: sticky;
-    bottom: 0;
-    z-index: 5;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem 1.5rem;
-    padding: 0.85rem 1.1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
-    background: var(--surface);
-    border: 2px solid var(--ink);
-    box-shadow:
-      var(--shadow),
-      0 calc(-1rem - 4px) 0 4px var(--paper);
-  }
-
-  /* Focus and scroll-into-view stop above the sticky start bar. */
-  :root:has(.host-start) {
-    scroll-padding-bottom: 8rem;
-  }
-
-  @media (max-width: 720px) {
-    :root:has(.host-start) {
-      scroll-padding-bottom: 12rem;
-    }
-  }
-
-  .host-start > .host-blockers,
-  .host-start > .host-ready {
-    flex: 1 1 18rem;
-    min-width: 0;
-  }
-
-  @media (max-width: 1180px) {
-    .host-lobby__players,
-    .host-lobby__invite {
-      grid-column: span 6;
-    }
-
-    .host-lobby__display {
-      grid-column: span 12;
-    }
-
-    .host-lobby__setup {
-      grid-column: span 12;
-    }
-  }
-
-  @media (max-width: 720px) {
-    .host-lobby > * {
-      grid-column: 1 / -1 !important;
-    }
-  }
-
-  .host-roster {
-    display: grid;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .host-roster li {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-height: 48px;
-    padding: 0.3rem 0;
-    border-bottom: 1.5px dashed var(--rule);
-  }
-
-  .host-roster li:last-child {
-    border-bottom: 0;
-  }
-
-  .host-roster li > .name {
-    flex: 1;
-    font-weight: 700;
-  }
-
-  .host-away {
-    font-size: var(--fs-xs);
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* Ping: quiet muted digits beside a name. Over the slow threshold it
-     becomes a yellow chip that also says "slow", so color never carries it
-     alone. Before the first sample it says "measuring…". */
-  .ping {
-    flex: none;
-    font-size: var(--fs-2xs);
-    font-weight: 700;
-    line-height: 1.35;
-    font-variant-numeric: tabular-nums;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-
-  .ping--slow {
-    padding: 0 0.4em;
-    color: var(--ink);
-    background: var(--highlight);
-    border: 1.5px solid var(--ink);
+  .host-banners .host-pause {
+    gap: 0.4rem 1rem;
+    color: var(--stage-text);
+    background: var(--violet);
+    border: 0;
     border-radius: var(--radius);
   }
 
-  .host-ping-note {
-    margin-top: 0.75rem;
-    font-size: var(--fs-sm);
-    color: var(--muted);
-    text-wrap: pretty;
+  .host-pause p {
+    flex: 1 1 16rem;
   }
 
-  .host-ping-note strong {
-    padding: 0 0.25em;
+  .host-page {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.8rem, 1.5vw, 1.3rem);
+    padding-block: var(--host-inset) 2.5rem;
+  }
+
+  .host--lobby .studio-hero {
+    border-radius: 0;
+  }
+
+  .host--lobby .host-page {
+    padding-top: clamp(1rem, 2vw, 1.75rem);
+  }
+
+  .host-kicker {
+    font: 700 clamp(0.75rem, 1.4vw, 0.875rem) / 1.3 var(--font-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .host-chip {
+    width: fit-content;
+    padding: 0.2em 0.45em;
     color: var(--ink);
-    background: var(--highlight);
+    background: var(--violet-tint);
+    border-radius: 4px;
+    font-size: var(--fs-2xs);
+  }
+
+  /* Green room */
+  .host-lobby {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    gap: clamp(0.75rem, 1.4vw, 1rem);
+  }
+
+  .host-lobby__invite {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+    container-type: inline-size;
+    padding: clamp(1rem, 2.6vw, 2.25rem);
+    color: var(--stage-text);
+    background: var(--violet);
+    border-radius: var(--radius);
   }
 
   .host-invite {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 8.5rem;
-    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) clamp(4rem, 25cqi, 8rem);
+    gap: clamp(0.5rem, 3cqi, 1rem);
     align-items: start;
-    margin-bottom: 1rem;
   }
 
   .host-invite__code {
     display: grid;
-    gap: 0.35rem;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .host-invite__code p {
+    margin-top: 0.4rem;
+  }
+
+  .host-copy-status {
+    font-size: var(--fs-sm);
   }
 
   .host-invite__letters {
-    font-family: var(--font-display);
-    font-size: var(--fs-4xl);
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: 0.08em;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    font: 800 clamp(1.6rem, 14.8cqi, 5.4rem) / 1 var(--font-display);
+    letter-spacing: 0.07em;
+  }
+
+  .host-invite__qr,
+  .host-display-link__qr {
+    padding: 0.23rem;
+    border: 0;
+    border-radius: 4px;
+  }
+
+  .host-lobby__invite :is(.muted, .field__hint, .field__label, .btn--quiet) {
+    color: var(--stage-text);
+  }
+
+  .host-lobby__invite > .stack {
+    gap: 0.65rem;
+  }
+
+  .host-lobby__invite .btn--quiet:hover:not(:disabled) {
+    color: var(--ink);
+  }
+
+  .host-lobby__invite .field__error {
+    color: var(--stage-text);
+    font-weight: 700;
+  }
+
+  .host-lobby__invite :is(a, button, input):focus-visible {
+    outline-color: var(--stage-text);
   }
 
   .copy-field {
@@ -278,275 +171,24 @@
 
   .host-display-link {
     display: grid;
-    grid-template-columns: 8.5rem minmax(0, 1fr);
+    grid-template-columns: 7rem minmax(0, 1fr);
     gap: 1rem;
     align-items: start;
   }
 
-  /* In the narrow lobby column the link field gets the full width, so the
-     host can actually read the address instead of "http://127.0.0.1:". */
-  .host-lobby__display {
-    container-type: inline-size;
-  }
-
-  @container (max-width: 30rem) {
+  @container (max-width: 24rem) {
     .host-display-link {
       grid-template-columns: minmax(0, 1fr);
     }
 
     .host-display-link__qr {
-      max-width: 8.5rem;
+      max-width: 7rem;
     }
   }
 
-  @media (max-width: 420px) {
-    .host-invite,
-    .host-display-link {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .host-invite__qr,
-    .host-display-link__qr {
-      max-width: 10rem;
-    }
-  }
-
-  .host-pack {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    gap: 0.75rem;
-    padding-bottom: 1.25rem;
-    margin-bottom: 1.25rem;
-    border-bottom: 2px dashed var(--rule);
-  }
-
-  .host-pack__reload {
-    display: flex;
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.75rem;
-  }
-
-  .host-settings .segmented button:disabled:not([aria-pressed="true"]) {
-    color: var(--muted);
-    cursor: not-allowed;
-  }
-
-  .host-pack .field {
-    flex: 1 1 18rem;
-  }
-
-  .host-pack .btn {
-    max-width: 100%;
-  }
-
-  .host-settings {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .host-settings__group {
-    display: grid;
-    justify-items: start;
-    gap: 0.35rem;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  .host-settings__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 1rem;
-  }
-
-  /* Buzz rules: a checkbox row each, with its explanation hung under the
-     label text (past the 1.25rem box and its 0.5rem gap). auto-fill keeps
-     the empty third track, so on a wide lobby the two rules sit on the same
-     columns as the three fields above them. */
-  .host-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-    gap: 0.25rem 1rem;
-    justify-self: stretch; /* the fieldset lays its children out at their own width */
-  }
-
-  .host-option {
-    display: grid;
-    align-content: start;
-  }
-
-  .host-option .field__hint {
-    max-width: 48ch;
-    margin-top: -0.4rem;
-    padding-left: 1.75rem;
-    font-size: var(--fs-sm);
-  }
-
-  /* Seconds are two or three digits; a full-column box overstates them. */
-  .host-settings__grid .input.num {
-    max-width: 8rem;
-  }
-
-  .host-blockers {
-    display: grid;
-    gap: 0.4rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .host-blockers li {
-    padding-left: 1.4rem;
-    text-indent: -1.4rem;
-    font-weight: 700;
-  }
-
-  .host-blockers li::before {
-    content: "✗";
-    display: inline-block;
-    width: 1.4rem;
-    text-indent: 0;
-    color: var(--bad);
-  }
-
-  .host-blockers__unsaved .btn {
-    margin-left: 0.35rem;
-    text-indent: 0;
-    vertical-align: middle;
-  }
-
-  .host-ready {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  /* --------------------------------------------------------- board phase */
-  .host-picker {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem 1rem;
-    padding: 0.75rem 1rem;
-    font-size: var(--fs-lg);
-    background: var(--surface);
-    border: 2px solid var(--ink);
-    border-left: 8px solid var(--blue);
-  }
-
-  .host-legend {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-left: auto;
-    font-size: var(--fs-sm);
-    color: var(--muted);
-  }
-
-  .board__hot--inline {
-    position: static;
-    transform: none;
-  }
-
-  .host-intro-card {
-    display: grid;
-    gap: 0.75rem;
-    justify-items: start;
-  }
-
-  .host-intro-card h1 {
-    font-size: var(--fs-4xl);
-  }
-
-  /* ---------------------------------------------------------- clue panel */
-  .host-clue {
-    background: var(--surface);
-    border: 2px solid var(--ink);
-    box-shadow: var(--shadow);
-  }
-
-  .host-clue__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem 1rem;
-    padding: 0.7rem 1.1rem;
-    color: var(--surface);
-    background: var(--ink);
-  }
-
-  .host-clue__head h2 {
-    font-size: var(--fs-lg);
-  }
-
-  .host-clue__head .stamp--ink {
-    color: var(--ink);
-    background: var(--surface);
-    border-color: var(--surface);
-  }
-
-  .host-clue__body {
-    display: grid;
-    gap: 1rem;
-    padding: 1.1rem;
-  }
-
-  .host-clue__hot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
-    font-size: var(--fs-lg);
-  }
-
-  .host-clue__hot .hot-ham {
-    font-size: 2rem;
-  }
-
-  /* Small enough that the answer stays above the sticky action bar on a 768 px laptop. */
-  .host-picture {
-    height: min(28vh, 16rem);
-    aspect-ratio: 16 / 9;
-    max-width: 100%;
-    margin-block: 0.4rem 0.75rem;
-  }
-
-  .host-prompt p {
-    font-size: var(--fs-2xl);
-    font-weight: 700;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
-  }
-
-  .host-prompt--long p {
-    font-size: var(--fs-xl);
-  }
-
-  .host-answer {
-    padding: 0.6rem 0.9rem;
-    background: var(--highlight);
-    border: 2px dashed var(--ink);
-  }
-
-  .host-answer p {
-    font-size: var(--fs-xl);
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  }
-
-  .host-clue--revealed .host-answer {
-    border-style: solid;
-  }
-
-  .host-note {
-    font-size: var(--fs-lg);
-  }
-
+  .host-roster,
+  .host-blockers,
+  .host-standings,
   .host-attempts,
   .host-checklist,
   .host-responses {
@@ -557,115 +199,409 @@
     list-style: none;
   }
 
-  .host-attempt {
+  .host-lobby__players .host-roster li {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem 0.75rem;
     align-items: center;
-    padding: 0.4rem 0.7rem;
+    gap: 0.35rem 0.5rem;
+    min-height: 48px;
+    padding-block: 0.35rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .host-lobby__players .host-roster .name {
+    flex: 1;
     font-weight: 700;
-    border: 2px solid var(--ink);
-    border-left-width: 6px;
   }
 
-  .host-attempt > .name {
-    flex: 1 1 10rem;
-  }
-
-  .host-attempt > :last-child {
-    min-width: 4rem;
-    text-align: right;
-  }
-
-  .host-attempt--incorrect {
-    background: var(--bad-tint);
-    border-color: var(--bad);
-  }
-
-  .host-attempt--correct {
-    background: var(--good-tint);
-    border-color: var(--good);
-  }
-
-  .host-attempt--pending {
-    background: var(--blue-tint);
-    border-color: var(--blue);
-  }
-
-  .host-clue__actions {
+  .host-avatar {
     display: grid;
+    place-items: center;
+    flex: none;
+    width: 2rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    color: var(--ink);
+    background: var(--lilac);
+    font-weight: 750;
+  }
+
+  .host-text-action {
+    color: var(--violet);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 700;
+  }
+
+  .host-lobby__players .btn:not(:disabled) {
+    padding-inline: 0.3rem;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .host-lobby__players .btn:hover:not(:disabled) {
+    background: var(--violet-tint);
+  }
+
+  .host-away,
+  .ping {
+    font-size: var(--fs-2xs);
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .host-away {
+    text-transform: uppercase;
+  }
+
+  .ping {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .ping--slow,
+  .host-ping-note strong {
+    padding: 0 0.35em;
+    color: var(--ink);
+    background: var(--highlight);
+    border-radius: 4px;
+  }
+
+  .host-ping-note,
+  .host-waiting {
+    margin-top: 0.75rem;
+    font-size: var(--fs-sm);
+  }
+
+  .host-lobby__setup {
+    border-block: 1px solid var(--rule);
+  }
+
+  .host-setup__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.8rem;
+    min-height: 52px;
+    padding-block: 0.6rem;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .host-setup__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .host-setup__format {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .host-setup__format strong {
+    font-size: var(--fs-lg);
+  }
+
+  .host-setup__editor {
+    padding: clamp(0.8rem, 2vw, 1.5rem);
+    margin-bottom: 0.85rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .host-pack {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
     gap: 0.75rem;
-    padding: 0.85rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
-    border-top: 2px dashed var(--rule);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .host-pack .field {
+    flex: 1 1 16rem;
+  }
+
+  .host-pack__reload {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .host-start {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+    padding-block: 0.65rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
     background: var(--paper);
   }
 
-  /* Status line over the buttons. Its minimum height is the countdown's, so
-     the buttons sit at the same height whether or not a timer is running. */
+  :root:has(.host-start) {
+    scroll-padding-bottom: 9rem;
+  }
+
+  .host-start > :is(.host-blockers, .host-ready) {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+
+  .host-blockers li,
+  .host-ready {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .host-blockers li::before {
+    content: "✗";
+    color: var(--bad);
+  }
+
+  /* Live desk */
+  .host-desk__head,
+  .host-board-help,
+  .host-clue__head,
   .host-status {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem 1.5rem;
-    min-height: 2.25rem;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
   }
 
-  .host-status .host-callout {
-    flex: 1 1 20rem;
+  .host-desk__head h1 {
+    margin-top: 0.25rem;
+    font-size: clamp(1.85rem, 4vw, 2.65rem);
+  }
+
+  .host-desk__head .host-kicker {
+    color: var(--violet);
+  }
+
+  .host-main {
     min-width: 0;
   }
 
-  .host-status__timer {
-    flex: 0 1 16rem;
+  .host-controls:not([hidden]) {
+    display: grid;
+    gap: 1rem;
   }
 
-  /* The shortcut key is drawn here, not in the DOM, so it isn't part of the
-     button's text (see ActionButton). */
-  .host-clue kbd[data-key]::after {
-    content: attr(data-key);
+  .host-adjust-form__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    align-items: end;
+    gap: 0.75rem;
   }
 
-  /* The attempts sit under the action strip, so a new buzz never moves the buttons. */
-  .host-clue > .host-attempts {
-    padding: 0.9rem 1.1rem 1.1rem;
+  .host-adjust-form__fields > .row {
+    align-items: end;
   }
 
-  /* Judging buttons stay reachable even when a long clue pushes them below
-     the fold. Not during the wager stage: that form is too tall to pin. */
+  .host-adjust-form__fields > .row > .field {
+    flex: 1 1 6rem;
+  }
+
+  .host-board-help,
+  .host-legend {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+  }
+
+  .host-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .host-question {
+    display: grid;
+    align-content: space-between;
+    gap: clamp(0.65rem, 1.8vw, 1.25rem);
+    min-height: clamp(10rem, 20vw, 17rem);
+    padding: clamp(1rem, 3vw, 2.4rem);
+    color: var(--stage-text);
+    background: var(--violet);
+    border-radius: var(--radius);
+  }
+
+  .host-question :is(h2:not(.host-kicker), .host-prompt > p) {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4.2vw, 3.75rem);
+    font-weight: 780;
+    line-height: 1.07;
+    letter-spacing: -0.04em;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+
+  .host-question .host-prompt--long > p {
+    font-size: clamp(1.4rem, 3vw, 2.5rem);
+  }
+
+  .host-question :is(.btn, button):focus-visible {
+    outline-color: var(--stage-text);
+  }
+
+  .host-intro-card {
+    justify-items: start;
+  }
+
+  .host-clue__head {
+    align-items: baseline;
+  }
+
+  .host-stage {
+    color: var(--stage-text);
+  }
+
+  .host-stage::before {
+    content: "";
+    display: inline-block;
+    width: 0.55em;
+    aspect-ratio: 1;
+    margin-right: 0.55em;
+    border-radius: 50%;
+    background: var(--peach);
+    vertical-align: 0.08em;
+  }
+
+  .host-prompt {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .host-prompt > .host-kicker {
+    color: var(--stage-muted);
+    letter-spacing: 0.035em;
+    font-size: var(--fs-2xs);
+  }
+
+  .host-clue__hot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+  }
+
+  .host-clue__hot .hot-ham {
+    font-size: 1.75rem;
+  }
+
+  .host-picture {
+    width: min(100%, 30rem);
+    height: min(27vh, 13rem);
+    border: 0;
+    border-radius: 4px;
+  }
+
+  .host-clue__body {
+    display: grid;
+    gap: 0.65rem;
+    margin-block: 0.65rem;
+  }
+
+  .host-answer {
+    padding: 0.55rem 0.85rem;
+    background: var(--violet-tint);
+    border-left: 3px solid var(--violet);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .host-answer p {
+    font-size: var(--fs-xl);
+    font-weight: 750;
+    overflow-wrap: anywhere;
+  }
+
+  /* Keep judging within reach on long clues and leave the attempt list below it. */
+  .host-clue__actions {
+    display: grid;
+    gap: 0.55rem;
+    padding-block: 0.55rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+    background: var(--paper);
+    border-top: 1px solid var(--rule);
+  }
+
   .host-clue:not(.host-clue--wager) > .host-clue__actions {
     position: sticky;
     bottom: 0;
     z-index: 2;
   }
 
-  .host-callout {
-    font-size: var(--fs-lg);
+  .host-status {
+    min-height: 2.25rem;
   }
 
-  /* "first by 0.04 s" stays together when the status line wraps. */
+  .host-status .host-callout {
+    flex: 1 1 14rem;
+    min-width: 0;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .host-status__timer {
+    flex: 0 1 16rem;
+  }
+
   .host-margin {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
+  .host-clue kbd[data-key]::after {
+    content: attr(data-key);
+  }
+
   .host-wager {
     display: grid;
-    gap: 0.75rem;
-    max-width: 28rem;
+    gap: 0.6rem;
+    max-width: 29rem;
   }
 
-  /* --------------------------------------------------------------- final */
+  .host-attempt,
+  .host-checklist li,
+  .host-response {
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+
+  .host-attempt,
   .host-checklist li {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.35rem 0;
-    font-weight: 700;
-    border-bottom: 1.5px dashed var(--rule);
+    gap: 0.3rem 0.65rem;
   }
 
-  .host-checklist li .name {
+  .host-attempt > .name,
+  .host-checklist .name {
     flex: 1;
+    font-weight: 700;
+  }
+
+  .host-attempt--incorrect {
+    background: var(--bad-tint);
+  }
+
+  .host-attempt--correct {
+    background: var(--good-tint);
+  }
+
+  .host-attempt--pending {
+    background: var(--violet-tint);
   }
 
   .host-checklist li.is-done > span:first-child {
@@ -674,11 +610,9 @@
 
   .host-response {
     display: grid;
-    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) auto;
-    gap: 0.75rem;
+    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) auto;
+    gap: 0.4rem 0.75rem;
     align-items: center;
-    padding: 0.55rem 0.75rem;
-    border: 2px solid var(--rule);
   }
 
   .host-response__who {
@@ -691,26 +625,153 @@
   }
 
   .host-response__said {
-    font-weight: 700;
     overflow-wrap: anywhere;
   }
 
-  .host-response__delta {
+  .host-response.is-next {
+    border-left: 4px solid var(--violet);
+    background: var(--violet-tint);
+  }
+
+  .host-results {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .host-standings li {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.45rem 0.65rem;
+    min-height: 48px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .host-standings .num {
+    font-family: var(--font-mono);
+  }
+
+  .host-standings li.is-winner {
+    background: var(--violet-tint);
+    font-weight: 750;
+  }
+
+  .host-roster--scores {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    gap: 0.75rem;
+  }
+
+  .host-roster--scores li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: start;
+    gap: 0.25rem 0.35rem;
+    padding: 0.45rem 0.25rem 0.2rem;
+    border-top: 2px solid var(--rule);
+  }
+
+  .host-roster--scores li[data-picks] {
+    border-color: var(--peach-edge);
+  }
+
+  .host-roster--scores li.is-answering {
+    border-color: var(--good);
+    background: var(--good-tint);
+  }
+
+  .host-roster__name {
+    display: grid;
+    grid-column: 1 / -1;
+    align-content: start;
+    gap: 0.2rem;
+    min-width: 0;
     font-weight: 700;
   }
 
-  .host-response.is-next {
-    border-color: var(--blue);
-    box-shadow: inset 6px 0 0 var(--blue);
-    background: var(--blue-tint);
+  .host-roster__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
   }
 
-  .host-response--judged {
-    border-style: dashed;
-    color: var(--muted);
+  .host-roster__tags .host-chip {
+    background: var(--peach);
+  }
+
+  .host-roster__tags .host-chip--answering {
+    background: var(--good-tint);
+    color: var(--good);
+  }
+
+  .host-roster--scores .score {
+    align-self: center;
+    font-size: clamp(1.2rem, 2.5vw, 2rem);
+    letter-spacing: -0.04em;
+    overflow-wrap: anywhere;
+  }
+
+  .host-adjust {
+    align-self: start;
+    min-width: 36px;
+    padding-inline: 0.3rem;
+  }
+
+  .host-log {
+    display: grid;
+    gap: 0.5rem;
+    font-size: var(--fs-sm);
+  }
+
+  .host-log ol {
+    display: grid;
+    gap: 0.35rem;
+    max-height: 12rem;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .host-log li {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .host-log__delta {
+    font-weight: 700;
+  }
+
+  .dialog__actions {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  @media (max-width: 680px) {
+    .host-lobby {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .host-top__pack {
+      display: none;
+    }
+
+    .host-top .topbar__end {
+      flex-basis: 100%;
+      justify-content: flex-start;
+    }
   }
 
   @media (max-width: 560px) {
+    .host-clue__actions .btn--big {
+      min-height: 48px;
+      padding-inline: 0.65rem;
+      font-size: var(--fs-md);
+    }
+
     .host-response {
       grid-template-columns: minmax(0, 1fr) auto;
     }
@@ -719,129 +780,9 @@
       grid-column: 1 / -1;
       grid-row: 2;
     }
-  }
 
-  /* ------------------------------------------------------------- results */
-  .host-results {
-    display: grid;
-    gap: 1rem;
-    justify-items: start;
-  }
-
-  /* Phone heading size on phones (DESIGN.md), so long names keep whole words;
-     an unbroken username still wraps rather than widening the page. */
-  .host-results__title {
-    font-size: clamp(1.75rem, 8vw, var(--fs-3xl));
-    overflow-wrap: anywhere;
-  }
-
-  .host-standings {
-    display: grid;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .host-standings li {
-    display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr) auto;
-    gap: 0.75rem;
-    align-items: center;
-    min-height: 48px;
-    font-size: var(--fs-lg);
-    border-bottom: 1.5px dashed var(--rule);
-  }
-
-  .host-standings li.is-winner {
-    font-weight: 700;
-    background: linear-gradient(
-      transparent 14%,
-      var(--highlight) 14%,
-      var(--highlight) 86%,
-      transparent 86%
-    );
-  }
-
-  /* ---------------------------------------------------------- side panel */
-  .host-roster--scores li {
-    gap: 0.4rem;
-  }
-
-  .host-roster__name {
-    display: grid;
-    flex: 1;
-    min-width: 0;
-    gap: 0.15rem;
-    font-weight: 700;
-  }
-
-  .host-roster__tags {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.3rem 0.5rem;
-  }
-
-  .host-roster__tags .stamp {
-    font-size: var(--fs-2xs);
-  }
-
-  .host-roster--scores .score {
-    font-family: var(--font-display);
-    font-size: var(--fs-xl);
-    font-weight: 800;
-  }
-
-  .host-roster--scores li.is-answering {
-    background: var(--good-tint);
-    box-shadow:
-      -0.5rem 0 0 var(--good-tint),
-      0.5rem 0 0 var(--good-tint);
-  }
-
-  .host-adjust {
-    width: 36px;
-    padding: 0;
-    font-size: var(--fs-lg);
-    box-shadow: none;
-  }
-
-  .host-waiting {
-    margin-top: 0.75rem;
-    font-size: var(--fs-sm);
-  }
-
-  .host-log {
-    display: grid;
-    gap: 0.5rem;
-  }
-
-  .host-log ol {
-    display: grid;
-    gap: 0.35rem;
-    max-height: 18rem;
-    margin: 0;
-    padding: 0;
-    overflow-y: auto;
-    list-style: none;
-    font-size: var(--fs-sm);
-  }
-
-  .host-log li {
-    display: grid;
-    grid-template-columns: 4rem minmax(0, 1fr);
-    gap: 0.5rem;
-  }
-
-  .host-log__delta {
-    font-weight: 700;
-    text-align: right;
-  }
-
-  .dialog__actions {
-    justify-content: flex-end;
-    padding-top: 0.5rem;
-    border-top: 2px dashed var(--rule);
+    .host-adjust {
+      min-width: 44px;
+    }
   }
 }

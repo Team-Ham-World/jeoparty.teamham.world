@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { socialMetadata } from "./social-metadata";
-import "@fontsource-variable/bricolage-grotesque/opsz.css";
+import "@fontsource-variable/bricolage-grotesque/wght.css";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
 import "./globals.css";
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f6f1e5",
+  themeColor: "#faf4e9",
   viewportFit: "cover",
 };
 

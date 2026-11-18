@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { PackSummary } from "@/features/network/protocol";
 import { ConfirmDialog } from "@/features/ui/dialog";
 import { plural } from "@/features/ui/format";
+import { PackCover, StudioHero } from "@/features/ui/studio-hero";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -29,24 +30,25 @@ export function PacksList({
 
   return (
     <div className="packs">
-      <div className="packs-head">
-        <div className="stack stack--tight">
-          <h1 className="marker">Question packs</h1>
-          <p className="muted">
-            Write your own categories and clues, or copy a built-in pack and remix it.
-          </p>
-        </div>
-        <Link className="btn btn--primary btn--big" href="/packs/new">
-          + New pack
-        </Link>
-      </div>
+      <StudioHero
+        eyebrow="Question packs"
+        title={
+          <>
+            Pack <i>library.</i>
+          </>
+        }
+        description="Write your own clues or make a copy of a built-in pack."
+      />
 
-      <section aria-labelledby="mine-title" className="stack">
-        <h2 id="mine-title">My packs</h2>
+      <section aria-labelledby="mine-title" className="packs-shelf">
+        <div className="packs-head">
+          <h2 id="mine-title">My packs</h2>
+          <Link className="btn btn--primary" href="/packs/new">
+            + New pack
+          </Link>
+        </div>
         {mine.length === 0 ? (
-          <p className="panel panel--sunk">
-            No packs yet. Start a new one, or copy a built-in pack below.
-          </p>
+          <p className="pack-card packs-empty">No packs yet.</p>
         ) : (
           <ul className="packs-grid">
             {mine.map((pack) => (
@@ -76,11 +78,11 @@ export function PacksList({
         )}
       </section>
 
-      <section aria-labelledby="builtin-title" className="stack">
-        <h2 id="builtin-title">Built in</h2>
+      <section aria-labelledby="builtin-title" className="packs-shelf">
+        <h2 id="builtin-title">Built-in packs</h2>
         <ul className="packs-grid">
-          {builtIn.map((pack) => (
-            <PackCard key={pack.id} pack={pack} busy={busyId === pack.id}>
+          {builtIn.map((pack, index) => (
+            <PackCard key={pack.id} pack={pack} busy={busyId === pack.id} snack={index % 2 === 1}>
               <button
                 type="button"
                 className="btn btn--small"
@@ -113,31 +115,33 @@ export function PacksList({
 function PackCard({
   pack,
   busy,
+  snack = false,
   children,
 }: {
   pack: PackSummary;
   busy: boolean;
+  snack?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <li className="panel pack-card" aria-busy={busy || undefined}>
-      <div className="pack-card__meta">
-        <span
-          className={`stamp stamp--flat ${pack.source === "mine" ? "stamp--blue" : "stamp--dashed"}`}
-        >
-          {pack.source === "mine" ? "Mine" : "Built in"}
-        </span>
-        <span className="muted num">
-          {plural(pack.categories, "category", "categories")} ×{" "}
-          {plural(pack.cluesPerCategory, "clue")}
-        </span>
+    <li className="pack-card" aria-busy={busy || undefined}>
+      <div className="pack-card__head">
+        <PackCover variant={snack ? "snack" : "record"} />
+        <div>
+          <h3 className="pack-card__title">{pack.title}</h3>
+          <p className="muted">
+            {plural(pack.categories, "category", "categories")} ×{" "}
+            {plural(pack.cluesPerCategory, "clue")}
+          </p>
+        </div>
       </div>
-      <h3 className="pack-card__title name">{pack.title}</h3>
-      {pack.description ? <p className="muted pack-card__desc">{pack.description}</p> : null}
+      {pack.description ? <p className="muted">{pack.description}</p> : null}
       {pack.updatedAt ? (
         <p className="field__hint">Updated {dateFormat.format(new Date(pack.updatedAt))}</p>
       ) : null}
-      <div className="row pack-card__actions">{children}</div>
+      <div className="row pack-card__actions" role="group" aria-label={pack.title}>
+        {children}
+      </div>
     </li>
   );
 }

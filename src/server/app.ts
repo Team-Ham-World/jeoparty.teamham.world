@@ -37,7 +37,7 @@ import {
 import { Packs } from "./packs";
 import { Pictures } from "./pictures";
 import { Room, type Connection, type RoomRow, type RoomDeps } from "./rooms/room";
-import { parseClientMessage } from "./validation";
+import { parseClientMessage, settingsPatchSchema } from "./validation";
 import { RateLimiter } from "./rate-limit";
 
 const ROOM_IDLE_MS = 12 * 3_600_000;
@@ -49,7 +49,12 @@ const claimSchema = z
     key: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
   })
   .strict();
-const createSchema = z.object({ packId: z.string().min(1).max(128).optional() }).strict();
+const createSchema = z
+  .object({
+    packId: z.string().min(1).max(128).optional(),
+    settings: settingsPatchSchema.optional(),
+  })
+  .strict();
 const saveSchema = z
   .object({
     pack: z.unknown().refine((value) => value !== undefined),
@@ -340,7 +345,11 @@ export async function createApp(config: Config, options: Options) {
           error: "authUnavailable",
           message: "HAM is unavailable. Start sign-in again shortly.",
         });
-      else redirect(res, `${result.returnTo}?auth_error=${result.error}`);
+      else {
+        const target = new URL(result.returnTo, config.publicOrigin);
+        target.searchParams.set("auth_error", result.error);
+        redirect(res, target.pathname + target.search);
+      }
       return;
     }
     if (route === "/api/auth/logout" && method === "POST") {
@@ -433,6 +442,16 @@ export async function createApp(config: Config, options: Options) {
       );
       if (!result.ok) throw new HttpError(400, "badRequest", result.rejection.message);
       state = result.state;
+      if (request.settings) {
+        const configured = options.engine.apply(
+          state,
+          { kind: "host" },
+          { type: "updateSettings", patch: request.settings },
+          now(),
+        );
+        if (!configured.ok) throw new HttpError(400, "badRequest", configured.rejection.message);
+        state = configured.state;
+      }
       const room = new Room(code, user.account.account_id, state, [], now(), deps);
       room.saveInitial();
       rooms.set(code, room);

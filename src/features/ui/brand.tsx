@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { HamWordmark } from "./ham-wordmark";
 
-/** "HAM Quiz": the traced HAM wordmark plus "Quiz" in the display face. */
+/** The broadcast studio's striped mark and product name. */
 export function Lockup({ href, className = "" }: { href?: string; className?: string }) {
   const content = (
     <>
-      <HamWordmark className="lockup__ham" />
-      <span className="lockup__quiz">Quiz</span>
+      <span className="lockup__mark" aria-hidden="true" />
+      <span>HAM Quiz</span>
     </>
   );
   if (href) {

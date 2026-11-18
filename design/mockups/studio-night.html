@@ -1,0 +1,842 @@
+<div id="ham-studio">
+  <div class="preview-tools">
+    <nav aria-label="Preview device">
+      <button data-role="tv" aria-pressed="true">TV display</button>
+      <button data-role="host" aria-pressed="false">Host desk</button>
+      <button data-role="phone" aria-pressed="false">Player phone</button>
+    </nav>
+    <label
+      >Scene
+      <select aria-label="Preview scene">
+        <option value="board">Game board</option>
+        <option value="reading">Read clue</option>
+        <option value="open">Buzzers open</option>
+        <option value="answering">Answering</option>
+        <option value="reveal">Answer reveal</option>
+      </select></label
+    >
+  </div>
+  <div class="mount"></div>
+  <div class="assist" aria-live="polite"></div>
+</div>
+<style>
+  #ham-studio {
+    --night: color-mix(in srgb, #171423 96%, var(--foreground, #171423));
+    --panel: color-mix(in srgb, #4d3f91 98%, var(--accent, #4d3f91));
+    --milk: color-mix(in srgb, #fff1d9 98%, var(--foreground, #fff1d9));
+    --lilac: color-mix(in srgb, #cdc4ff 98%, var(--accent, #cdc4ff));
+    --orange: color-mix(in srgb, #ff9a69 98%, var(--accent, #ff9a69));
+    --line: color-mix(in srgb, var(--milk) 22%, transparent);
+    --ink: #272333;
+    --mono: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+    --sans: "Bricolage Grotesque", Arial, Helvetica, sans-serif;
+    --outer: var(--foreground, #39343c);
+    font: 500 15px/1.2 var(--sans);
+    color: var(--outer);
+    container-type: inline-size;
+  }
+  #ham-studio * {
+    box-sizing: border-box;
+  }
+  #ham-studio button,
+  #ham-studio select {
+    font: inherit;
+    cursor: pointer;
+  }
+  #ham-studio button:focus-visible,
+  #ham-studio select:focus-visible {
+    outline: 3px solid #4797ff;
+    outline-offset: 2px;
+  }
+  #ham-studio .preview-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0 0 12px;
+  }
+  #ham-studio nav {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 8px;
+    background: var(--secondary, #dedbd6);
+  }
+  #ham-studio nav button {
+    border: 0;
+    background: transparent;
+    color: var(--secondary-foreground, #332e3a);
+    padding: 9px 11px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  #ham-studio nav [aria-pressed="true"] {
+    background: var(--foreground, #292534);
+    color: var(--background, #fff);
+  }
+  #ham-studio label {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #ham-studio select {
+    background: var(--card, #f9f7f2);
+    color: var(--foreground, #302b35);
+    border: 1px solid var(--border, #b7b3ac);
+    border-radius: 6px;
+    padding: 7px;
+  }
+  #ham-studio .set {
+    border-radius: 18px;
+    padding: clamp(12px, 2.6cqw, 30px);
+    color: var(--milk);
+    background: var(--night);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  #ham-studio .set:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background: radial-gradient(ellipse at 95% 0%, #43375e88, transparent 52%);
+  }
+  #ham-studio .station {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  #ham-studio .bug,
+  #ham-studio .meta,
+  #ham-studio .over {
+    font: 700 clamp(10px, 1.55cqw, 18px)/1.2 var(--mono);
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+  #ham-studio .bug {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #ham-studio .mark {
+    display: inline-block;
+    width: 25px;
+    height: 14px;
+    background: repeating-linear-gradient(90deg, var(--orange) 0 4px, transparent 4px 7px);
+    transform: skew(-16deg);
+  }
+  #ham-studio .live {
+    color: var(--orange);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  #ham-studio .live:before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  #ham-studio .hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: clamp(100px, 18.5cqw, 224px);
+    overflow: hidden;
+  }
+  #ham-studio h2,
+  #ham-studio h3,
+  #ham-studio p {
+    margin: 0;
+  }
+  #ham-studio .over {
+    color: var(--lilac);
+  }
+  #ham-studio .logo {
+    position: relative;
+    z-index: 1;
+    align-self: flex-start;
+    font: 950 italic clamp(46px, 11.8cqw, 154px)/0.99 var(--sans);
+    letter-spacing: -0.092em;
+    transform: skew(-6deg);
+    padding-right: 0.12em;
+  }
+  #ham-studio .logo em {
+    color: var(--orange);
+    font: inherit;
+  }
+  #ham-studio .sun {
+    position: absolute;
+    right: 2%;
+    top: 50%;
+    transform: translateY(-50%) rotate(-15deg);
+    width: 21%;
+    aspect-ratio: 1.48;
+    pointer-events: none;
+  }
+  #ham-studio .sun:before {
+    content: "";
+    position: absolute;
+    left: 18%;
+    width: 62%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      repeating-linear-gradient(15deg, transparent 0 7%, var(--night) 7% 9%),
+      linear-gradient(155deg, var(--milk), var(--orange) 57%, #f47989);
+  }
+  #ham-studio .sun:after,
+  #ham-studio .orbit {
+    content: "";
+    position: absolute;
+    top: 22%;
+    left: -3%;
+    width: 103%;
+    height: 48%;
+    border: 2px solid var(--lilac);
+    border-radius: 50%;
+    transform: rotate(-12deg);
+  }
+  #ham-studio .orbit {
+    top: 29%;
+    left: -5%;
+    width: 109%;
+    height: 36%;
+    border-width: 1px;
+  }
+  #ham-studio .board {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: clamp(3px, 0.65cqw, 10px);
+  }
+  #ham-studio .column {
+    display: grid;
+    grid-template-rows: auto repeat(4, 1fr);
+    gap: clamp(3px, 0.65cqw, 10px);
+  }
+  #ham-studio .category {
+    color: var(--milk);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font: 750 clamp(11px, 2.2cqw, 32px)/1.05 var(--sans);
+    padding: 8px 2px 11px;
+    letter-spacing: -0.03em;
+  }
+  #ham-studio .tile {
+    width: 100%;
+    min-width: 0;
+    min-height: clamp(34px, 6.65cqw, 103px);
+    display: grid;
+    place-items: center;
+    color: var(--milk);
+    background: var(--panel);
+    border: 0;
+    border-radius: 5px;
+    font: 800 clamp(22px, 4.7cqw, 76px)/1 var(--sans);
+    letter-spacing: -0.065em;
+    font-variant-numeric: tabular-nums;
+  }
+  #ham-studio .tile.used {
+    color: #9488ac;
+    background: repeating-linear-gradient(-48deg, transparent 0 5px, #352e4266 5px 7px), #262233;
+    font: 500 clamp(16px, 2.8cqw, 40px)/1 var(--sans);
+  }
+  #ham-studio button.tile:hover {
+    background: var(--lilac);
+    color: var(--night);
+  }
+  #ham-studio .lower {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(4px, 1.4cqw, 18px);
+    margin-top: clamp(13px, 2.7cqw, 38px);
+  }
+  #ham-studio .score {
+    border-top: 2px solid var(--line);
+    padding: clamp(7px, 1.3cqw, 20px) 1px 1px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+  #ham-studio .score.picking {
+    border-color: var(--orange);
+  }
+  #ham-studio .who {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: clamp(12px, 2.5cqw, 36px);
+    font-weight: 650;
+  }
+  #ham-studio .pick {
+    background: var(--orange);
+    color: var(--ink);
+    border-radius: 3px;
+    font: 800 clamp(9px, 1.4cqw, 19px)/1.1 var(--mono);
+    letter-spacing: 0.04em;
+    padding: 3px 5px;
+  }
+  #ham-studio .tally {
+    font: 750 clamp(20px, 4cqw, 64px)/1 var(--sans);
+    letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  #ham-studio .clue {
+    background: var(--panel);
+    border-radius: 8px;
+    padding: clamp(18px, 4.4cqw, 65px);
+    min-height: clamp(215px, 34cqw, 520px);
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 18px;
+  }
+  #ham-studio .clue h3 {
+    font: 750 clamp(28px, 5.65cqw, 90px)/1.04 var(--sans);
+    letter-spacing: -0.047em;
+    text-wrap: balance;
+  }
+  #ham-studio .state {
+    font-size: clamp(14px, 2.3cqw, 36px);
+    font-weight: 700;
+    color: var(--milk);
+  }
+  #ham-studio .host {
+    background: var(--milk);
+    color: var(--ink);
+    border: 1px solid #d3c4b7;
+    border-radius: 16px;
+    padding: clamp(14px, 3cqw, 38px);
+  }
+  #ham-studio .host .station {
+    border-color: #ad9c90;
+  }
+  #ham-studio .host .live,
+  #ham-studio .host .over {
+    color: #644889;
+  }
+  #ham-studio .deskhead {
+    margin: 24px 0 16px;
+  }
+  #ham-studio .deskhead h2,
+  #ham-studio .phone h2 {
+    font: 800 clamp(32px, 6.6cqw, 90px)/1.03 var(--sans);
+    letter-spacing: -0.06em;
+    margin: 6px 0;
+  }
+  #ham-studio .host .category {
+    color: var(--ink);
+  }
+  #ham-studio .host .score {
+    border-color: #bcad9c;
+  }
+  #ham-studio .host .picking {
+    border-color: #944022;
+  }
+  #ham-studio .deskgrid {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 12px;
+  }
+  #ham-studio .cue,
+  #ham-studio .key {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 6px;
+  }
+  #ham-studio .cue {
+    background: var(--night);
+    color: var(--milk);
+  }
+  #ham-studio .cue .over {
+    color: var(--lilac);
+  }
+  #ham-studio .cue h3 {
+    font: 750 clamp(23px, 3.8cqw, 52px)/1.09 var(--sans);
+    letter-spacing: -0.04em;
+  }
+  #ham-studio .key {
+    border: 1px dashed #97896f;
+    align-self: start;
+  }
+  #ham-studio .key strong {
+    font-size: clamp(19px, 3cqw, 40px);
+  }
+  #ham-studio .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  #ham-studio .act {
+    border: 1px solid var(--ink);
+    padding: 12px 16px;
+    background: var(--ink);
+    color: var(--milk);
+    border-radius: 5px;
+    font-weight: 700;
+  }
+  #ham-studio .act.alt {
+    background: transparent;
+    color: var(--ink);
+  }
+  #ham-studio .phone-bed {
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    padding: 16px;
+    background:
+      repeating-linear-gradient(135deg, transparent 0 12px, #c6bdd014 12px 14px), var(--night);
+  }
+  #ham-studio .phone {
+    width: min(100%, 330px);
+    background: var(--milk);
+    color: var(--ink);
+    border-radius: 28px;
+    padding: 21px;
+    box-shadow: 0 0 0 3px #4a405c;
+  }
+  #ham-studio .phone .station {
+    border-color: #c1b1a2;
+  }
+  #ham-studio .phone .over {
+    color: #5f4779;
+  }
+  #ham-studio .phone-main {
+    text-align: center;
+    padding: 28px 0;
+  }
+  #ham-studio .phone h2 {
+    font-size: 36px;
+    margin: 10px 0;
+  }
+  #ham-studio .pad {
+    display: grid;
+    place-items: center;
+    width: 160px;
+    height: 160px;
+    margin: 26px auto 10px;
+    border-radius: 50%;
+    border: 6px solid var(--ink);
+    box-shadow:
+      0 6px 0 var(--ink),
+      inset 0 0 0 3px var(--milk);
+    background: #d4ccd9;
+    color: #514857;
+    font: 850 24px/1.05 var(--sans);
+    text-align: center;
+  }
+  #ham-studio button.pad {
+    background: var(--orange);
+    color: var(--ink);
+    font-size: 34px;
+  }
+  #ham-studio button.pad:active {
+    transform: translateY(4px);
+  }
+  #ham-studio .phone-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #c1b1a2;
+    padding-top: 12px;
+  }
+  #ham-studio .assist {
+    position: absolute;
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  @container (max-width:470px) {
+    #ham-studio nav button {
+      font-size: 12px;
+      padding: 8px;
+    }
+    #ham-studio .preview-tools {
+      gap: 5px;
+    }
+    #ham-studio label {
+      font-size: 0;
+    }
+    #ham-studio select {
+      font-size: 11px;
+      max-width: 105px;
+    }
+    #ham-studio .category {
+      min-height: 36px;
+      padding: 3px 1px 6px;
+      font-size: 11px;
+    }
+    #ham-studio .deskgrid {
+      grid-template-columns: 1fr;
+    }
+    #ham-studio .pick {
+      font-size: 8px;
+    }
+    #ham-studio .who {
+      gap: 3px;
+    }
+  }
+</style>
+<script>
+  (() => {
+    const root = document.getElementById("ham-studio");
+    const mount = root.querySelector(".mount");
+    const scene = root.querySelector("select");
+    const pack = [
+      [
+        "On screen",
+        [
+          ["What color is the brick road to the Emerald City?", "Yellow"],
+          ["Which studio made Spirited Away?", "Studio Ghibli"],
+          ["In Alien, what is the name of the ship’s cat?", "Jones"],
+          ["Who directed the film Get Out?", "Jordan Peele"],
+        ],
+      ],
+      [
+        "Mixtape",
+        [
+          ["How many strings does a standard violin have?", "Four"],
+          ["Which band recorded the album Abbey Road?", "The Beatles"],
+          ["Which singer released the album Lemonade?", "Beyoncé"],
+          ["What instrument did jazz musician Thelonious Monk play?", "Piano"],
+        ],
+      ],
+      [
+        "Outer space",
+        [
+          ["Which planet is known as the Red Planet?", "Mars"],
+          ["Which planet spins on its side?", "Uranus"],
+          ["Which planet has a giant storm called the Great Red Spot?", "Jupiter"],
+          ["What is the largest moon of Saturn?", "Titan"],
+        ],
+      ],
+      [
+        "Table talk",
+        [
+          ["What is the main ingredient in guacamole?", "Avocado"],
+          ["What type of pasta is shaped like little ears?", "Orecchiette"],
+          ["Which spice comes from the stigma of a crocus?", "Saffron"],
+          ["Which Japanese stock traditionally combines kombu and bonito flakes?", "Dashi"],
+        ],
+      ],
+      [
+        "Arcade",
+        [
+          ["Which yellow arcade character eats dots in a maze?", "Pac-Man"],
+          ["In chess, which piece moves in an L shape?", "Knight"],
+          ["How many squares make up each standard Tetris piece?", "Four"],
+          ["Which arcade game first featured Mario?", "Donkey Kong"],
+        ],
+      ],
+    ];
+    const players = ["Mika", "Jules", "Remy"];
+    const starting = [700, 400, 200];
+    const initialUsed = ["0-0", "0-1", "1-0", "1-1", "2-0", "3-1", "4-3"];
+    let used = new Set(initialUsed),
+      scores = starting.slice(),
+      controller = 0;
+    let role = "tv",
+      phase = "board",
+      cat = 2,
+      tier = 2,
+      winner = 1,
+      correct = true;
+    const value = () => (tier + 1) * 100;
+    const clue = () => pack[cat][1][tier];
+    const status = () =>
+      ({
+        board: players[controller] + " picks",
+        reading: "Buzzers closed",
+        open: "Buzzers open",
+        answering: players[winner] + " answers",
+        judged: correct ? "Correct answer" : "Incorrect answer",
+        reveal: "Answer revealed",
+        finished: "Round complete",
+      })[phase];
+    const setPhase = (p) => {
+      phase = p;
+      render();
+      root.querySelector(".assist").textContent = status();
+    };
+    const station = (label) =>
+      '<div class="station"><span class="bug"><span aria-hidden="true" class="mark"></span> HAM Network</span><span class="meta live">' +
+      label +
+      "</span></div>";
+    function standings() {
+      return (
+        '<div class="lower">' +
+        players
+          .map(
+            (p, i) =>
+              '<div class="score ' +
+              (i === controller ? "picking" : "") +
+              '"><div class="who">' +
+              p +
+              (i === controller && phase === "board" ? ' <span class="pick">PICKS</span>' : "") +
+              '</div><strong class="tally">' +
+              scores[i].toLocaleString() +
+              "</strong></div>",
+          )
+          .join("") +
+        "</div>"
+      );
+    }
+    function board(interactive) {
+      return (
+        '<div class="board">' +
+        pack
+          .map(
+            ([category, clues], c) =>
+              '<div class="column"><div class="category">' +
+              category +
+              "</div>" +
+              clues
+                .map((_, t) => {
+                  const key = c + "-" + t,
+                    n = (t + 1) * 100;
+                  if (used.has(key))
+                    return (
+                      '<div class="tile used" aria-label="' +
+                      category +
+                      " " +
+                      n +
+                      ', played">–</div>'
+                    );
+                  return interactive
+                    ? '<button class="tile" data-cell="' +
+                        key +
+                        '" aria-label="' +
+                        category +
+                        " for " +
+                        n +
+                        '">' +
+                        n +
+                        "</button>"
+                    : '<div class="tile">' + n + "</div>";
+                })
+                .join("") +
+              "</div>",
+          )
+          .join("") +
+        "</div>"
+      );
+    }
+    const act = (id, label, alt = false) =>
+      '<button class="act ' + (alt ? "alt" : "") + '" data-act="' + id + '">' + label + "</button>";
+    function actions() {
+      if (phase === "board") return "";
+      if (phase === "reading")
+        return act("open", "Open buzzers") + act("reveal", "Reveal answer", true);
+      if (phase === "open")
+        return act("phone", "Go to player buzzer") + act("reveal", "Reveal answer", true);
+      if (phase === "answering")
+        return act("yes", "Correct +" + value()) + act("no", "Incorrect −" + value(), true);
+      if (phase === "judged") return act("reveal", "Reveal answer");
+      if (phase === "finished") return act("reset", "Replay round");
+      return act("return", "Return to board");
+    }
+    function tv() {
+      const header =
+        '<div class="hero"><span class="over">Round 01</span><h2 class="logo">HAM <em>QUIZ</em></h2><div class="sun" aria-hidden="true"><span class="orbit"></span></div></div>';
+      const content =
+        phase === "board"
+          ? board(false)
+          : phase === "finished"
+            ? '<div class="clue"><span class="over">Round complete</span><h3>' +
+              players.filter((p, i) => scores[i] === Math.max(...scores)).join(" &amp; ") +
+              " wins!</h3></div>"
+            : '<div class="clue"><span class="over">' +
+              pack[cat][0] +
+              " / " +
+              value() +
+              " points</span><h3>" +
+              (phase === "reveal" ? clue()[1] : clue()[0]) +
+              '</h3><div class="state">' +
+              status() +
+              "</div></div>";
+      return (
+        '<section class="set" aria-label="TV display">' +
+        station("On air") +
+        header +
+        content +
+        standings() +
+        "</section>"
+      );
+    }
+    function host() {
+      const title =
+        phase === "board"
+          ? "Pick a clue"
+          : phase === "reading"
+            ? "Read the clue"
+            : phase === "open"
+              ? "Waiting for a buzz"
+              : status();
+      const panel =
+        phase === "board"
+          ? "<p>" + players[controller] + " chooses. Select their clue below.</p>"
+          : "";
+      const cues =
+        '<div class="deskgrid"><div class="cue"><span class="over">On the TV</span><h3>' +
+        (phase === "reveal" ? clue()[1] : clue()[0]) +
+        '</h3></div><div class="key"><span class="over">Host answer key</span><strong>' +
+        clue()[1] +
+        "</strong></div></div>";
+      return (
+        '<section class="host" aria-label="Host desk">' +
+        station("Host desk") +
+        '<div class="deskhead"><span class="over">Round 01' +
+        (phase === "board" || phase === "finished"
+          ? ""
+          : " / " + pack[cat][0] + " / " + value() + " pts") +
+        "</span><h2>" +
+        title +
+        "</h2>" +
+        panel +
+        "</div>" +
+        (phase === "board" ? board(true) : phase === "finished" ? "" : cues) +
+        '<div class="actions">' +
+        actions() +
+        "</div>" +
+        standings() +
+        "</section>"
+      );
+    }
+    function phone() {
+      const title = {
+        board: controller === 1 ? "Your pick" : players[controller] + " picks",
+        reading: "Listen up",
+        open: "You can buzz",
+        answering: "You’re up!",
+        judged: correct ? "Correct!" : "Incorrect",
+        reveal: clue()[1],
+        finished: "Round complete",
+      }[phase];
+      const pad =
+        phase === "open"
+          ? '<button class="pad" data-act="buzz">BUZZ</button>'
+          : phase === "reading"
+            ? '<div class="pad">Wait for<br>the host</div>'
+            : "";
+      const detail = {
+        board:
+          controller === 1
+            ? "Tell the host your category and points."
+            : "Watch the board on the TV.",
+        answering: "Say your answer out loud.",
+        judged: (correct ? "+" : "−") + value() + " points",
+        reveal: "Answer revealed",
+        finished: "Final score",
+        open: "",
+        reading: "",
+      }[phase];
+      return (
+        '<div class="phone-bed"><section class="phone" aria-label="Jules’s phone">' +
+        station("Player 02") +
+        '<div class="phone-main"><span class="over">' +
+        (phase === "board" || phase === "finished"
+          ? "Round 01"
+          : pack[cat][0] + " / " + value() + " pts") +
+        "</span><h2>" +
+        title +
+        "</h2>" +
+        pad +
+        "<p>" +
+        detail +
+        '</p></div><div class="phone-foot"><b>Jules</b><span>' +
+        scores[1] +
+        " pts</span></div></section></div>"
+      );
+    }
+    function render() {
+      mount.innerHTML = role === "tv" ? tv() : role === "host" ? host() : phone();
+      root
+        .querySelectorAll("[data-role]")
+        .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.role === role)));
+      for (const option of [...scene.options]) if (option.dataset.extra) option.remove();
+      if (phase === "judged" || phase === "finished") {
+        const o = new Option(status(), phase);
+        o.dataset.extra = "true";
+        scene.add(o);
+      }
+      scene.value = phase;
+    }
+    function reset() {
+      used = new Set(initialUsed);
+      scores = starting.slice();
+      controller = 0;
+      cat = 2;
+      tier = 2;
+      winner = 1;
+      correct = true;
+    }
+    scene.addEventListener("change", () => {
+      const selected = scene.value;
+      reset();
+      setPhase(selected);
+    });
+    root.addEventListener("click", (event) => {
+      const b = event.target.closest("button");
+      if (!b) return;
+      if (b.dataset.role) {
+        role = b.dataset.role;
+        render();
+        return;
+      }
+      if (b.dataset.cell) {
+        [cat, tier] = b.dataset.cell.split("-").map(Number);
+        setPhase("reading");
+        return;
+      }
+      switch (b.dataset.act) {
+        case "open":
+          setPhase("open");
+          break;
+        case "phone":
+          role = "phone";
+          render();
+          break;
+        case "buzz":
+          winner = 1;
+          setPhase("answering");
+          break;
+        case "yes":
+        case "no":
+          correct = b.dataset.act === "yes";
+          scores[winner] += correct ? value() : -value();
+          if (correct) controller = winner;
+          setPhase("judged");
+          break;
+        case "reveal":
+          setPhase("reveal");
+          break;
+        case "return":
+          used.add(cat + "-" + tier);
+          setPhase(used.size === 20 ? "finished" : "board");
+          break;
+        case "reset":
+          reset();
+          setPhase("board");
+          break;
+      }
+    });
+    render();
+  })();
+</script>

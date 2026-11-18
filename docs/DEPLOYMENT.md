@@ -71,7 +71,7 @@ The container runs as `node`, with a persistent SQLite volume, a read-only root,
 
 ## Current deployment
 
-First deployed 2026-11-07 at **https://quiz.teamham.world**. Last redeployed on 2026-11-13 from `main` at the merge of PR #5 (picture clues, stacked on PR #4). `DEPLOYED_COMMIT` on the host records the exact commit.
+First deployed 2026-11-07 at **https://quiz.teamham.world**. The 2026-11-18 broadcast-studio release ships from `feature/broadcast-studio-ui` and follows the picture-clue release at `7ab6422`. `DEPLOYED_COMMIT` on the host records the exact running revision.
 
 - **DNS:** `quiz.teamham.world` is a Cloudflare-proxied CNAME to `oracle.cyr1en.dev`, the same as Strokies.
 - **Ingress:** the shared Caddy on the Oracle host serves `/opt/stacks/caddy/sites/quiz.caddy` (a copy of `deploy/quiz.caddy`), with a Let's Encrypt certificate.

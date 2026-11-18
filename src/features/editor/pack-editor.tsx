@@ -10,10 +10,11 @@ import {
   type ClipboardEvent,
   type DragEvent,
 } from "react";
+import { flushSync } from "react-dom";
 import {
   parseQuestionPackJson,
   validateQuestionPack,
-  type DifficultyTier,
+  type Clue,
   type PictureId,
   type QuestionPack,
   type ValidationError,
@@ -26,7 +27,6 @@ import {
   TIERS,
   blankCategory,
   blankClue,
-  blankRound,
   describePath,
   errorsByPath,
   exportFileName,
@@ -35,13 +35,13 @@ import {
   move,
   packForSave,
   removeAt,
-  replaceAt,
   updateCategory,
   updateClue,
   updateFinal,
   withPicture,
 } from "./pack-draft";
 import { FINAL_CLUE_FIELD, finalClueOf, finalCluePath } from "./pack-fields";
+import { PackScoring } from "./pack-scoring";
 import { PictureField, firstImageFile, storePicture } from "./picture-field";
 
 export interface PackEditorProps {
@@ -74,6 +74,8 @@ export function PackEditor({
 }: PackEditorProps) {
   const toast = useToast();
   const [pack, setPack] = useState<QuestionPack>(initial);
+  const [categoryId, setCategoryId] = useState<string>();
+  const [clueId, setClueId] = useState<string>();
   const [saved, setSaved] = useState<string>(() => JSON.stringify(packForSave(initial)));
   const [errors, setErrors] = useState<ValidationError[]>(initialErrors);
   const [saving, setSaving] = useState(false);
@@ -181,26 +183,6 @@ export function PackEditor({
     setPack((current) => withPicture(current, clueId, () => undefined));
   }
 
-  function pictureTarget(clueId: string) {
-    return {
-      onPaste(event: ClipboardEvent<HTMLElement>) {
-        const file = firstImageFile(event.clipboardData.files);
-        if (!file) return;
-        event.preventDefault();
-        void attachPicture(clueId, file);
-      },
-      onDragOver(event: DragEvent<HTMLElement>) {
-        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
-      },
-      onDrop(event: DragEvent<HTMLElement>) {
-        const file = firstImageFile(event.dataTransfer.files);
-        if (!file) return;
-        event.preventDefault();
-        void attachPicture(clueId, file);
-      },
-    };
-  }
-
   async function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -236,6 +218,8 @@ export function PackEditor({
     setUploading(new Set());
     // Keep this pack's id so saving updates it instead of creating a twin.
     setPack({ ...imported, id: pack.id });
+    setCategoryId(undefined);
+    setClueId(undefined);
     setErrors([]);
     toast(`Imported ${fileName}. Review it, then save.`, "info");
   }
@@ -258,10 +242,91 @@ export function PackEditor({
   const uneven = pack.categories.some((c) => c.clues.length !== cluesPerCategory);
   const defaultRound =
     pack.scoring.rounds.find((r) => r.id === pack.scoring.defaultRoundId) ?? pack.scoring.rounds[0];
+  const category = pack.categories.find((item) => item.id === categoryId) ?? pack.categories[0];
+  const c = pack.categories.indexOf(category);
+  const categoryName = category?.title.trim() || `Category ${c + 1}`;
+  const clues = category ? [...category.clues, finalClueOf(category)] : [];
+  const clue = clues.find((item) => item.id === clueId) ?? clues[0];
+  const isFinal = clue?.tier === "final";
+  const k = clues.indexOf(clue);
+  const clueName = isFinal ? "Final clue" : `Clue ${k + 1}`;
+  const categoryPath = `categories[${c}]`;
+  const cluePath = isFinal ? finalCluePath(c) : `${categoryPath}.clues[${k}]`;
+  const points = clue && clue.tier !== "final" ? defaultRound?.pointsByTier[clue.tier] : undefined;
+
+  function pastePicture(event: ClipboardEvent<HTMLElement>) {
+    const file = firstImageFile(event.clipboardData.files);
+    if (!file || !clue) return;
+    event.preventDefault();
+    void attachPicture(clue.id, file);
+  }
+
+  function dropPicture(event: DragEvent<HTMLElement>) {
+    const file = firstImageFile(event.dataTransfer.files);
+    if (!file || !clue) return;
+    event.preventDefault();
+    void attachPicture(clue.id, file);
+  }
+
+  function addCategory() {
+    const next = blankCategory(cluesPerCategory || 5);
+    setPack({ ...pack, categories: [...pack.categories, next] });
+    setCategoryId(next.id);
+    setClueId(undefined);
+    setErrors([]);
+  }
+
+  function changeClues(next: Clue[]) {
+    setPack(updateCategory(pack, c, (cat) => ({ ...cat, clues: next })));
+    setErrors([]);
+  }
+
+  function removeCategory(index: number) {
+    const removed = pack.categories[index];
+    const categories = removeAt(pack.categories, index);
+    for (const { id } of [...removed.clues, finalClueOf(removed)]) {
+      latestPictureAction.current.delete(id);
+      markUploading(id, false);
+    }
+    setPack({ ...pack, categories });
+    setCategoryId((categories[index] ?? categories[index - 1]).id);
+    setClueId(undefined);
+    setErrors([]);
+  }
+
+  function focusError(path: string) {
+    const match = /^categories\[(\d+)\](.*)$/.exec(path);
+    if (match) {
+      const index = Number(match[1]);
+      const target = pack.categories[index];
+      if (target) {
+        const clueMatch = /^\.clues\[(\d+)\]/.exec(match[2]);
+        const targetClue = clueMatch
+          ? target.clues[Number(clueMatch[1])]
+          : path.startsWith(finalCluePath(index))
+            ? finalClueOf(target)
+            : undefined;
+        // The field only exists once its category and clue are selected.
+        flushSync(() => {
+          setCategoryId(target.id);
+          setClueId(targetClue?.id);
+        });
+      }
+    }
+    const scoring = document.getElementById("ed-scoring");
+    if (path.startsWith("scoring") && scoring instanceof HTMLDetailsElement) scoring.open = true;
+    const fallback = path.startsWith("scoring")
+      ? "ed-scoring-heading"
+      : match
+        ? "ed-clue-heading"
+        : "ed-contents";
+    const field = document.getElementById(fieldId(path)) ?? document.getElementById(fallback);
+    field?.focus();
+    field?.scrollIntoView?.({ block: "center" });
+  }
 
   return (
     <div className="ed">
-      {/* Sticky: only what you need while scrolling a long pack. */}
       <div className="ed-bar">
         <Link className="btn btn--quiet btn--small" href="/packs">
           ← My packs
@@ -269,6 +334,8 @@ export function PackEditor({
         <div className="ed-bar__status" role="status">
           {saving ? (
             <span className="stamp stamp--dashed stamp--flat">Saving…</span>
+          ) : uploading.size > 0 ? (
+            <span className="stamp stamp--dashed stamp--flat">Uploading picture…</span>
           ) : dirty ? (
             <span className="stamp stamp--warn stamp--flat">Unsaved changes</span>
           ) : errors.length > 0 ? (
@@ -291,9 +358,12 @@ export function PackEditor({
       </div>
 
       <div className="ed-head">
-        <h1 className="ed-title marker">
-          {isNew ? "New pack" : pack.title.trim() || "Untitled pack"}
-        </h1>
+        <div>
+          <p className="ed-eyebrow">Pack library / {isNew ? "New" : "Your pack"}</p>
+          <h1 className="ed-title">
+            {pack.title.trim() || (isNew ? "New pack" : "Untitled pack")}
+          </h1>
+        </div>
         <div className="row ed-file">
           <input
             ref={fileInput}
@@ -337,17 +407,13 @@ export function PackEditor({
         >
           <h2 id="ed-errors-title">{plural(errors.length, "problem")} to fix</h2>
           <ul>
-            {errors.slice(0, 12).map((e, i) => (
+            {errors.map((e, i) => (
               <li key={`${e.path}-${i}`}>
                 <a
                   href={`#${fieldId(e.path)}`}
                   onClick={(event) => {
-                    const target = document.getElementById(fieldId(e.path));
-                    if (target) {
-                      event.preventDefault();
-                      target.focus();
-                      target.scrollIntoView({ block: "center" });
-                    }
+                    event.preventDefault();
+                    focusError(e.path);
                   }}
                 >
                   {describePath(e.path, pack, FINAL_CLUE_FIELD)}
@@ -355,23 +421,21 @@ export function PackEditor({
                 : {friendlyMessage(e.message)}
               </li>
             ))}
-            {errors.length > 12 ? <li>…and {errors.length - 12} more.</li> : null}
           </ul>
         </section>
       ) : null}
 
-      <section className="panel ed-section" aria-labelledby="ed-details">
-        <h2 id="ed-details" className="panel__title">
-          Details
-        </h2>
-        <div className="ed-grid">
+      <div className="ed-workspace">
+        <aside className="ed-card" aria-labelledby="ed-contents">
+          <h2 id="ed-contents" tabIndex={-1}>
+            Pack contents
+          </h2>
           <TextField
             label="Title"
             path="title"
             value={pack.title}
             error={err("title")}
             onChange={(title) => setPack({ ...pack, title })}
-            placeholder="Friday Night Brain Melt"
           />
           <TextField
             label="Description (optional)"
@@ -381,426 +445,271 @@ export function PackEditor({
             onChange={(description) => setPack({ ...pack, description })}
             placeholder="What's this pack about?"
           />
-        </div>
-      </section>
+          {category ? (
+            <>
+              <div className="field">
+                <label className="field__label" htmlFor="ed-category-select">
+                  Category
+                </label>
+                <select
+                  className="input"
+                  id="ed-category-select"
+                  value={category.id}
+                  onChange={(event) => {
+                    setCategoryId(event.target.value);
+                    setClueId(undefined);
+                  }}
+                >
+                  {pack.categories.map((item, index) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title.trim() || `Category ${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label className="field__label" htmlFor="ed-clue-select">
+                  Clue
+                </label>
+                <select
+                  className="input"
+                  id="ed-clue-select"
+                  value={clue?.id ?? ""}
+                  onChange={(event) => setClueId(event.target.value)}
+                >
+                  {clues.map((item, index) => (
+                    <option key={item.id} value={item.id}>
+                      {item.tier === "final" ? "Final clue" : `Clue ${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          ) : null}
+          <div className="row ed-contents-actions">
+            <button
+              type="button"
+              className="btn btn--small btn--quiet"
+              onClick={addCategory}
+              disabled={pack.categories.length >= 12}
+            >
+              + Add category
+            </button>
+            {category ? (
+              <button
+                type="button"
+                className="btn btn--small btn--quiet"
+                disabled={category.clues.length >= TIERS.length}
+                onClick={() => {
+                  const next = blankClue(TIERS[category.clues.length]);
+                  changeClues([...category.clues, next]);
+                  setClueId(next.id);
+                }}
+              >
+                + Add clue
+              </button>
+            ) : null}
+          </div>
+          <p className="field__hint">
+            {plural(pack.categories.length, "category", "categories")} ×{" "}
+            {plural(cluesPerCategory, "clue")}
+          </p>
+          {uneven ? (
+            <p className="field__error">Give every category the same number of clues.</p>
+          ) : null}
+        </aside>
 
-      <section className="panel ed-section" aria-labelledby="ed-scoring">
-        <div className="panel__title">
-          <h2 id="ed-scoring">Scoring</h2>
-          <button
-            type="button"
-            className="btn btn--small"
-            onClick={() =>
-              setPack({
-                ...pack,
-                scoring: {
-                  ...pack.scoring,
-                  rounds: [
-                    ...pack.scoring.rounds,
-                    blankRound(`Round ${pack.scoring.rounds.length + 1}`, 2),
-                  ],
-                },
-              })
-            }
+        {category && clue ? (
+          <section
+            className="ed-card ed-clue"
+            aria-label="Clue editor"
+            onPaste={pastePicture}
+            onDragOver={(event) => {
+              if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+            }}
+            onDrop={dropPicture}
           >
-            Add scoring round
-          </button>
-        </div>
-        <p className="muted ed-help">
-          Points per difficulty tier. The default round scores round 1; round 2 uses the next one
-          (or doubles the default).
-        </p>
-        <div className="ed-table-wrap">
-          <table className="ed-table">
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Default</th>
-                {TIERS.map((t) => (
-                  <th key={t} scope="col">
-                    Tier {t}
-                  </th>
-                ))}
-                <th scope="col">
-                  <span className="sr-only">Remove</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {pack.scoring.rounds.map((round, r) => (
-                <tr key={round.id}>
-                  <td>
-                    <input
-                      id={fieldId(`scoring.rounds[${r}].title`)}
+            <h2 id="ed-clue-heading" tabIndex={-1}>
+              {clueName}
+            </h2>
+            <div className="ed-category-fields">
+              <TextField
+                label="Category title"
+                path={`${categoryPath}.title`}
+                value={category.title}
+                error={err(`${categoryPath}.title`)}
+                onChange={(title) => setPack(updateCategory(pack, c, (cat) => ({ ...cat, title })))}
+              />
+              <div className="row ed-tools" role="group" aria-label="Category tools">
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  disabled={c === 0}
+                  aria-label={`Move ${categoryName} up`}
+                  onClick={() => {
+                    setCategoryId(category.id);
+                    setPack({ ...pack, categories: move(pack.categories, c, c - 1) });
+                    setErrors([]);
+                  }}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  disabled={c === pack.categories.length - 1}
+                  aria-label={`Move ${categoryName} down`}
+                  onClick={() => {
+                    setCategoryId(category.id);
+                    setPack({ ...pack, categories: move(pack.categories, c, c + 1) });
+                    setErrors([]);
+                  }}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  disabled={pack.categories.length <= 1}
+                  aria-label={`Remove ${categoryName}`}
+                  onClick={() => setRemovingCategory(c)}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+            {err(`${categoryPath}.clues`) ? (
+              <p id={fieldId(`${categoryPath}.clues`)} className="field__error" tabIndex={-1}>
+                {err(`${categoryPath}.clues`)}
+              </p>
+            ) : null}
+            <div className="ed-clue-fields">
+              <TextField
+                multiline
+                label={clueName}
+                path={`${cluePath}.prompt`}
+                value={clue.prompt}
+                error={err(`${cluePath}.prompt`)}
+                onChange={(prompt) =>
+                  setPack(
+                    isFinal ? updateFinal(pack, c, { prompt }) : updateClue(pack, c, k, { prompt }),
+                  )
+                }
+              />
+              <TextField
+                multiline
+                label={isFinal ? "Final answer" : "Answer"}
+                path={`${cluePath}.answer`}
+                value={clue.answer}
+                error={err(`${cluePath}.answer`)}
+                onChange={(answer) =>
+                  setPack(
+                    isFinal ? updateFinal(pack, c, { answer }) : updateClue(pack, c, k, { answer }),
+                  )
+                }
+              />
+              {!isFinal ? (
+                <div className="ed-tier-row">
+                  <div className="field">
+                    <label className="field__label" htmlFor={fieldId(`${cluePath}.tier`)}>
+                      Point tier
+                    </label>
+                    <select
+                      id={fieldId(`${cluePath}.tier`)}
                       className="input"
-                      aria-label={`Scoring round ${r + 1} name`}
-                      value={round.title}
-                      aria-invalid={err(`scoring.rounds[${r}].title`) ? true : undefined}
-                      onChange={(e) =>
-                        setPack({
-                          ...pack,
-                          scoring: {
-                            ...pack.scoring,
-                            rounds: replaceAt(pack.scoring.rounds, r, {
-                              ...round,
-                              title: e.target.value,
-                            }),
-                          },
-                        })
-                      }
-                    />
-                  </td>
-                  <td className="ed-center">
-                    <input
-                      type="radio"
-                      name="default-round"
-                      aria-label={`Use ${round.title || `round ${r + 1}`} as the default`}
-                      checked={pack.scoring.defaultRoundId === round.id}
-                      onChange={() =>
-                        setPack({ ...pack, scoring: { ...pack.scoring, defaultRoundId: round.id } })
-                      }
-                    />
-                  </td>
-                  {TIERS.map((t) => {
-                    const path = `scoring.rounds[${r}].pointsByTier.${t}`;
-                    return (
-                      <td key={t}>
-                        <input
-                          id={fieldId(path)}
-                          className="input num ed-points"
-                          inputMode="numeric"
-                          aria-label={`${round.title || `Round ${r + 1}`}, tier ${t} points`}
-                          aria-invalid={err(path) ? true : undefined}
-                          value={String(round.pointsByTier[t] ?? "")}
-                          onChange={(e) => {
-                            const n = Number(e.target.value.replace(/[^0-9]/g, ""));
-                            setPack({
-                              ...pack,
-                              scoring: {
-                                ...pack.scoring,
-                                rounds: replaceAt(pack.scoring.rounds, r, {
-                                  ...round,
-                                  pointsByTier: { ...round.pointsByTier, [t]: n },
-                                }),
-                              },
-                            });
-                          }}
-                        />
-                      </td>
-                    );
-                  })}
-                  <td>
+                      value={clue.tier}
+                      aria-invalid={err(`${cluePath}.tier`) ? true : undefined}
+                      onChange={(event) => {
+                        const tier = TIERS.find((tier) => tier === Number(event.target.value));
+                        if (tier) setPack(updateClue(pack, c, k, { tier }));
+                      }}
+                    >
+                      {TIERS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {tier}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {points ? (
+                    <span className="ed-tier-points">{formatScore(points)} pts</span>
+                  ) : null}
+                  <div className="row ed-tools" role="group" aria-label={`${clueName} tools`}>
                     <button
                       type="button"
-                      className="btn btn--small btn--quiet"
-                      disabled={pack.scoring.rounds.length <= 1}
-                      aria-label={`Remove scoring round ${round.title || r + 1}`}
+                      className="btn btn--small"
+                      disabled={k === 0}
+                      aria-label={`Move clue ${k + 1} up`}
                       onClick={() => {
-                        const rounds = removeAt(pack.scoring.rounds, r);
-                        const defaultRoundId =
-                          pack.scoring.defaultRoundId === round.id
-                            ? rounds[0].id
-                            : pack.scoring.defaultRoundId;
-                        setPack({ ...pack, scoring: { ...pack.scoring, rounds, defaultRoundId } });
+                        setClueId(clue.id);
+                        changeClues(move(category.clues, k, k - 1));
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      disabled={k === category.clues.length - 1}
+                      aria-label={`Move clue ${k + 1} down`}
+                      onClick={() => {
+                        setClueId(clue.id);
+                        changeClues(move(category.clues, k, k + 1));
+                      }}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      disabled={category.clues.length <= 1}
+                      aria-label={`Remove clue ${k + 1}`}
+                      onClick={() => {
+                        latestPictureAction.current.delete(clue.id);
+                        markUploading(clue.id, false);
+                        const next = removeAt(category.clues, k);
+                        changeClues(next);
+                        setClueId((next[k] ?? next[k - 1]).id);
                       }}
                     >
                       Remove
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="ed-cats" aria-labelledby="ed-categories">
-        <div className="panel__title">
-          <h2 id="ed-categories">Categories ({pack.categories.length})</h2>
-          <span className="muted">
-            {pack.categories.length} × {cluesPerCategory} board
-          </span>
-        </div>
-        <p className="muted ed-help">
-          A game uses up to 6 categories per round. Give every category the same number of clues
-          {uneven ? <strong className="ed-warn"> (they differ right now)</strong> : null}. Each
-          category also needs a final-round clue.
-        </p>
-
-        {pack.categories.map((category, c) => {
-          const name = category.title.trim() || `Category ${c + 1}`;
-          const final = finalClueOf(category);
-          return (
-            <article
-              key={category.id}
-              className="panel ed-cat"
-              aria-labelledby={`cat-${category.id}`}
-            >
-              <header className="ed-cat__head">
-                <h3 id={`cat-${category.id}`} className="ed-cat__num">
-                  <span className="sr-only">{name}, </span>Category {c + 1}
-                </h3>
-                <div className="ed-cat__title">
-                  <TextField
-                    label="Category title"
-                    path={`categories[${c}].title`}
-                    value={category.title}
-                    error={err(`categories[${c}].title`)}
-                    onChange={(title) =>
-                      setPack(updateCategory(pack, c, (cat) => ({ ...cat, title })))
-                    }
-                    placeholder="Internet Lore"
-                  />
+                  </div>
                 </div>
-                <div className="row ed-cat__tools">
-                  <button
-                    type="button"
-                    className="btn btn--small"
-                    disabled={c === 0}
-                    aria-label={`Move ${name} up`}
-                    onClick={() =>
-                      setPack({ ...pack, categories: move(pack.categories, c, c - 1) })
-                    }
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--small"
-                    disabled={c === pack.categories.length - 1}
-                    aria-label={`Move ${name} down`}
-                    onClick={() =>
-                      setPack({ ...pack, categories: move(pack.categories, c, c + 1) })
-                    }
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--small"
-                    disabled={pack.categories.length <= 1}
-                    aria-label={`Remove ${name}`}
-                    onClick={() => setRemovingCategory(c)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </header>
-
-              {err(`categories[${c}].clues`) ? (
-                <p id={fieldId(`categories[${c}].clues`)} className="field__error" tabIndex={-1}>
-                  {err(`categories[${c}].clues`)}
-                </p>
               ) : null}
-
-              <ol className="ed-clues">
-                {category.clues.map((clue, k) => {
-                  const base = `categories[${c}].clues[${k}]`;
-                  const value = defaultRound?.pointsByTier[clue.tier];
-                  return (
-                    <li key={clue.id} className="ed-clue" {...pictureTarget(clue.id)}>
-                      <div className="field ed-clue__tier">
-                        <label className="field__label" htmlFor={fieldId(`${base}.tier`)}>
-                          Tier
-                        </label>
-                        <select
-                          id={fieldId(`${base}.tier`)}
-                          className="input"
-                          value={clue.tier}
-                          aria-invalid={err(`${base}.tier`) ? true : undefined}
-                          onChange={(e) =>
-                            setPack(
-                              updateClue(pack, c, k, {
-                                tier: Number(e.target.value) as DifficultyTier,
-                              }),
-                            )
-                          }
-                        >
-                          {TIERS.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="field__hint num">
-                          {value ? `${formatScore(value)} pts` : ""}
-                        </span>
-                      </div>
-                      <TextField
-                        multiline
-                        label={`Clue ${k + 1}`}
-                        path={`${base}.prompt`}
-                        value={clue.prompt}
-                        error={err(`${base}.prompt`)}
-                        onChange={(prompt) => setPack(updateClue(pack, c, k, { prompt }))}
-                        placeholder="The clue the host reads out"
-                      />
-                      <TextField
-                        label="Answer"
-                        path={`${base}.answer`}
-                        value={clue.answer}
-                        error={err(`${base}.answer`)}
-                        onChange={(answer) => setPack(updateClue(pack, c, k, { answer }))}
-                        placeholder="What is…?"
-                      />
-                      <div
-                        className="ed-clue__tools"
-                        role="group"
-                        aria-label={`Clue ${k + 1} tools`}
-                      >
-                        <button
-                          type="button"
-                          className="btn btn--small"
-                          disabled={k === 0}
-                          aria-label={`Move clue ${k + 1} up`}
-                          onClick={() =>
-                            setPack(
-                              updateCategory(pack, c, (cat) => ({
-                                ...cat,
-                                clues: move(cat.clues, k, k - 1),
-                              })),
-                            )
-                          }
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn--small"
-                          disabled={k === category.clues.length - 1}
-                          aria-label={`Move clue ${k + 1} down`}
-                          onClick={() =>
-                            setPack(
-                              updateCategory(pack, c, (cat) => ({
-                                ...cat,
-                                clues: move(cat.clues, k, k + 1),
-                              })),
-                            )
-                          }
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn--small"
-                          disabled={category.clues.length <= 1}
-                          aria-label={`Remove clue ${k + 1}`}
-                          onClick={() =>
-                            setPack(
-                              updateCategory(pack, c, (cat) => ({
-                                ...cat,
-                                clues: removeAt(cat.clues, k),
-                              })),
-                            )
-                          }
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <PictureField
-                        cluePath={base}
-                        clueName={`clue ${k + 1}`}
-                        picture={clue.picture}
-                        uploading={uploading.has(clue.id)}
-                        error={err(`${base}.picture`)}
-                        onFile={(file) => void attachPicture(clue.id, file)}
-                        onRemove={() => removePicture(clue.id)}
-                        description={
-                          clue.picture ? (
-                            <TextField
-                              label="Picture description"
-                              path={`${base}.picture.alt`}
-                              value={clue.picture.alt}
-                              error={err(`${base}.picture.alt`)}
-                              onChange={(alt) =>
-                                setPack(withPicture(pack, clue.id, (old) => old && { ...old, alt }))
-                              }
-                              placeholder="What's in it, without giving away the answer"
-                            />
-                          ) : null
-                        }
-                      />
-                    </li>
-                  );
-                })}
-              </ol>
-              <button
-                type="button"
-                className="btn btn--small ed-add"
-                onClick={() =>
-                  setPack(
-                    updateCategory(pack, c, (cat) => ({
-                      ...cat,
-                      clues: [...cat.clues, blankClue(TIERS[Math.min(cat.clues.length, 4)])],
-                    })),
-                  )
+              <PictureField
+                cluePath={cluePath}
+                clueName={isFinal ? "the final clue" : `clue ${k + 1}`}
+                picture={clue.picture}
+                uploading={uploading.has(clue.id)}
+                error={err(`${cluePath}.picture`)}
+                onFile={(file) => void attachPicture(clue.id, file)}
+                onRemove={() => removePicture(clue.id)}
+                description={
+                  clue.picture ? (
+                    <TextField
+                      label="Picture description"
+                      path={`${cluePath}.picture.alt`}
+                      value={clue.picture.alt}
+                      error={err(`${cluePath}.picture.alt`)}
+                      onChange={(alt) =>
+                        setPack(withPicture(pack, clue.id, (old) => old && { ...old, alt }))
+                      }
+                      placeholder="What's in it, without giving away the answer"
+                    />
+                  ) : null
                 }
-              >
-                + Add clue
-              </button>
+              />
+            </div>
+          </section>
+        ) : null}
+      </div>
 
-              <div className="ed-final" {...pictureTarget(final.id)}>
-                <h4 className="eyebrow">Final-round clue</h4>
-                <div className="ed-grid">
-                  <TextField
-                    multiline
-                    label="Final clue"
-                    path={`${finalCluePath(c)}.prompt`}
-                    value={final.prompt}
-                    error={err(`${finalCluePath(c)}.prompt`)}
-                    onChange={(prompt) => setPack(updateFinal(pack, c, { prompt }))}
-                    placeholder="Used if this category's final clue is picked"
-                  />
-                  <TextField
-                    label="Final answer"
-                    path={`${finalCluePath(c)}.answer`}
-                    value={final.answer}
-                    error={err(`${finalCluePath(c)}.answer`)}
-                    onChange={(answer) => setPack(updateFinal(pack, c, { answer }))}
-                    placeholder="What is…?"
-                  />
-                  <PictureField
-                    cluePath={finalCluePath(c)}
-                    clueName="the final clue"
-                    picture={final.picture}
-                    uploading={uploading.has(final.id)}
-                    error={err(`${finalCluePath(c)}.picture`)}
-                    onFile={(file) => void attachPicture(final.id, file)}
-                    onRemove={() => removePicture(final.id)}
-                    description={
-                      final.picture ? (
-                        <TextField
-                          label="Picture description"
-                          path={`${finalCluePath(c)}.picture.alt`}
-                          value={final.picture.alt}
-                          error={err(`${finalCluePath(c)}.picture.alt`)}
-                          onChange={(alt) =>
-                            setPack(withPicture(pack, final.id, (old) => old && { ...old, alt }))
-                          }
-                          placeholder="What's in it, without giving away the answer"
-                        />
-                      ) : null
-                    }
-                  />
-                </div>
-              </div>
-            </article>
-          );
-        })}
-
-        <button
-          type="button"
-          className="btn btn--big ed-add-cat"
-          onClick={() =>
-            setPack({
-              ...pack,
-              categories: [...pack.categories, blankCategory(cluesPerCategory || 5)],
-            })
-          }
-        >
-          + Add category
-        </button>
-      </section>
+      <PackScoring
+        scoring={pack.scoring}
+        fieldErrors={fieldErrors}
+        onChange={(scoring) => setPack({ ...pack, scoring })}
+      />
 
       <div className="ed-foot">
         <button
@@ -822,8 +731,7 @@ export function PackEditor({
         cancelLabel="Keep it"
         onCancel={() => setRemovingCategory(null)}
         onConfirm={() => {
-          if (removingCategory !== null)
-            setPack({ ...pack, categories: removeAt(pack.categories, removingCategory) });
+          if (removingCategory !== null) removeCategory(removingCategory);
           setRemovingCategory(null);
         }}
       />

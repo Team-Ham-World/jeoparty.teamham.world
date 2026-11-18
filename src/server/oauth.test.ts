@@ -60,15 +60,20 @@ describe("HAM OAuth port from Pusoy", () => {
     const r = await b.callback(await b.decide(await b.beginLogin(path)));
     expect(r.headers.get("location")).toBe("/");
   });
-  it.each(["/", "/r/BCDFG", "/host/BCDFG", "/packs", "/packs/own-pack"])(
-    "preserves allowlisted path %s",
-    async (path) => {
-      h = await harness();
-      const b = new Browser(h);
-      const r = await b.callback(await b.decide(await b.beginLogin(path)));
-      expect(r.headers.get("location")).toBe(path);
-    },
-  );
+  it.each([
+    "/",
+    "/?view=create",
+    "/?view=join",
+    "/r/BCDFG",
+    "/host/BCDFG",
+    "/packs",
+    "/packs/own-pack",
+  ])("preserves allowlisted path %s", async (path) => {
+    h = await harness();
+    const b = new Browser(h);
+    const r = await b.callback(await b.decide(await b.beginLogin(path)));
+    expect(r.headers.get("location")).toBe(path);
+  });
   it("rejects mismatch and wrong-browser state without consuming the rightful attempt", async () => {
     h = await harness();
     const a = new Browser(h),
