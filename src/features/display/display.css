@@ -135,8 +135,7 @@
     transform: rotate(-15deg);
   }
 
-  .tv-planet::before {
-    content: "";
+  .tv-planet__globe {
     display: block;
     width: 57%;
     aspect-ratio: 1;
@@ -147,6 +146,7 @@
       linear-gradient(140deg, #ffe3b4, var(--tv-accent) 62%, #f47989);
   }
 
+  .tv-planet::before,
   .tv-planet::after {
     content: "";
     position: absolute;
@@ -156,6 +156,15 @@
     outline: 1px solid var(--tv-lilac);
     outline-offset: 0.15em;
     transform: rotate(-12deg);
+  }
+
+  .tv-planet::before {
+    z-index: -1;
+  }
+
+  /* Only the near half of each tilted ring passes in front of the globe. */
+  .tv-planet::after {
+    clip-path: inset(50% -1em -1em);
   }
 
   .tv-main {

@@ -105,7 +105,9 @@ export function DisplayScreen({
             <DisplayTitle />
           </div>
           <div className="tv-masthead__aside">
-            <span className="tv-planet" aria-hidden="true" />
+            <span className="tv-planet" aria-hidden="true">
+              <span className="tv-planet__globe" />
+            </span>
             {view.phase !== "lobby" ? (
               <p className="tv-masthead__note name">
                 Join at <strong>{shortUrl(joinUrl)}</strong>

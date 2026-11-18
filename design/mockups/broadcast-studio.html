@@ -609,8 +609,7 @@
         transform: rotate(-15deg);
         flex: none;
       }
-      #broadcast .planet:before {
-        content: "";
+      #broadcast .planet-globe {
         display: block;
         width: 57%;
         aspect-ratio: 1;
@@ -620,6 +619,7 @@
           repeating-linear-gradient(10deg, transparent 0 11%, var(--ink) 12% 15%),
           linear-gradient(120deg, #ffe3b4, var(--peach));
       }
+      #broadcast .planet:before,
       #broadcast .planet:after {
         content: "";
         position: absolute;
@@ -627,6 +627,12 @@
         border: 2px solid var(--light);
         border-radius: 50%;
         transform: rotate(-12deg);
+      }
+      #broadcast .planet:before {
+        z-index: -1;
+      }
+      #broadcast .planet:after {
+        clip-path: inset(50% -1em -1em);
       }
       #broadcast .board {
         display: grid;
@@ -4245,7 +4251,7 @@
                     ? "Final round"
                     : v.round?.title || "Game night",
             ) +
-            '</span><div class="showlogo">HAM <i>QUIZ</i></div></div><div class="planet" aria-hidden="true"></div></div>' +
+            '</span><div class="showlogo">HAM <i>QUIZ</i></div></div><div class="planet" aria-hidden="true"><span class="planet-globe"></span></div></div>' +
             sharedGame(v) +
             timer(v) +
             "</section>"
